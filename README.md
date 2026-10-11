@@ -51,12 +51,12 @@ translations` after cloning and after every update, as below.
 
 ## Public chart
 
-Under **Settings → Public chart** a user can share their chart and stat boxes
-(including the BMI and height) on a public page at `/public/<id>`, which anyone
-with the link can open and which can be embedded in another website; the
-settings show the address and an `<iframe>` code to copy. The stat boxes can be
-switched off there, leaving only the chart and its range buttons. The day notes, the
-email address and the daily log are never shown. The proposed ID is the SHA-256
+Under **Settings → Public chart** a user can share their chart (with the BMI
+axis) on a public page at `/public/<id>`, which anyone with the link can open
+and which can be embedded in another website; the settings show the address and
+an `<iframe>` code to copy. By default the page shows only the chart and its
+range buttons; the stat boxes (including the BMI and height) can be switched on
+there. The day notes, the email address and the daily log are never shown. The proposed ID is the SHA-256
 of the user's email address and the time in seconds (not the email hash, which is
 also the Gravatar id); the user can choose their own instead: 3 to 64 letters
 (a-z), digits, hyphens or underscores, unique among all users and not

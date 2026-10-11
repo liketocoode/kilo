@@ -71,8 +71,8 @@ class User(db.Model):
     # lowercase and unique among all users, shared or not.
     public_enabled = db.Column(db.Boolean, nullable=False, default=False)
     public_id = db.Column(db.String(64), nullable=True, unique=True, index=True)
-    # Whether the public chart shows the stat boxes under it, or only the chart.
-    public_show_stats = db.Column(db.Boolean, nullable=False, default=True)
+    # Whether the public chart shows the stat boxes under it; off by default: only the chart.
+    public_show_stats = db.Column(db.Boolean, nullable=False, default=False)
 
     entries = db.relationship(
         "WeightEntry", backref="user", cascade="all, delete-orphan", lazy="dynamic"

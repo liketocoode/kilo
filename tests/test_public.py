@@ -166,15 +166,18 @@ def test_the_public_page_shows_the_chart_and_the_stat_boxes(client, owner):
     assert script_value(html, "fullBmis") is not None
 
 
-def test_the_stat_boxes_are_shown_until_turned_off(client, owner):
-    assert owner.public_show_stats is True
-    assert '<input checked id="public_show_stats"' in client.get("/settings").data.decode()
-    share(client, "mine", show_stats=False)
+def test_the_stat_boxes_are_off_until_turned_on(client, owner):
     assert owner.public_show_stats is False
     assert '<input id="public_show_stats"' in client.get("/settings").data.decode()
+    share(client, "mine", show_stats=False)
     html = client.get("/public/mine").data.decode()
     assert 'id="weight-chart"' in html and 'id="range-buttons"' in html
     assert 'class="stats' not in html and 'id="stat-current"' not in html and "Height:" not in html
+
+    share(client, "mine")
+    assert owner.public_show_stats is True
+    assert '<input checked id="public_show_stats"' in client.get("/settings").data.decode()
+    assert 'id="stat-current"' in client.get("/public/mine").data.decode()
 
 
 def test_the_dashboard_always_shows_the_stat_boxes(client, owner):
@@ -272,6 +275,6 @@ def test_an_older_database_gets_the_columns_and_the_unique_index(tmp_path):
         assert indexes["ix_user_public_id"]["unique"]
         user = User.query.one()
         assert user.public_enabled is False and user.public_id is None
-        assert user.public_show_stats is True
+        assert user.public_show_stats is False
         db.session.remove()
         db.engine.dispose()
