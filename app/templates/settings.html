@@ -150,7 +150,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
   // The public chart's full address as the browser sees it (https:// behind the proxy).
   // Refuse a file over the import limit before it is uploaded at all.
   (function () {

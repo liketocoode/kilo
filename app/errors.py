@@ -152,7 +152,7 @@ def upload_too_large(error):
 FALLBACK_500 = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kilo Tracker</title></head>
-<body style="font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem;">
+<body>
 <h1>Something went wrong</h1>
 <p>Kilo Tracker could not handle this request. Please try again in a moment.</p>
 <p><a href="/">Back to the start page</a></p>

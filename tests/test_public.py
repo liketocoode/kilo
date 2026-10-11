@@ -226,7 +226,7 @@ def test_the_public_page_may_be_shown_in_an_iframe(client, owner):
 )
 def test_every_other_page_refuses_to_be_framed(client, owner, path):
     response = client.get(path)
-    assert response.headers["Content-Security-Policy"] == "frame-ancestors 'none'"
+    assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"].split("; ")
     assert response.headers["X-Frame-Options"] == "DENY"
 
 
@@ -234,7 +234,8 @@ def test_a_public_address_without_a_chart_may_be_framed_too(client, owner):
     """An embed whose owner stopped sharing shows the short notice, not a browser error."""
     response = client.get("/public/nobody")
     assert response.status_code == 404
-    assert "X-Frame-Options" not in response.headers and "Content-Security-Policy" not in response.headers
+    assert "X-Frame-Options" not in response.headers
+    assert "frame-ancestors" not in response.headers["Content-Security-Policy"]
 
 
 def test_the_theme_follows_the_owner_or_the_address(client, owner):

@@ -64,7 +64,7 @@ case-sensitive. Turning sharing off keeps the ID, so turning it on again brings
 back the same address. Add `?theme=dark` or `?theme=light` to the address to
 override the owner's theme. The page sets no framing restriction, so any site
 can show it; every other page refuses to be shown in a frame
-(`Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`,
+(`frame-ancestors 'none'` in its Content-Security-Policy and `X-Frame-Options: DENY`,
 against clickjacking). `robots.txt` asks search engines to leave public charts
 alone. An address without a shared chart answers 404 and is written to the
 security log like any unknown page.
@@ -187,6 +187,13 @@ number that this raises, so older cookies, copied ones included, stop working). 
 signed with `SECRET_KEY` (anyone who knows the key can forge a sign-in, so keep it secret and
 constant; changing it signs everyone out) and holds the signed-in address, so with
 `SESSION_COOKIE_SECURE=1` it is only sent over HTTPS.
+
+Every response carries a strict Content-Security-Policy (`app/csp.py`): scripts, styles,
+images and `fetch()` calls may only come from Kilo itself, forms only post to Kilo, and the
+app's own inline scripts carry a nonce that is new for every response, so a script that is
+injected into a page does not run. Kilo uses no CDN or other outside source, so nothing in
+the proxy needs to change; if you add one (an analytics script, say), it has to be allowed in
+`app/csp.py`, or the browser blocks it.
 
 Values with spaces or `<>` (such as `MAIL_DEFAULT_SENDER`) are fine in a
 systemd `EnvironmentFile`; if you source the file from a shell instead, quote

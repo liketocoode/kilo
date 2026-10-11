@@ -30,7 +30,7 @@ from flask_wtf import CSRFProtect
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
-from . import i18n, security
+from . import csp, i18n, security
 
 db = SQLAlchemy()
 csrf = CSRFProtect()
@@ -145,16 +145,8 @@ def create_app(test_config=None):
         if request.endpoint == "main.import_entries":
             request.max_content_length = app.config["IMPORT_MAX_CONTENT_LENGTH"]
 
-    @app.after_request
-    def _forbid_framing(response):
-        # No other site may show Kilo in a frame: a page loaded invisibly over another site
-        # could trick a signed-in user into clicking "Remove my data" (clickjacking). The
-        # public chart is the one exception: it is made to be embedded. X-Frame-Options is
-        # for browsers that predate frame-ancestors.
-        if request.endpoint != "main.public_chart":
-            response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'")
-            response.headers.setdefault("X-Frame-Options", "DENY")
-        return response
+    # Content-Security-Policy and X-Frame-Options on every response (see app/csp.py).
+    csp.init_app(app)
 
     # Before CSRF protection: its before_request check can fail the request, and
     # the error answer must already be in the visitor's language.

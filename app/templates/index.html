@@ -211,7 +211,7 @@
 {# Chart.js 4.4.4 (MIT), served from here rather than a CDN so no visitor data goes to a third
    party; see app/static/vendor/README.md. #}
 <script src="{{ url_for('static', filename='vendor/chartjs-4.4.4/chart.umd.js') }}"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
   {% if not public %}
   const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
   {% endif %}
