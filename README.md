@@ -63,9 +63,11 @@ also the Gravatar id); the user can choose their own instead: 3 to 64 letters
 case-sensitive. Turning sharing off keeps the ID, so turning it on again brings
 back the same address. Add `?theme=dark` or `?theme=light` to the address to
 override the owner's theme. The page sets no framing restriction, so any site
-can show it; `robots.txt` asks search engines to leave it alone. An address
-without a shared chart answers 404 and is written to the security log like any
-unknown page.
+can show it; every other page refuses to be shown in a frame
+(`Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`,
+against clickjacking). `robots.txt` asks search engines to leave public charts
+alone. An address without a shared chart answers 404 and is written to the
+security log like any unknown page.
 
 ## Email sign-up
 
