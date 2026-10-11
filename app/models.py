@@ -65,6 +65,9 @@ class User(db.Model):
     dark_mode = db.Column(db.Boolean, nullable=False, default=False)
     chart_range = db.Column(db.String(4), nullable=False, default="all")
     moving_avg_days = db.Column(db.Integer, nullable=False, default=10)
+    # Raised by "Sign out everywhere": a session cookie that carries an older number is no longer
+    # accepted (see auth.keep_session_alive). Cookies from before this column count as 0.
+    session_version = db.Column(db.Integer, nullable=False, default=0)
 
     # The public chart at /public/<public_id> (see routes.public_chart). The id is kept when
     # sharing is turned off, so turning it on again brings back the same address; it is

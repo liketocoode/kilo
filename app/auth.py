@@ -25,7 +25,7 @@ import time
 from datetime import timedelta
 from functools import wraps
 
-from flask import Blueprint, current_app, flash, redirect, render_template, session, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from flask_babel import get_locale, gettext as _
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -72,8 +72,16 @@ def keep_session_alive():
     (SESSION_ABSOLUTE_LIFETIME) the user has to sign in again, however active they are, so a
     copied cookie cannot be kept alive for ever. Sessions from before this existed (no
     `login_at`) are adopted: their 90 days start at the first visit.
+
+    A session whose `session_version` is older than the user's has been signed out by "Sign out
+    everywhere" (account.sign_out_everywhere). A session without one counts as 0, never as the
+    current number: adopting it would let a copied cookie from before that survive.
     """
-    if "user_id" not in session:
+    if "user_id" not in session or request.endpoint == "static":
+        return
+    user = db.session.get(User, session["user_id"])
+    if user is not None and session.get("session_version", 0) != user.session_version:
+        session.clear()
         return
     now = int(time.time())
     login_at = session.get("login_at")
@@ -184,6 +192,7 @@ def verify():
             session["user_id"] = user.id
             session["email"] = email
             session["login_at"] = int(time.time())
+            session["session_version"] = user.session_version
             session.permanent = True  # the cookie outlives the browser window, see keep_session_alive
             flash(_("Email verified — you're signed in."), "success")
             return redirect(url_for("main.index"))

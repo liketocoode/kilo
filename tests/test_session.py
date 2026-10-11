@@ -219,3 +219,95 @@ def test_the_defaults():
     assert app.config["SESSION_ABSOLUTE_LIFETIME"] == timedelta(days=90)
     assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
     assert app.config["SESSION_COOKIE_HTTPONLY"] is True
+
+
+# --- "Sign out everywhere" -----------------------------------------------------------------------
+
+
+def signed_in(client):
+    return 'id="account-menu"' in client.get("/").get_data(as_text=True)
+
+
+@pytest.fixture
+def two_devices(app):
+    """The same user signed in on a laptop and a phone."""
+    laptop, phone = app.test_client(), app.test_client()
+    sign_in(laptop)
+    sign_in(phone)
+    assert signed_in(laptop) and signed_in(phone)
+    return laptop, phone
+
+
+def test_signing_out_everywhere_ends_the_other_sessions_but_not_this_one(two_devices):
+    laptop, phone = two_devices
+    response = laptop.post("/settings/sign-out-everywhere")
+    assert response.status_code == 302 and response.location == "/settings"
+    assert "You are now signed out on all other browsers and devices." in laptop.get("/settings").get_data(
+        as_text=True
+    )
+    assert signed_in(laptop)
+    assert not signed_in(phone)
+    with phone.session_transaction() as sess:
+        assert "user_id" not in sess and "email" not in sess  # the old cookie is emptied
+
+
+def test_a_copied_cookie_stops_working_too(app, two_devices):
+    laptop, _phone = two_devices
+    with laptop.session_transaction() as sess:
+        copied = dict(sess)
+    thief = app.test_client()
+    with thief.session_transaction() as sess:
+        sess.update(copied)
+    assert signed_in(thief)
+    laptop.post("/settings/sign-out-everywhere")
+    assert not signed_in(thief)
+
+
+def test_a_cookie_from_before_the_feature_counts_as_number_0(app, two_devices):
+    laptop, phone = two_devices
+    with phone.session_transaction() as sess:
+        del sess["session_version"]  # signed in before session_version existed
+    assert signed_in(phone)  # still fine until "sign out everywhere" is used
+    laptop.post("/settings/sign-out-everywhere")
+    assert not signed_in(phone)  # not adopted as the new number
+
+
+def test_signing_in_again_afterwards_works(two_devices):
+    laptop, phone = two_devices
+    laptop.post("/settings/sign-out-everywhere")
+    sign_in(phone)
+    assert signed_in(phone) and signed_in(laptop)
+
+
+def test_it_can_be_used_more_than_once(two_devices):
+    laptop, phone = two_devices
+    laptop.post("/settings/sign-out-everywhere")
+    sign_in(phone)
+    phone.post("/settings/sign-out-everywhere")
+    assert signed_in(phone) and not signed_in(laptop)
+    assert User.query.one().session_version == 2
+
+
+def test_other_users_stay_signed_in(app, two_devices):
+    laptop, _phone = two_devices
+    other = app.test_client()
+    sign_in(other, "other@example.com")
+    laptop.post("/settings/sign-out-everywhere")
+    assert signed_in(other)
+
+
+def test_it_needs_a_post_a_sign_in_and_a_csrf_token(app, client, two_devices):
+    laptop, phone = two_devices
+    assert laptop.get("/settings/sign-out-everywhere").status_code in (302, 405)
+    assert client.post("/settings/sign-out-everywhere").status_code == 302  # signed out: to the start page
+    app.config["WTF_CSRF_ENABLED"] = True
+    laptop.post("/settings/sign-out-everywhere")  # no token: refused, nothing changes
+    assert signed_in(phone)
+    assert User.query.one().session_version == 0
+
+
+def test_the_settings_page_offers_it(logged_in_client):
+    client, _user_id = logged_in_client
+    html = client.get("/settings").get_data(as_text=True)
+    assert 'action="/settings/sign-out-everywhere"' in html
+    assert "Sign out on other devices" in html

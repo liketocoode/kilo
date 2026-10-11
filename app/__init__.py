@@ -195,6 +195,7 @@ def _add_missing_columns():
         "public_enabled": "BOOLEAN NOT NULL DEFAULT 0",
         "public_id": "VARCHAR(64)",
         "public_show_stats": "BOOLEAN NOT NULL DEFAULT 0",
+        "session_version": "INTEGER NOT NULL DEFAULT 0",
     }
     for name, ddl in new_columns.items():
         if name not in existing:

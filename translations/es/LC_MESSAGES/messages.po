@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-11 23:29+0200\n"
+"POT-Creation-Date: 2026-10-12 00:20+0200\n"
 "PO-Revision-Date: 2026-10-02 16:37+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: es\n"
@@ -18,6 +18,10 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+# machine-translated
+msgid "You are now signed out on all other browsers and devices."
+msgstr "Has cerrado sesión en todos los demás navegadores y dispositivos."
 
 # machine-translated
 msgid "Download your data first."
@@ -992,6 +996,27 @@ msgstr ""
 # machine-translated
 msgid "Export CSV"
 msgstr "Exportar CSV"
+
+# machine-translated
+#. Heading of the settings section that ends the sign-in on every other browser
+#. and device.
+msgid "Sign out everywhere"
+msgstr "Cerrar sesión en todas partes"
+
+# machine-translated
+msgid ""
+"Signed in on a computer that isn't yours, or lost a phone? This signs you "
+"out on every other browser and device. You stay signed in here."
+msgstr ""
+"¿Iniciaste sesión en un ordenador que no es tuyo o perdiste el teléfono? "
+"Esto cierra tu sesión en todos los demás navegadores y dispositivos. Aquí "
+"sigues con la sesión iniciada."
+
+# machine-translated
+#. Button that ends the sign-in on all other browsers and devices (not on this
+#. one).
+msgid "Sign out on other devices"
+msgstr "Cerrar sesión en otros dispositivos"
 
 # machine-translated
 msgid ""

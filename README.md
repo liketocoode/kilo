@@ -181,7 +181,9 @@ RATELIMIT_MODE=log
 
 Signed-in users stay signed in when they close the browser: the `session` cookie lasts
 30 days after the last visit (renewed on every visit) and never more than 90 days after the
-sign-in, after which the email code is asked for again. Logging out removes it. The cookie is
+sign-in, after which the email code is asked for again. Logging out removes it, and
+**Settings → Sign out everywhere** ends every other session of that user (each cookie carries a
+number that this raises, so older cookies, copied ones included, stop working). The cookie is
 signed with `SECRET_KEY` (anyone who knows the key can forge a sign-in, so keep it secret and
 constant; changing it signs everyone out) and holds the signed-in address, so with
 `SESSION_COOKIE_SECURE=1` it is only sent over HTTPS.

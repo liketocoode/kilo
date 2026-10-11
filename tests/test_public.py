@@ -286,7 +286,7 @@ def test_an_older_database_gets_the_columns_and_the_unique_index(tmp_path):
     made = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{path}"})
     with made.app_context():
         columns = {c["name"] for c in inspect(db.engine).get_columns("user")}
-        assert {"public_enabled", "public_id", "public_show_stats"} <= columns
+        assert {"public_enabled", "public_id", "public_show_stats", "session_version"} <= columns
         indexes = {i["name"]: i for i in inspect(db.engine).get_indexes("user")}
         assert indexes["ix_user_public_id"]["unique"]
         user = User.query.one()

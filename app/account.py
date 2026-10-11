@@ -11,9 +11,9 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-"""Account data removal ("Remove my data").
+"""Account actions: "Sign out everywhere" and data removal ("Remove my data").
 
-A three-step flow behind /settings/remove: the user first downloads their data
+Removal is a three-step flow behind /settings/remove: the user first downloads their data
 (the CSV export sets a flag in the session), then requests a confirmation code
 by email, and finally enters that code to permanently delete their account and
 all their weight entries.
@@ -35,6 +35,23 @@ from app.security import log_event
 from app.utils import DELETE_CODE_TTL_MINUTES, utcnow
 
 bp = Blueprint("account", __name__)
+
+
+@bp.route("/settings/sign-out-everywhere", methods=["POST"])
+@login_required
+def sign_out_everywhere():
+    """Sign out every other browser and device; this one stays signed in.
+
+    Sessions are signed cookies with no list of them on the server, so each one carries the
+    user's `session_version` from its sign-in; raising the number makes every older cookie
+    invalid at its next request (see auth.keep_session_alive). This session takes the new number.
+    """
+    user = get_current_user()
+    user.session_version += 1
+    db.session.commit()
+    session["session_version"] = user.session_version
+    flash(_("You are now signed out on all other browsers and devices."), "success")
+    return redirect(url_for("main.settings"))
 
 
 def _code_pending(user):

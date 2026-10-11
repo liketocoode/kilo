@@ -131,6 +131,17 @@
   </section>
 
   <section class="add-entry">
+    {# NOTE: Heading of the settings section that ends the sign-in on every other browser and device. #}
+    <h2>{{ _("Sign out everywhere") }}</h2>
+    <p>{{ _("Signed in on a computer that isn't yours, or lost a phone? This signs you out on every other browser and device. You stay signed in here.") }}</p>
+    <form method="post" action="{{ url_for('account.sign_out_everywhere') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {# NOTE: Button that ends the sign-in on all other browsers and devices (not on this one). #}
+      <button type="submit">{{ _("Sign out on other devices") }}</button>
+    </form>
+  </section>
+
+  <section class="add-entry">
     <h2>{{ _("Remove my data") }}</h2>
     <p>{% trans trimmed %}Permanently delete your account and all your weigh-ins. You'll be asked
       to download your data and confirm with a code sent by email first.{% endtrans %}</p>

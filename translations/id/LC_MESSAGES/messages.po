@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-11 23:29+0200\n"
+"POT-Creation-Date: 2026-10-12 00:20+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: id\n"
@@ -18,6 +18,10 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+# machine-translated
+msgid "You are now signed out on all other browsers and devices."
+msgstr "Kamu sekarang sudah keluar di semua browser dan perangkat lain."
 
 # machine-translated
 msgid "Download your data first."
@@ -969,6 +973,26 @@ msgstr ""
 # machine-translated
 msgid "Export CSV"
 msgstr "Ekspor CSV"
+
+# machine-translated
+#. Heading of the settings section that ends the sign-in on every other browser
+#. and device.
+msgid "Sign out everywhere"
+msgstr "Keluar di semua tempat"
+
+# machine-translated
+msgid ""
+"Signed in on a computer that isn't yours, or lost a phone? This signs you "
+"out on every other browser and device. You stay signed in here."
+msgstr ""
+"Masuk di komputer yang bukan milikmu, atau ponselmu hilang? Ini membuatmu "
+"keluar di semua browser dan perangkat lain. Di sini kamu tetap masuk."
+
+# machine-translated
+#. Button that ends the sign-in on all other browsers and devices (not on this
+#. one).
+msgid "Sign out on other devices"
+msgstr "Keluar di perangkat lain"
 
 # machine-translated
 msgid ""
