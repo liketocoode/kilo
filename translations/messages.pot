@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker VERSION\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-10 22:58+0200\n"
+"POT-Creation-Date: 2026-10-11 16:55+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -163,6 +163,28 @@ msgid ""
 "%(max_m)s m)."
 msgstr ""
 
+#. NOTE: Switch in the settings that makes the weight chart visible on a public
+#. web page.
+msgid "Share my chart on a public page"
+msgstr ""
+
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
+msgid "Show the stat boxes on the public page"
+msgstr ""
+
+#. NOTE: Label of the field with the last part of the public page's web
+#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+msgid "Page ID"
+msgstr ""
+
+#, python-format
+msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
+msgstr ""
+
+msgid "That ID is already taken. Choose another one."
+msgstr ""
+
 msgid "CSV or XML file"
 msgstr ""
 
@@ -271,6 +293,12 @@ msgid "Invalid range."
 msgstr ""
 
 msgid "Settings updated."
+msgstr ""
+
+msgid "Your chart is now public."
+msgstr ""
+
+msgid "Your chart is no longer public."
 msgstr ""
 
 #, python-format
@@ -390,6 +418,10 @@ msgstr ""
 msgid "Log out"
 msgstr ""
 
+#. Title of the public page that shows someone's weight chart.
+msgid "Weight chart"
+msgstr ""
+
 msgid "View or edit note"
 msgstr ""
 
@@ -414,6 +446,9 @@ msgstr ""
 
 #. Label above the latest moving-average weight.
 msgid "Current average"
+msgstr ""
+
+msgid "No entries yet."
 msgstr ""
 
 msgid "No entries yet — add your weight below."
@@ -558,6 +593,11 @@ msgstr ""
 msgid "How does this work?"
 msgstr ""
 
+#. Shown at a public chart's address when there is no chart there, or its owner
+#. stopped sharing it.
+msgid "There is no public chart at this address (any more)."
+msgstr ""
+
 msgid "Remove my data"
 msgstr ""
 
@@ -617,6 +657,29 @@ msgid "Send confirmation code"
 msgstr ""
 
 msgid "Your height is used to calculate your BMI."
+msgstr ""
+
+#. Heading of the settings section about showing the weight chart on a public
+#. web page.
+msgid "Public chart"
+msgstr ""
+
+msgid ""
+"Show your chart and stat boxes on a public page that anyone with the link"
+" can see, and that you can embed in another website. Your notes, your "
+"email address and your daily log are never shown."
+msgstr ""
+
+#, python-format
+msgid ""
+"The last part of the page's address: %(min)d to %(max)d letters (a-z), "
+"digits, hyphens or underscores. Leave it empty for a new random ID."
+msgstr ""
+
+msgid "Your public chart:"
+msgstr ""
+
+msgid "To show it in another website, put this code in that page's HTML:"
 msgstr ""
 
 msgid "Import data"

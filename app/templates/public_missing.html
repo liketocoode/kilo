@@ -1,0 +1,10 @@
+{% extends "public_base.html" %}
+
+{% block title %}{{ _("Weight chart") }} — Kilo Tracker{% endblock %}
+
+{% block content %}
+  <section class="add-entry">
+    {# NOTE: Shown at a public chart's address when there is no chart there, or its owner stopped sharing it. #}
+    <p>{{ _("There is no public chart at this address (any more).") }}</p>
+  </section>
+{% endblock %}

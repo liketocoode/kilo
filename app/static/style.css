@@ -902,6 +902,63 @@ code {
   color: #fff;
 }
 
+/* The public chart (/public/<id>, also inside other sites' iframes): the chart over the stat
+   boxes in one column at every size, with no daily log. The chart takes the height the stat
+   boxes leave (flex-basis 0, so it can shrink again when the window does), never less than
+   240px; below that the page scrolls. Two classes per selector, so these win over the
+   responsive rules below. */
+body.dashboard-body.public-body {
+  height: auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.public-body main.dashboard-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.dashboard.public-dashboard {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  overflow: visible;
+}
+
+.public-dashboard .chart-wrap {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 240px;
+}
+
+.public-dashboard .stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  overflow: visible;
+}
+
+@media (max-width: 720px) {
+  .public-dashboard .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Settings: a short explanation under a field, and the iframe code to copy. */
+.field-hint {
+  margin: 0.3rem 0 0;
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
+.embed-code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* ---- Responsive layout ------------------------------------------------
    Three independent rules, from the outside in. They must stay last so they
    override the orientation rules above.

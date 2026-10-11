@@ -44,6 +44,53 @@
     </form>
   </section>
 
+  <section class="add-entry" id="public-chart">
+    {# NOTE: Heading of the settings section about showing the weight chart on a public web page. #}
+    <h2>{{ _("Public chart") }}</h2>
+    <p>{{ _("Show your chart and stat boxes on a public page that anyone with the link can see, and that you can embed in another website. Your notes, your email address and your daily log are never shown.") }}</p>
+    <form method="post" action="{{ url_for('main.set_public_chart') }}" class="entry-form">
+      {{ public_form.hidden_tag() }}
+      <div class="field field-wide">
+        <label class="toggle-row">
+          {{ public_form.public_enabled.label.text }}
+          <span class="toggle-switch">
+            {{ public_form.public_enabled() }}
+            <span class="toggle-slider"></span>
+          </span>
+        </label>
+      </div>
+      <div class="field field-wide">
+        <label class="toggle-row">
+          {{ public_form.public_show_stats.label.text }}
+          <span class="toggle-switch">
+            {{ public_form.public_show_stats() }}
+            <span class="toggle-slider"></span>
+          </span>
+        </label>
+      </div>
+      <div class="field field-wide">
+        {{ public_form.public_id.label }}
+        {{ public_form.public_id(autocomplete="off", spellcheck="false", autocapitalize="none", maxlength=public_form.MAX_ID_LENGTH) }}
+        <p class="field-hint">{{ _("The last part of the page's address: %(min)d to %(max)d letters (a-z), digits, hyphens or underscores. Leave it empty for a new random ID.", min=public_form.MIN_ID_LENGTH, max=public_form.MAX_ID_LENGTH) }}</p>
+        {% for error in public_form.public_id.errors %}
+          <p class="flash flash-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+      {# NOTE: Button that saves the settings (verb). #}
+      <button type="submit">{{ _("Save") }}</button>
+    </form>
+    {% if user.public_enabled and user.public_id %}
+      {% set public_path = url_for('main.public_chart', public_id=user.public_id) %}
+      {# The full addresses are completed by the script below with the address the browser
+         sees: behind a proxy the server itself may only know http://. #}
+      {% set public_url = request.host_url.rstrip('/') ~ public_path %}
+      <p>{{ _("Your public chart:") }}
+        <a href="{{ public_path }}" target="_blank" rel="noopener" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">{{ public_url }}</a></p>
+      <p>{{ _("To show it in another website, put this code in that page's HTML:") }}</p>
+      <pre class="csv-example embed-code" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">&lt;iframe src="{{ public_url }}" title="Kilo Tracker" width="100%" height="600" style="border: 0;" loading="lazy"&gt;&lt;/iframe&gt;</pre>
+    {% endif %}
+  </section>
+
   <section class="add-entry">
     <h2>{{ _("Import data") }}</h2>
     {# NOTE: The text in <code> only names the three columns of a line such as 23-9-26,79.7,text. Translate the names (date, weight, note): the file itself has no header and is the same in every language. #}
@@ -84,4 +131,13 @@
       to download your data and confirm with a code sent by email first.{% endtrans %}</p>
     <a class="button-link button-danger" href="{{ url_for('account.remove_data') }}">{{ _("Remove my data…") }}</a>
   </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // The public chart's full address as the browser sees it (https:// behind the proxy).
+  document.querySelectorAll('[data-public-path]').forEach(function (el) {
+    el.textContent = el.textContent.split(el.dataset.serverUrl).join(location.origin + el.dataset.publicPath);
+  });
+</script>
 {% endblock %}

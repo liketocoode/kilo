@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-10 22:58+0200\n"
+"POT-Creation-Date: 2026-10-11 16:55+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: fi\n"
@@ -216,6 +216,35 @@ msgid ""
 msgstr "Pituuden on oltava %(min_cm)s–%(max_cm)s cm (%(min_m)s–%(max_m)s m)."
 
 # machine-translated
+#. NOTE: Switch in the settings that makes the weight chart visible on a public
+#. web page.
+msgid "Share my chart on a public page"
+msgstr "Jaa kaavioni julkisella sivulla"
+
+# machine-translated
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
+msgid "Show the stat boxes on the public page"
+msgstr "Näytä tilastoruudut julkisella sivulla"
+
+# machine-translated
+#. NOTE: Label of the field with the last part of the public page's web
+#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+msgid "Page ID"
+msgstr "Sivun tunnus"
+
+# machine-translated
+#, python-format
+msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
+msgstr ""
+"Käytä %(min)d–%(max)d kirjainta (a-z), numeroita, yhdysviivoja tai "
+"alaviivoja."
+
+# machine-translated
+msgid "That ID is already taken. Choose another one."
+msgstr "Tunnus on jo käytössä. Valitse toinen."
+
+# machine-translated
 msgid "CSV or XML file"
 msgstr "CSV- tai XML-tiedosto"
 
@@ -351,6 +380,14 @@ msgstr "Virheellinen alue."
 # machine-translated
 msgid "Settings updated."
 msgstr "Asetukset päivitetty."
+
+# machine-translated
+msgid "Your chart is now public."
+msgstr "Kaaviosi on nyt julkinen."
+
+# machine-translated
+msgid "Your chart is no longer public."
+msgstr "Kaaviosi ei ole enää julkinen."
 
 # machine-translated
 #, python-format
@@ -517,6 +554,11 @@ msgid "Log out"
 msgstr "Kirjaudu ulos"
 
 # machine-translated
+#. Title of the public page that shows someone's weight chart.
+msgid "Weight chart"
+msgstr "Painokaavio"
+
+# machine-translated
 msgid "View or edit note"
 msgstr "Näytä tai muokkaa muistiinpanoa"
 
@@ -548,6 +590,10 @@ msgstr "Tallenna"
 #. Label above the latest moving-average weight.
 msgid "Current average"
 msgstr "Nykyinen keskiarvo"
+
+# machine-translated
+msgid "No entries yet."
+msgstr "Ei vielä merkintöjä."
 
 # machine-translated
 msgid "No entries yet — add your weight below."
@@ -734,6 +780,12 @@ msgid "How does this work?"
 msgstr "Miten tämä toimii?"
 
 # machine-translated
+#. Shown at a public chart's address when there is no chart there, or its owner
+#. stopped sharing it.
+msgid "There is no public chart at this address (any more)."
+msgstr "Tässä osoitteessa ei ole (enää) julkista kaaviota."
+
+# machine-translated
 msgid "Remove my data"
 msgstr "Poista tietoni"
 
@@ -813,6 +865,40 @@ msgstr "Lähetä vahvistuskoodi"
 # machine-translated
 msgid "Your height is used to calculate your BMI."
 msgstr "Pituuttasi käytetään BMI:n laskemiseen."
+
+# machine-translated
+#. Heading of the settings section about showing the weight chart on a public
+#. web page.
+msgid "Public chart"
+msgstr "Julkinen kaavio"
+
+# machine-translated
+msgid ""
+"Show your chart and stat boxes on a public page that anyone with the link "
+"can see, and that you can embed in another website. Your notes, your email "
+"address and your daily log are never shown."
+msgstr ""
+"Näytä kaaviosi ja tilastoruutusi julkisella sivulla, jonka kuka tahansa "
+"linkin saanut voi nähdä ja jonka voit upottaa toiseen verkkosivustoon. "
+"Muistiinpanojasi, sähköpostiosoitettasi ja päiväkirjaasi ei koskaan näytetä."
+
+# machine-translated
+#, python-format
+msgid ""
+"The last part of the page's address: %(min)d to %(max)d letters (a-z), "
+"digits, hyphens or underscores. Leave it empty for a new random ID."
+msgstr ""
+"Sivun osoitteen viimeinen osa: %(min)d–%(max)d kirjainta (a-z), numeroita, "
+"yhdysviivoja tai alaviivoja. Jätä tyhjäksi, niin saat uuden satunnaisen "
+"tunnuksen."
+
+# machine-translated
+msgid "Your public chart:"
+msgstr "Julkinen kaaviosi:"
+
+# machine-translated
+msgid "To show it in another website, put this code in that page's HTML:"
+msgstr "Näyttääksesi sen toisella sivustolla lisää tämä koodi sen sivun HTML:ään:"
 
 # machine-translated
 msgid "Import data"

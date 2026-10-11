@@ -14,7 +14,8 @@ great on your phone, shows your BMI at a glance, and you can import or export
 all your data as CSV whenever you like (the CSV and XML exports of
 [The Hacker's Diet Online](https://www.fourmilab.ch/hackdiet/online/hdo.html) and
 the CSV export of [Yet Another Diet Tool](https://yadt.iotide.com/) can be
-imported too).
+imported too). You can even share your chart on a public page, or embed it in
+your own website.
 Give it a spin, and if you'd rather host it yourself, everything you need is
 below.
 
@@ -47,6 +48,24 @@ no switcher); add `?lang=de` to a URL to try another one. The translations are
 machine-generated and welcome improvements: see [TRANSLATING.md](TRANSLATING.md).
 The compiled catalogs (`*.mo`) are not in git: run `pybabel compile -d
 translations` after cloning and after every update, as below.
+
+## Public chart
+
+Under **Settings → Public chart** a user can share their chart and stat boxes
+(including the BMI and height) on a public page at `/public/<id>`, which anyone
+with the link can open and which can be embedded in another website; the
+settings show the address and an `<iframe>` code to copy. The stat boxes can be
+switched off there, leaving only the chart and its range buttons. The day notes, the
+email address and the daily log are never shown. The proposed ID is the SHA-256
+of the user's email address and the time in seconds (not the email hash, which is
+also the Gravatar id); the user can choose their own instead: 3 to 64 letters
+(a-z), digits, hyphens or underscores, unique among all users and not
+case-sensitive. Turning sharing off keeps the ID, so turning it on again brings
+back the same address. Add `?theme=dark` or `?theme=light` to the address to
+override the owner's theme. The page sets no framing restriction, so any site
+can show it; `robots.txt` asks search engines to leave it alone. An address
+without a shared chart answers 404 and is written to the security log like any
+unknown page.
 
 ## Email sign-up
 

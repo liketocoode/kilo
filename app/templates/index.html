@@ -1,6 +1,10 @@
-{% extends "base.html" %}
+{# The dashboard, and with `public` the owner's shared chart (/public/<id>): the same chart and
+   stat boxes, without the daily log, the notes and anything that saves. #}
+{% extends "public_base.html" if public else "base.html" %}
 
-{% block body_class %}dashboard-body{% endblock %}
+{# NOTE: Title of the public page that shows someone's weight chart. #}
+{% block title %}{% if public %}{{ _("Weight chart") }} — {% endif %}Kilo Tracker{% endblock %}
+{% block body_class %}dashboard-body{{ ' public-body' if public }}{% endblock %}
 {% block main_class %}dashboard-main{% endblock %}
 
 {% macro day_row(day) %}
@@ -27,7 +31,7 @@
 {% endmacro %}
 
 {% block content %}
-  <div class="dashboard">
+  <div class="dashboard{{ ' public-dashboard' if public }}">
     <section class="chart-wrap">
       <div class="chart-header">
         <div class="range-buttons" id="range-buttons">
@@ -46,6 +50,7 @@
       </div>
     </section>
 
+    {% if show_stats %}
     {# Below BMI 22 losing weight is the bad direction, so the change colours flip (see .bmi-low in style.css). #}
     <section class="stats{{ ' bmi-low' if bmi is not none and bmi < 22 }}">
       {% if stats %}
@@ -54,6 +59,8 @@
           <span class="stat-label">{{ _("Current average") }}</span>
           <span class="stat-value" id="stat-current">{{ stats.current|kg }}</span>
         </div>
+      {% elif public %}
+        <p class="empty" id="stat-empty">{{ _("No entries yet.") }}</p>
       {% else %}
         <p class="empty" id="stat-empty">{{ _("No entries yet — add your weight below.") }}</p>
       {% endif %}
@@ -63,10 +70,10 @@
         <span class="stat-value" id="stat-bmi">
           {% if bmi %}{{ bmi|decimal1 }}{% else %}—{% endif %}
         </span>
-        {% if current_user.height_cm %}
+        {% if height_cm %}
           {# NOTE: Third line of the BMI box: the body height in metres, for example "Height: 1.86 m". %(height)s already includes the unit. #}
-          <span class="stat-sub" id="stat-height">{{ _("Height: %(height)s", height=(current_user.height_cm / 100)|meters) }}</span>
-        {% else %}
+          <span class="stat-sub" id="stat-height">{{ _("Height: %(height)s", height=(height_cm / 100)|meters) }}</span>
+        {% elif not public %}
           <a class="stat-hint" href="{{ url_for('main.settings') }}">{{ _("Set your height") }}</a>
         {% endif %}
       </div>
@@ -98,7 +105,9 @@
         </div>
       {% endif %}
     </section>
+    {% endif %}
 
+    {% if not public %}
     <section class="entries">
       <div class="entries-head">
         <div class="page-head log-head">
@@ -137,8 +146,10 @@
       <div id="scroll-sentinel" data-oldest="{{ grid_days[-1].date if grid_days else '' }}"></div>
       <p class="loading-hint" id="loading-hint" hidden>{{ _("Loading more days…") }}</p>
     </section>
+    {% endif %}
   </div>
 
+  {% if not public %}
   <div class="modal-overlay" id="today-prompt" hidden>
     <div class="modal-box">
       <h3>{{ _("Log today's weight?") }}</h3>
@@ -178,6 +189,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -200,7 +212,9 @@
    party; see app/static/vendor/README.md. #}
 <script src="{{ url_for('static', filename='vendor/chartjs-4.4.4/chart.umd.js') }}"></script>
 <script>
+  {% if not public %}
   const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+  {% endif %}
 
   // Numbers and dates follow the page language (LOCALE, set in base.html).
   // Weights always show one decimal, like the server-rendered ones.
@@ -404,7 +418,7 @@
   // pixel height for each BMI threshold, so the background reads as fixed
   // "zones" (red high / green healthy / red low) regardless of where the
   // line's trend actually falls in time.
-  const heightCm = {{ (current_user.height_cm if current_user else none)|tojson }};
+  const heightCm = {{ height_cm|tojson }};
   // One gradient stop per color stop (top of the chart = highest BMI).
   const BMI_GRADIENT_STOPS = [BMI_LUT_MAX, ...BMI_COLOR_STOPS.map((s) => s[0]).reverse(), BMI_LUT_MIN];
 
@@ -790,13 +804,16 @@
           title: { display: true, text: t('bmi') },
         },
       },
+      {% if not public %}
       onClick(evt, elements, chartInstance) {
         if (!elements.length) return;
         const dateStr = chartInstance.data.labels[elements[0].index];
         if (dateStr) scrollToDate(dateStr);
       },
+      {% endif %}
       onHover(evt, elements) {
-        const cursor = elements.length ? 'pointer' : 'default';
+        // A point jumps to its day in the daily log, which the public page does not have.
+        const cursor = elements.length && !{{ public|tojson }} ? 'pointer' : 'default';
         if (evt.native.target.style.cursor !== cursor) {
           evt.native.target.style.cursor = cursor;
         }
@@ -974,6 +991,7 @@
   document.querySelectorAll('.range-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       applyRange(btn.dataset.range);
+      {% if not public %}
       try {
         await fetch('{{ url_for("main.set_chart_range") }}', {
           method: 'POST',
@@ -983,6 +1001,7 @@
       } catch (err) {
         // best-effort persistence; the chart itself already reflects the choice
       }
+      {% endif %}
     });
   });
 
@@ -1011,6 +1030,7 @@
   }
 
   applyRange(currentRange);
+  {% if not public %}
 
   function setChangeCell(cell, value, format) {
     const missing = value === null || value === undefined;
@@ -1496,5 +1516,6 @@
   });
 
   if (todayEntryMissing && !wasTodayPromptSkipped()) showTodayPrompt();
+  {% endif %}
 </script>
 {% endblock %}

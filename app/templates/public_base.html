@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{# The layout of the public chart (/public/<id>), which other sites may show in an iframe. It is
+   the owner's page, not the visitor's: no account menu, no flash messages and no CSRF token
+   (which would give every visitor a session cookie), even when the visitor is signed in. #}
+{% block csrf_meta %}{% endblock %}
+{% block header_menu %}{% endblock %}
+{% block flashes %}{% endblock %}
+{# In an iframe the logo would otherwise open Kilo inside the other site's page. #}
+{% block brand_link_attrs %} target="_blank" rel="noopener"{% endblock %}

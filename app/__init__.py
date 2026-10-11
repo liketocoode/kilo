@@ -181,8 +181,14 @@ def _add_missing_columns():
         "delete_code_hash": "VARCHAR(255)",
         "delete_code_expires_at": "DATETIME",
         "delete_code_attempts": "INTEGER NOT NULL DEFAULT 0",
+        "public_enabled": "BOOLEAN NOT NULL DEFAULT 0",
+        "public_id": "VARCHAR(64)",
+        "public_show_stats": "BOOLEAN NOT NULL DEFAULT 1",
     }
     for name, ddl in new_columns.items():
         if name not in existing:
             db.session.execute(text(f"ALTER TABLE user ADD COLUMN {name} {ddl}"))
+    # SQLite cannot add a UNIQUE column, so the index create_all() makes on a new database is
+    # added separately (NULLs do not clash in a unique index).
+    db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_user_public_id ON user (public_id)"))
     db.session.commit()

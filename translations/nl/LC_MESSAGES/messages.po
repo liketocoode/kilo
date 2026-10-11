@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-10 22:58+0200\n"
+"POT-Creation-Date: 2026-10-11 16:55+0200\n"
 "PO-Revision-Date: 2026-10-02 16:37+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: nl\n"
@@ -218,6 +218,35 @@ msgstr ""
 "%(max_m)s m)."
 
 # machine-translated
+#. NOTE: Switch in the settings that makes the weight chart visible on a public
+#. web page.
+msgid "Share my chart on a public page"
+msgstr "Deel mijn grafiek op een openbare pagina"
+
+# machine-translated
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
+msgid "Show the stat boxes on the public page"
+msgstr "Toon de statistiekvakken op de openbare pagina"
+
+# machine-translated
+#. NOTE: Label of the field with the last part of the public page's web
+#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+msgid "Page ID"
+msgstr "Pagina-ID"
+
+# machine-translated
+#, python-format
+msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
+msgstr ""
+"Gebruik %(min)d tot %(max)d letters (a-z), cijfers, koppeltekens of "
+"underscores."
+
+# machine-translated
+msgid "That ID is already taken. Choose another one."
+msgstr "Die ID is al in gebruik. Kies een andere."
+
+# machine-translated
 msgid "CSV or XML file"
 msgstr "CSV- of XML-bestand"
 
@@ -355,6 +384,14 @@ msgstr "Ongeldig bereik."
 # machine-translated
 msgid "Settings updated."
 msgstr "Instellingen bijgewerkt."
+
+# machine-translated
+msgid "Your chart is now public."
+msgstr "Je grafiek is nu openbaar."
+
+# machine-translated
+msgid "Your chart is no longer public."
+msgstr "Je grafiek is niet meer openbaar."
 
 # machine-translated
 #, python-format
@@ -518,6 +555,11 @@ msgid "Log out"
 msgstr "Uitloggen"
 
 # machine-translated
+#. Title of the public page that shows someone's weight chart.
+msgid "Weight chart"
+msgstr "Gewichtsgrafiek"
+
+# machine-translated
 msgid "View or edit note"
 msgstr "Notitie bekijken of bewerken"
 
@@ -549,6 +591,10 @@ msgstr "Opslaan"
 #. Label above the latest moving-average weight.
 msgid "Current average"
 msgstr "Huidig gemiddelde"
+
+# machine-translated
+msgid "No entries yet."
+msgstr "Nog geen metingen."
 
 # machine-translated
 msgid "No entries yet — add your weight below."
@@ -734,6 +780,11 @@ msgstr "Code versturen"
 msgid "How does this work?"
 msgstr "Hoe werkt dit?"
 
+#. Shown at a public chart's address when there is no chart there, or its owner
+#. stopped sharing it.
+msgid "There is no public chart at this address (any more)."
+msgstr "Er is geen openbare grafiek (meer) op dit adres."
+
 # machine-translated
 msgid "Remove my data"
 msgstr "Mijn gegevens verwijderen"
@@ -816,6 +867,42 @@ msgstr "Bevestigingscode versturen"
 # machine-translated
 msgid "Your height is used to calculate your BMI."
 msgstr "Je lengte wordt gebruikt om je BMI te berekenen."
+
+# machine-translated
+#. Heading of the settings section about showing the weight chart on a public
+#. web page.
+msgid "Public chart"
+msgstr "Openbare grafiek"
+
+# machine-translated
+msgid ""
+"Show your chart and stat boxes on a public page that anyone with the link "
+"can see, and that you can embed in another website. Your notes, your email "
+"address and your daily log are never shown."
+msgstr ""
+"Toon je grafiek en statistiekvakken op een openbare pagina die iedereen met "
+"de link kan zien en die je in een andere website kunt insluiten. Je "
+"notities, je e-mailadres en je dagoverzicht worden nooit getoond."
+
+# machine-translated
+#, python-format
+msgid ""
+"The last part of the page's address: %(min)d to %(max)d letters (a-z), "
+"digits, hyphens or underscores. Leave it empty for a new random ID."
+msgstr ""
+"Het laatste deel van het adres van de pagina: %(min)d tot %(max)d letters "
+"(a-z), cijfers, koppeltekens of underscores. Laat het leeg voor een nieuwe "
+"willekeurige ID."
+
+# machine-translated
+msgid "Your public chart:"
+msgstr "Je openbare grafiek:"
+
+# machine-translated
+msgid "To show it in another website, put this code in that page's HTML:"
+msgstr ""
+"Om hem in een andere website te tonen, zet je deze code in de HTML van die "
+"pagina:"
 
 # machine-translated
 msgid "Import data"

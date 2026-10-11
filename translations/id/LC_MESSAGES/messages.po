@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-10 22:58+0200\n"
+"POT-Creation-Date: 2026-10-11 16:55+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: id\n"
@@ -207,6 +207,35 @@ msgstr ""
 "%(max_m)s m)."
 
 # machine-translated
+#. NOTE: Switch in the settings that makes the weight chart visible on a public
+#. web page.
+msgid "Share my chart on a public page"
+msgstr "Bagikan grafikku di halaman publik"
+
+# machine-translated
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
+msgid "Show the stat boxes on the public page"
+msgstr "Tampilkan kotak statistik di halaman publik"
+
+# machine-translated
+#. NOTE: Label of the field with the last part of the public page's web
+#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+msgid "Page ID"
+msgstr "ID halaman"
+
+# machine-translated
+#, python-format
+msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
+msgstr ""
+"Gunakan %(min)d sampai %(max)d huruf (a-z), angka, tanda hubung, atau garis "
+"bawah."
+
+# machine-translated
+msgid "That ID is already taken. Choose another one."
+msgstr "ID itu sudah dipakai. Pilih yang lain."
+
+# machine-translated
 msgid "CSV or XML file"
 msgstr "File CSV atau XML"
 
@@ -342,6 +371,14 @@ msgstr "Rentang tidak valid."
 # machine-translated
 msgid "Settings updated."
 msgstr "Pengaturan diperbarui."
+
+# machine-translated
+msgid "Your chart is now public."
+msgstr "Grafikmu sekarang publik."
+
+# machine-translated
+msgid "Your chart is no longer public."
+msgstr "Grafikmu tidak lagi publik."
 
 # machine-translated
 #, python-format
@@ -501,6 +538,11 @@ msgid "Log out"
 msgstr "Keluar"
 
 # machine-translated
+#. Title of the public page that shows someone's weight chart.
+msgid "Weight chart"
+msgstr "Grafik berat badan"
+
+# machine-translated
 msgid "View or edit note"
 msgstr "Lihat atau ubah catatan"
 
@@ -532,6 +574,10 @@ msgstr "Simpan"
 #. Label above the latest moving-average weight.
 msgid "Current average"
 msgstr "Rata-rata saat ini"
+
+# machine-translated
+msgid "No entries yet."
+msgstr "Belum ada catatan."
 
 # machine-translated
 msgid "No entries yet — add your weight below."
@@ -714,6 +760,12 @@ msgid "How does this work?"
 msgstr "Bagaimana cara kerjanya?"
 
 # machine-translated
+#. Shown at a public chart's address when there is no chart there, or its owner
+#. stopped sharing it.
+msgid "There is no public chart at this address (any more)."
+msgstr "Tidak ada (lagi) grafik publik di alamat ini."
+
+# machine-translated
 msgid "Remove my data"
 msgstr "Hapus data saya"
 
@@ -790,6 +842,40 @@ msgstr "Kirim kode konfirmasi"
 # machine-translated
 msgid "Your height is used to calculate your BMI."
 msgstr "Tinggi badanmu digunakan untuk menghitung BMI."
+
+# machine-translated
+#. Heading of the settings section about showing the weight chart on a public
+#. web page.
+msgid "Public chart"
+msgstr "Grafik publik"
+
+# machine-translated
+msgid ""
+"Show your chart and stat boxes on a public page that anyone with the link "
+"can see, and that you can embed in another website. Your notes, your email "
+"address and your daily log are never shown."
+msgstr ""
+"Tampilkan grafik dan kotak statistikmu di halaman publik yang bisa dilihat "
+"siapa saja yang punya tautannya, dan yang bisa kamu sematkan di situs web "
+"lain. Catatan, alamat email, dan catatan harianmu tidak pernah ditampilkan."
+
+# machine-translated
+#, python-format
+msgid ""
+"The last part of the page's address: %(min)d to %(max)d letters (a-z), "
+"digits, hyphens or underscores. Leave it empty for a new random ID."
+msgstr ""
+"Bagian terakhir dari alamat halaman: %(min)d sampai %(max)d huruf (a-z), "
+"angka, tanda hubung, atau garis bawah. Biarkan kosong untuk ID acak yang "
+"baru."
+
+# machine-translated
+msgid "Your public chart:"
+msgstr "Grafik publikmu:"
+
+# machine-translated
+msgid "To show it in another website, put this code in that page's HTML:"
+msgstr "Untuk menampilkannya di situs web lain, taruh kode ini di HTML halaman itu:"
 
 # machine-translated
 msgid "Import data"

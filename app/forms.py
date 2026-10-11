@@ -11,7 +11,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-"""WTForms forms: signup, code verification, settings and CSV import."""
+"""WTForms forms: signup, code verification, settings, the public chart and CSV import."""
 
 from flask import current_app
 from flask_babel import format_decimal, gettext as _, lazy_gettext as _l
@@ -115,6 +115,45 @@ class SettingsForm(FlaskForm):
                     max_m=format_decimal(self.MAX_HEIGHT_CM / 100),
                 )
             )
+
+
+class PublicChartForm(FlaskForm):
+    """Sharing the chart at /public/<id>: on or off, and the id (empty: a new one is made up).
+
+    The id is compared in lowercase, so "Ramon" and "ramon" are the same page. Set `user_id`
+    before validating, so the user's own id does not count as taken.
+    """
+    MIN_ID_LENGTH = 3
+    MAX_ID_LENGTH = 64
+    user_id = None
+
+    # NOTE: Switch in the settings that makes the weight chart visible on a public web page.
+    public_enabled = BooleanField(_l("Share my chart on a public page"))
+    # NOTE: Switch in the settings: show the boxes with the current average, BMI and changes under the public chart.
+    public_show_stats = BooleanField(_l("Show the stat boxes on the public page"))
+    public_id = StringField(
+        # NOTE: Label of the field with the last part of the public page's web address, e.g. the "ramon" in kilo.example.com/public/ramon.
+        _l("Page ID"),
+        filters=[lambda value: value.strip().lower() if value else value],
+        validators=[
+            Regexp(
+                rf"^([a-z0-9_-]{{{MIN_ID_LENGTH},{MAX_ID_LENGTH}}})?$",
+                message=_l(
+                    "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores.",
+                    min=MIN_ID_LENGTH,
+                    max=MAX_ID_LENGTH,
+                ),
+            ),
+        ],
+    )
+
+    def validate_public_id(self, field):
+        """Refuse an id another user already has (shared or not)."""
+        if field.errors or not field.data:
+            return
+        taken = User.query.filter(User.public_id == field.data, User.id != self.user_id).first()
+        if taken is not None:
+            raise ValidationError(_("That ID is already taken. Choose another one."))
 
 
 class ImportForm(FlaskForm):

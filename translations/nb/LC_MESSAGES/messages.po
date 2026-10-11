@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-10 22:58+0200\n"
+"POT-Creation-Date: 2026-10-11 16:55+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: nb\n"
@@ -216,6 +216,35 @@ msgid ""
 msgstr "Høyden må være mellom %(min_cm)s og %(max_cm)s cm (%(min_m)s og %(max_m)s m)."
 
 # machine-translated
+#. NOTE: Switch in the settings that makes the weight chart visible on a public
+#. web page.
+msgid "Share my chart on a public page"
+msgstr "Del diagrammet mitt på en offentlig side"
+
+# machine-translated
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
+msgid "Show the stat boxes on the public page"
+msgstr "Vis statistikkboksene på den offentlige siden"
+
+# machine-translated
+#. NOTE: Label of the field with the last part of the public page's web
+#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+msgid "Page ID"
+msgstr "Side-ID"
+
+# machine-translated
+#, python-format
+msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
+msgstr ""
+"Bruk %(min)d til %(max)d bokstaver (a-z), sifre, bindestreker eller "
+"understreker."
+
+# machine-translated
+msgid "That ID is already taken. Choose another one."
+msgstr "Den ID-en er allerede tatt. Velg en annen."
+
+# machine-translated
 msgid "CSV or XML file"
 msgstr "CSV- eller XML-fil"
 
@@ -353,6 +382,14 @@ msgstr "Ugyldig område."
 # machine-translated
 msgid "Settings updated."
 msgstr "Innstillingene er oppdatert."
+
+# machine-translated
+msgid "Your chart is now public."
+msgstr "Diagrammet ditt er nå offentlig."
+
+# machine-translated
+msgid "Your chart is no longer public."
+msgstr "Diagrammet ditt er ikke lenger offentlig."
 
 # machine-translated
 #, python-format
@@ -518,6 +555,11 @@ msgid "Log out"
 msgstr "Logg ut"
 
 # machine-translated
+#. Title of the public page that shows someone's weight chart.
+msgid "Weight chart"
+msgstr "Vektdiagram"
+
+# machine-translated
 msgid "View or edit note"
 msgstr "Se eller rediger notat"
 
@@ -549,6 +591,10 @@ msgstr "Lagre"
 #. Label above the latest moving-average weight.
 msgid "Current average"
 msgstr "Nåværende gjennomsnitt"
+
+# machine-translated
+msgid "No entries yet."
+msgstr "Ingen registreringer ennå."
 
 # machine-translated
 msgid "No entries yet — add your weight below."
@@ -735,6 +781,12 @@ msgid "How does this work?"
 msgstr "Hvordan fungerer dette?"
 
 # machine-translated
+#. Shown at a public chart's address when there is no chart there, or its owner
+#. stopped sharing it.
+msgid "There is no public chart at this address (any more)."
+msgstr "Det finnes ikke (lenger) noe offentlig diagram på denne adressen."
+
+# machine-translated
 msgid "Remove my data"
 msgstr "Fjern dataene mine"
 
@@ -814,6 +866,42 @@ msgstr "Send bekreftelseskode"
 # machine-translated
 msgid "Your height is used to calculate your BMI."
 msgstr "Høyden din brukes til å beregne BMI-en din."
+
+# machine-translated
+#. Heading of the settings section about showing the weight chart on a public
+#. web page.
+msgid "Public chart"
+msgstr "Offentlig diagram"
+
+# machine-translated
+msgid ""
+"Show your chart and stat boxes on a public page that anyone with the link "
+"can see, and that you can embed in another website. Your notes, your email "
+"address and your daily log are never shown."
+msgstr ""
+"Vis diagrammet og statistikkboksene dine på en offentlig side som alle med "
+"lenken kan se, og som du kan bygge inn på et annet nettsted. Notatene dine, "
+"e-postadressen din og den daglige loggen din vises aldri."
+
+# machine-translated
+#, python-format
+msgid ""
+"The last part of the page's address: %(min)d to %(max)d letters (a-z), "
+"digits, hyphens or underscores. Leave it empty for a new random ID."
+msgstr ""
+"Den siste delen av sidens adresse: %(min)d til %(max)d bokstaver (a-z), "
+"sifre, bindestreker eller understreker. La feltet stå tomt for en ny "
+"tilfeldig ID."
+
+# machine-translated
+msgid "Your public chart:"
+msgstr "Det offentlige diagrammet ditt:"
+
+# machine-translated
+msgid "To show it in another website, put this code in that page's HTML:"
+msgstr ""
+"For å vise det på et annet nettsted, legg inn denne koden i HTML-en til den "
+"siden:"
 
 # machine-translated
 msgid "Import data"

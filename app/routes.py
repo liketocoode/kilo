@@ -16,9 +16,13 @@
 The dashboard (`/`) shows the weight chart, the stat boxes and an
 infinite-scrolling daily log. The other routes save single entries, page
 through older days, store view preferences, and handle settings and CSV
-import/export.
+import/export. `/public/<id>` shows a user's chart and stat boxes to anyone,
+when the user has turned that on.
 """
 
+import hashlib
+import secrets
+import time
 from collections import deque
 from datetime import date, timedelta
 
@@ -35,14 +39,16 @@ from flask import (
     url_for,
 )
 from flask_babel import format_date, format_decimal, gettext as _, lazy_gettext as _l, ngettext
+from sqlalchemy.exc import IntegrityError
 
 from app import avatar, db
 from app.auth import get_current_user, login_required
 from app.csv_io import MAX_WEIGHT_KG, MIN_WEIGHT_KG, ImportFileError, export_csv
-from app.forms import ImportForm, SettingsForm, SignupForm
+from app.forms import ImportForm, PublicChartForm, SettingsForm, SignupForm
 from app.i18n import meters
 from app.importing import parse_import
-from app.models import WeightEntry
+from app.models import User, WeightEntry
+from app.security import log_event
 from app.utils import parse_decimal
 
 bp = Blueprint("main", __name__)
@@ -225,12 +231,13 @@ def _moving_average(values, window):
     return result
 
 
-def _overview(user):
+def _overview(user, notes=True):
     """Everything the dashboard needs, as one dict.
 
     Stats, the chart series (labels, weights, BMIs, moving average), the BMI, the
-    available ranges and the notes by date (for the chart tooltip). It is also
-    returned as JSON after each save so the page can refresh in place.
+    available ranges and the notes by date (for the chart tooltip; empty with
+    `notes=False`, as on the public chart). It is also returned as JSON after each
+    save so the page can refresh in place.
     """
     entries = _entries_sorted(user)
     chart_labels, chart_values, chart_bmis, chart_real = _daily_series(
@@ -251,7 +258,7 @@ def _overview(user):
         "chart_real": chart_real,
         "chart_moving_average": chart_moving_average,
         # Only the days that have a note, {"2026-10-05": "text"}: most entries have none.
-        "chart_notes": {e.entry_date.isoformat(): e.note for e in entries if e.note},
+        "chart_notes": {e.entry_date.isoformat(): e.note for e in entries if e.note} if notes else {},
         "moving_avg_days": user.moving_avg_days,
         "bmi": _bmi(chart_moving_average, user.height_cm),
         "available_ranges": _available_range_keys(entries),
@@ -278,9 +285,10 @@ def _grid_page(user, end_date, size=GRID_PAGE_SIZE):
 
 
 ROBOTS_TXT = """\
-# Everything is behind a login except the front page and the About page, so
-# crawlers are kept to those two. (robots.txt is a request, not access
-# control - the data itself is protected by sign-in.)
+# Everything is behind a login except the front page, the About page and the
+# charts users share at /public/..., which are meant for whoever gets the link,
+# not for search engines; so crawlers are kept to the first two. (robots.txt is
+# a request, not access control - the data itself is protected by sign-in.)
 User-agent: *
 Allow: /$
 Allow: /about$
@@ -323,19 +331,55 @@ def index():
 
     today = date.today()
     grid_days = _grid_page(user, today)
-    overview = _overview(user)
-    chart_range = user.chart_range if user.chart_range in overview["available_ranges"] else "all"
     return render_template(
         "index.html",
+        public=False,
+        show_stats=True,
         grid_days=grid_days,
         grid_page_size=GRID_PAGE_SIZE,
-        chart_ranges=CHART_RANGES,
-        chart_range_days={key: days for key, _label, days in CHART_RANGES},
-        chart_range_labels={key: str(label) for key, label, _days in CHART_RANGES},
-        chart_range=chart_range,
         today_date=today.isoformat(),
         today_entry_missing=bool(grid_days) and grid_days[0]["weight"] is None,
+        **_chart_context(user, _overview(user)),
+    )
+
+
+def _chart_context(user, overview):
+    """What index.html needs for the chart and the stat boxes, on the dashboard and the public page."""
+    chart_range = user.chart_range if user.chart_range in overview["available_ranges"] else "all"
+    return {
+        "chart_ranges": CHART_RANGES,
+        "chart_range_days": {key: days for key, _label, days in CHART_RANGES},
+        "chart_range_labels": {key: str(label) for key, label, _days in CHART_RANGES},
+        "chart_range": chart_range,
+        "height_cm": user.height_cm,
         **overview,
+    }
+
+
+@bp.route("/public/<public_id>", methods=["GET"])
+def public_chart(public_id):
+    """A user's chart (and the stat boxes, unless turned off) for anyone, also inside another
+    site's iframe.
+
+    Only when the user turned it on in the settings. Never the notes, the address or the
+    daily log. `?theme=dark` or `?theme=light` overrides the owner's own theme, so the page
+    can match the site it is embedded in.
+    """
+    user = User.query.filter_by(public_id=public_id.lower(), public_enabled=True).first()
+    if user is None:
+        # Logged like any unknown page, so guessing ids adds up to a ban (see app/errors.py),
+        # but answered here: a browser is not sent to the sign-in page inside someone's iframe.
+        log_event("notfound", path=request.path)
+        return render_template("public_missing.html"), 404
+    theme = request.args.get("theme")
+    if theme not in ("light", "dark"):
+        theme = "dark" if user.dark_mode else "light"
+    return render_template(
+        "index.html",
+        public=True,
+        show_stats=user.public_show_stats,
+        theme=theme,
+        **_chart_context(user, _overview(user, notes=False)),
     )
 
 
@@ -478,6 +522,50 @@ def set_chart_range():
     return jsonify(status="saved")
 
 
+def _fill_settings_form(form, user):
+    form.dark_mode.data = user.dark_mode
+    form.moving_avg_days.data = user.moving_avg_days
+    if user.height_cm is not None:
+        form.height_unit.data = user.height_unit
+        if user.height_unit == "m":
+            form.height_value.data = round(user.height_cm / 100, 2)
+        else:
+            form.height_value.data = round(user.height_cm, 1)
+
+
+def propose_public_id(email, now=None):
+    """A new id for the public chart: SHA-256 of the address and the time in seconds.
+
+    Not the email hash, which is also the Gravatar id: anyone who knows the address can work
+    that one out, while this one also depends on when it was made. Random when the address is
+    not in the session. Never one that another user already has.
+    """
+    while True:
+        if email:
+            seconds = int(time.time() if now is None else now)
+            proposal = hashlib.sha256(f"{email.strip().lower()}{seconds}".encode()).hexdigest()
+            now = seconds + 1  # the next try, if this one is taken
+        else:
+            proposal = secrets.token_hex(32)
+        if User.query.filter_by(public_id=proposal).first() is None:
+            return proposal
+
+
+def _render_settings(user, form=None, public_form=None):
+    """The settings page; a form that was just posted keeps what the user typed."""
+    if form is None:
+        form = SettingsForm(formdata=None)
+        _fill_settings_form(form, user)
+    if public_form is None:
+        public_form = PublicChartForm(formdata=None)
+        public_form.public_enabled.data = user.public_enabled
+        public_form.public_show_stats.data = user.public_show_stats
+        public_form.public_id.data = user.public_id or propose_public_id(session.get("email"))
+    return render_template(
+        "settings.html", form=form, public_form=public_form, import_form=ImportForm(), user=user
+    )
+
+
 @bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
@@ -486,14 +574,7 @@ def settings():
     form = SettingsForm()
 
     if request.method == "GET":
-        form.dark_mode.data = user.dark_mode
-        form.moving_avg_days.data = user.moving_avg_days
-        if user.height_cm is not None:
-            form.height_unit.data = user.height_unit
-            if user.height_unit == "m":
-                form.height_value.data = round(user.height_cm / 100, 2)
-            else:
-                form.height_value.data = round(user.height_cm, 1)
+        _fill_settings_form(form, user)
 
     if form.validate_on_submit():
         value = form.height_value.data
@@ -506,7 +587,34 @@ def settings():
         flash(_("Settings updated."), "success")
         return redirect(url_for("main.settings"))
 
-    return render_template("settings.html", form=form, import_form=ImportForm(), user=user)
+    return _render_settings(user, form=form)
+
+
+@bp.route("/settings/public", methods=["POST"])
+@login_required
+def set_public_chart():
+    """Turn the public chart on or off and set its id (empty: a newly proposed one)."""
+    user = get_current_user()
+    form = PublicChartForm()
+    form.user_id = user.id
+    if not form.validate_on_submit():
+        return _render_settings(user, public_form=form)
+
+    user.public_enabled = form.public_enabled.data
+    user.public_show_stats = form.public_show_stats.data
+    user.public_id = form.public_id.data or propose_public_id(session.get("email"))
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Someone else took the same id between the check and the save.
+        db.session.rollback()
+        form.public_id.errors = [_("That ID is already taken. Choose another one.")]
+        return _render_settings(user, public_form=form)
+    if user.public_enabled:
+        flash(_("Your chart is now public."), "success")
+    else:
+        flash(_("Your chart is no longer public."), "success")
+    return redirect(url_for("main.settings", _anchor="public-chart"))
 
 
 @bp.route("/settings/export", methods=["GET"])

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-10 22:58+0200\n"
+"POT-Creation-Date: 2026-10-11 16:55+0200\n"
 "PO-Revision-Date: 2026-10-02 16:37+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: pt\n"
@@ -217,6 +217,33 @@ msgstr ""
 "m)."
 
 # machine-translated
+#. NOTE: Switch in the settings that makes the weight chart visible on a public
+#. web page.
+msgid "Share my chart on a public page"
+msgstr "Compartilhar meu gráfico em uma página pública"
+
+# machine-translated
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
+msgid "Show the stat boxes on the public page"
+msgstr "Mostrar as estatísticas na página pública"
+
+# machine-translated
+#. NOTE: Label of the field with the last part of the public page's web
+#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+msgid "Page ID"
+msgstr "ID da página"
+
+# machine-translated
+#, python-format
+msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
+msgstr "Use de %(min)d a %(max)d letras (a-z), números, hífens ou sublinhados."
+
+# machine-translated
+msgid "That ID is already taken. Choose another one."
+msgstr "Esse ID já está em uso. Escolha outro."
+
+# machine-translated
 msgid "CSV or XML file"
 msgstr "Arquivo CSV ou XML"
 
@@ -354,6 +381,14 @@ msgstr "Intervalo inválido."
 # machine-translated
 msgid "Settings updated."
 msgstr "Configurações atualizadas."
+
+# machine-translated
+msgid "Your chart is now public."
+msgstr "Seu gráfico agora é público."
+
+# machine-translated
+msgid "Your chart is no longer public."
+msgstr "Seu gráfico não é mais público."
 
 # machine-translated
 #, python-format
@@ -519,6 +554,11 @@ msgid "Log out"
 msgstr "Sair"
 
 # machine-translated
+#. Title of the public page that shows someone's weight chart.
+msgid "Weight chart"
+msgstr "Gráfico de peso"
+
+# machine-translated
 msgid "View or edit note"
 msgstr "Ver ou editar a nota"
 
@@ -550,6 +590,10 @@ msgstr "Salvar"
 #. Label above the latest moving-average weight.
 msgid "Current average"
 msgstr "Média atual"
+
+# machine-translated
+msgid "No entries yet."
+msgstr "Ainda não há registros."
 
 # machine-translated
 msgid "No entries yet — add your weight below."
@@ -736,6 +780,12 @@ msgid "How does this work?"
 msgstr "Como funciona?"
 
 # machine-translated
+#. Shown at a public chart's address when there is no chart there, or its owner
+#. stopped sharing it.
+msgid "There is no public chart at this address (any more)."
+msgstr "Não há (ou não há mais) um gráfico público neste endereço."
+
+# machine-translated
 msgid "Remove my data"
 msgstr "Remover meus dados"
 
@@ -817,6 +867,39 @@ msgstr "Enviar código de confirmação"
 # machine-translated
 msgid "Your height is used to calculate your BMI."
 msgstr "Sua altura é usada para calcular seu IMC."
+
+# machine-translated
+#. Heading of the settings section about showing the weight chart on a public
+#. web page.
+msgid "Public chart"
+msgstr "Gráfico público"
+
+# machine-translated
+msgid ""
+"Show your chart and stat boxes on a public page that anyone with the link "
+"can see, and that you can embed in another website. Your notes, your email "
+"address and your daily log are never shown."
+msgstr ""
+"Mostre seu gráfico e suas estatísticas em uma página pública que qualquer "
+"pessoa com o link pode ver e que você pode incorporar em outro site. Suas "
+"notas, seu endereço de e-mail e seu registro diário nunca são mostrados."
+
+# machine-translated
+#, python-format
+msgid ""
+"The last part of the page's address: %(min)d to %(max)d letters (a-z), "
+"digits, hyphens or underscores. Leave it empty for a new random ID."
+msgstr ""
+"A última parte do endereço da página: de %(min)d a %(max)d letras (a-z), "
+"números, hífens ou sublinhados. Deixe vazio para um novo ID aleatório."
+
+# machine-translated
+msgid "Your public chart:"
+msgstr "Seu gráfico público:"
+
+# machine-translated
+msgid "To show it in another website, put this code in that page's HTML:"
+msgstr "Para mostrá-lo em outro site, coloque este código no HTML dessa página:"
 
 # machine-translated
 msgid "Import data"

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Kilo Tracker{% endblock %}</title>
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% block csrf_meta %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endblock %}
   <link rel="icon" id="favicon" type="image/svg+xml"
         href="{{ url_for('static', filename='kilo-icon-' ~ theme ~ '.svg') }}"
         data-light="{{ url_for('static', filename='kilo-icon-light.svg') }}"
@@ -14,11 +14,11 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <header class="site-header">
-    <a class="brand" href="{{ url_for('main.index') }}" aria-label="Kilo Tracker">
+    <a class="brand" href="{{ url_for('main.index') }}" aria-label="Kilo Tracker"{% block brand_link_attrs %}{% endblock %}>
       <img class="brand-logo brand-logo-light" src="{{ url_for('static', filename='kilo-wordmark-light.svg') }}" alt="Kilo Tracker">
       <img class="brand-logo brand-logo-dark" src="{{ url_for('static', filename='kilo-wordmark-dark.svg') }}" alt="" aria-hidden="true">
     </a>
-    {% if current_user %}
+    {% block header_menu %}{% if current_user %}
       <div class="account-menu" id="account-menu">
         <button type="button" class="account-trigger" id="account-trigger" aria-haspopup="true" aria-expanded="false">
           <img class="avatar" src="{{ url_for('main.user_avatar', v=current_user.email_hash[:8]) }}" alt="" width="20" height="20">
@@ -44,11 +44,11 @@
           </form>
         </div>
       </div>
-    {% endif %}
+    {% endif %}{% endblock %}
   </header>
 
   <main class="{% block main_class %}container{% endblock %}">
-    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% block flashes %}{% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <ul class="flashes">
           {% for category, message in messages %}
@@ -56,7 +56,7 @@
           {% endfor %}
         </ul>
       {% endif %}
-    {% endwith %}
+    {% endwith %}{% endblock %}
 
     {% block content %}{% endblock %}
   </main>

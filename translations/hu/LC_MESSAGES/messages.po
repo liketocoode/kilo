@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-10 22:58+0200\n"
+"POT-Creation-Date: 2026-10-11 16:55+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: hu\n"
@@ -218,6 +218,35 @@ msgstr ""
 "%(max_m)s m)."
 
 # machine-translated
+#. NOTE: Switch in the settings that makes the weight chart visible on a public
+#. web page.
+msgid "Share my chart on a public page"
+msgstr "A diagramom megosztása egy nyilvános oldalon"
+
+# machine-translated
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
+msgid "Show the stat boxes on the public page"
+msgstr "A statisztikai mezők megjelenítése a nyilvános oldalon"
+
+# machine-translated
+#. NOTE: Label of the field with the last part of the public page's web
+#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+msgid "Page ID"
+msgstr "Oldalazonosító"
+
+# machine-translated
+#, python-format
+msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
+msgstr ""
+"Használj %(min)d–%(max)d betűt (a-z), számjegyet, kötőjelet vagy "
+"aláhúzásjelet."
+
+# machine-translated
+msgid "That ID is already taken. Choose another one."
+msgstr "Ez az azonosító már foglalt. Válassz másikat."
+
+# machine-translated
 msgid "CSV or XML file"
 msgstr "CSV- vagy XML-fájl"
 
@@ -353,6 +382,14 @@ msgstr "Érvénytelen tartomány."
 # machine-translated
 msgid "Settings updated."
 msgstr "A beállítások frissítve."
+
+# machine-translated
+msgid "Your chart is now public."
+msgstr "A diagramod most már nyilvános."
+
+# machine-translated
+msgid "Your chart is no longer public."
+msgstr "A diagramod már nem nyilvános."
 
 # machine-translated
 #, python-format
@@ -517,6 +554,11 @@ msgid "Log out"
 msgstr "Kijelentkezés"
 
 # machine-translated
+#. Title of the public page that shows someone's weight chart.
+msgid "Weight chart"
+msgstr "Testsúlydiagram"
+
+# machine-translated
 msgid "View or edit note"
 msgstr "Jegyzet megtekintése vagy szerkesztése"
 
@@ -548,6 +590,10 @@ msgstr "Mentés"
 #. Label above the latest moving-average weight.
 msgid "Current average"
 msgstr "Jelenlegi átlag"
+
+# machine-translated
+msgid "No entries yet."
+msgstr "Még nincs bejegyzés."
 
 # machine-translated
 msgid "No entries yet — add your weight below."
@@ -732,6 +778,12 @@ msgid "How does this work?"
 msgstr "Hogyan működik?"
 
 # machine-translated
+#. Shown at a public chart's address when there is no chart there, or its owner
+#. stopped sharing it.
+msgid "There is no public chart at this address (any more)."
+msgstr "Ezen a címen nincs (már) nyilvános diagram."
+
+# machine-translated
 msgid "Remove my data"
 msgstr "Adataim törlése"
 
@@ -811,6 +863,42 @@ msgstr "Megerősítő kód küldése"
 # machine-translated
 msgid "Your height is used to calculate your BMI."
 msgstr "A magasságodat a BMI kiszámításához használjuk."
+
+# machine-translated
+#. Heading of the settings section about showing the weight chart on a public
+#. web page.
+msgid "Public chart"
+msgstr "Nyilvános diagram"
+
+# machine-translated
+msgid ""
+"Show your chart and stat boxes on a public page that anyone with the link "
+"can see, and that you can embed in another website. Your notes, your email "
+"address and your daily log are never shown."
+msgstr ""
+"Mutasd meg a diagramodat és a statisztikai mezőket egy nyilvános oldalon, "
+"amelyet bárki láthat, akinél megvan a link, és amelyet beágyazhatsz egy "
+"másik weboldalba. A jegyzeteid, az e-mail-címed és a napi naplód soha nem "
+"jelenik meg."
+
+# machine-translated
+#, python-format
+msgid ""
+"The last part of the page's address: %(min)d to %(max)d letters (a-z), "
+"digits, hyphens or underscores. Leave it empty for a new random ID."
+msgstr ""
+"Az oldal címének utolsó része: %(min)d–%(max)d betű (a-z), számjegy, kötőjel"
+" vagy aláhúzásjel. Hagyd üresen egy új, véletlenszerű azonosítóhoz."
+
+# machine-translated
+msgid "Your public chart:"
+msgstr "A nyilvános diagramod:"
+
+# machine-translated
+msgid "To show it in another website, put this code in that page's HTML:"
+msgstr ""
+"Ha egy másik weboldalon szeretnéd megjeleníteni, tedd ezt a kódot annak az "
+"oldalnak a HTML-jébe:"
 
 # machine-translated
 msgid "Import data"

@@ -66,6 +66,14 @@ class User(db.Model):
     chart_range = db.Column(db.String(4), nullable=False, default="all")
     moving_avg_days = db.Column(db.Integer, nullable=False, default=10)
 
+    # The public chart at /public/<public_id> (see routes.public_chart). The id is kept when
+    # sharing is turned off, so turning it on again brings back the same address; it is
+    # lowercase and unique among all users, shared or not.
+    public_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    public_id = db.Column(db.String(64), nullable=True, unique=True, index=True)
+    # Whether the public chart shows the stat boxes under it, or only the chart.
+    public_show_stats = db.Column(db.Boolean, nullable=False, default=True)
+
     entries = db.relationship(
         "WeightEntry", backref="user", cascade="all, delete-orphan", lazy="dynamic"
     )
