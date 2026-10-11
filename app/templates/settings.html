@@ -106,7 +106,11 @@
       kilograms. Importing a date that already has an entry overwrites it.{% endtrans %}</p>
     {# NOTE: "The Hacker's Diet Online" and "Yet Another Diet Tool" are names of web services; do not translate them. #}
     <p>{{ _("You can also import the CSV or XML export of The Hacker's Diet Online, or the CSV export of Yet Another Diet Tool. Weights, notes and, from the XML file, your height are imported; everything else is ignored.") }}</p>
-    <form method="post" action="{{ url_for('main.import_entries') }}" enctype="multipart/form-data" class="entry-form">
+    {# The size is checked here before the upload too: the server's own answer to a file that is
+       too large (see app/errors.py) only reaches the browser for uploads up to 64 MB. #}
+    <form method="post" action="{{ url_for('main.import_entries') }}" enctype="multipart/form-data" class="entry-form"
+          id="import-form" data-max-bytes="{{ config.IMPORT_MAX_CONTENT_LENGTH }}"
+          data-too-large="{{ _('The file is too large: the limit is %(size)s. Nothing was imported or changed.', size=config.IMPORT_MAX_CONTENT_LENGTH|megabytes) }}">
       {{ import_form.hidden_tag() }}
       <div class="field field-wide">
         {{ import_form.csv_file.label }}
@@ -114,6 +118,7 @@
         {% for error in import_form.csv_file.errors %}
           <p class="flash flash-error">{{ error }}</p>
         {% endfor %}
+        <p class="flash flash-error" id="import-too-large" hidden></p>
       </div>
       <button type="submit">{{ _("Import") }}</button>
     </form>
@@ -136,6 +141,28 @@
 {% block scripts %}
 <script>
   // The public chart's full address as the browser sees it (https:// behind the proxy).
+  // Refuse a file over the import limit before it is uploaded at all.
+  (function () {
+    var form = document.getElementById('import-form');
+    if (!form) return;
+    var input = form.querySelector('input[type="file"]');
+    var message = document.getElementById('import-too-large');
+    function tooLarge() {
+      var file = input.files && input.files[0];
+      return !!file && file.size > Number(form.dataset.maxBytes);
+    }
+    function check() {
+      var refuse = tooLarge();
+      message.textContent = refuse ? form.dataset.tooLarge : '';
+      message.hidden = !refuse;
+      return refuse;
+    }
+    input.addEventListener('change', check);
+    form.addEventListener('submit', function (e) {
+      if (check()) e.preventDefault();
+    });
+  })();
+
   document.querySelectorAll('[data-public-path]').forEach(function (el) {
     el.textContent = el.textContent.split(el.dataset.serverUrl).join(location.origin + el.dataset.publicPath);
   });

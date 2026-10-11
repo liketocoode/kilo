@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-11 16:55+0200\n"
+"POT-Creation-Date: 2026-10-11 23:29+0200\n"
 "PO-Revision-Date: 2026-10-02 16:37+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: nl\n"
@@ -178,6 +178,19 @@ msgstr "Je sessie is verlopen en er is niets gewijzigd. Probeer het opnieuw."
 # machine-translated
 msgid "That page isn't available, so you were taken to the start page."
 msgstr "Die pagina is niet beschikbaar, daarom ben je naar de startpagina gebracht."
+
+# machine-translated
+#, python-format
+msgid ""
+"The file is too large: the limit is %(size)s. Nothing was imported or "
+"changed."
+msgstr ""
+"Het bestand is te groot: de limiet is %(size)s. Er is niets geïmporteerd of "
+"gewijzigd."
+
+# machine-translated
+msgid "Something went wrong on our side. Please try again in a moment."
+msgstr "Er ging aan onze kant iets mis. Probeer het zo nog eens."
 
 # machine-translated
 msgid "Email"
@@ -553,6 +566,21 @@ msgstr "Instellingen"
 # machine-translated
 msgid "Log out"
 msgstr "Uitloggen"
+
+# machine-translated
+#. Heading of the page shown when the server had an unexpected error.
+msgid "Something went wrong"
+msgstr "Er ging iets mis"
+
+# machine-translated
+msgid "If you were saving something, check whether it was saved and try again."
+msgstr ""
+"Was je iets aan het opslaan? Controleer dan of het is opgeslagen en probeer "
+"het opnieuw."
+
+# machine-translated
+msgid "Back to the start page"
+msgstr "Terug naar de startpagina"
 
 # machine-translated
 #. Title of the public page that shows someone's weight chart.

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-11 16:55+0200\n"
+"POT-Creation-Date: 2026-10-11 23:29+0200\n"
 "PO-Revision-Date: 2026-10-02 16:37+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: fr\n"
@@ -178,6 +178,19 @@ msgstr "Votre session a expiré et rien n'a été modifié. Veuillez réessayer.
 # machine-translated
 msgid "That page isn't available, so you were taken to the start page."
 msgstr "Cette page n'est pas disponible : retour à la page d'accueil."
+
+# machine-translated
+#, python-format
+msgid ""
+"The file is too large: the limit is %(size)s. Nothing was imported or "
+"changed."
+msgstr ""
+"Le fichier est trop volumineux : la limite est de %(size)s. Rien n'a été "
+"importé ni modifié."
+
+# machine-translated
+msgid "Something went wrong on our side. Please try again in a moment."
+msgstr "Un problème est survenu de notre côté. Veuillez réessayer dans un instant."
 
 # machine-translated
 msgid "Email"
@@ -559,6 +572,21 @@ msgstr "Paramètres"
 # machine-translated
 msgid "Log out"
 msgstr "Se déconnecter"
+
+# machine-translated
+#. Heading of the page shown when the server had an unexpected error.
+msgid "Something went wrong"
+msgstr "Un problème est survenu"
+
+# machine-translated
+msgid "If you were saving something, check whether it was saved and try again."
+msgstr ""
+"Si vous étiez en train d'enregistrer quelque chose, vérifiez si cela a été "
+"enregistré et réessayez."
+
+# machine-translated
+msgid "Back to the start page"
+msgstr "Retour à la page d'accueil"
 
 # machine-translated
 #. Title of the public page that shows someone's weight chart.

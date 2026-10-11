@@ -428,7 +428,10 @@ def test_an_import_may_be_bigger_than_the_general_upload_limit(logged_in_client)
 
 
 def test_everything_else_keeps_the_one_megabyte_limit(client):
-    assert client.post("/signup", data={"email": "a" * 2_000_000}).status_code == 413
+    # A form over the limit goes back with a message (app/errors.py) instead of a bare 413.
+    response = client.post("/signup", data={"email": "a" * 2_000_000})
+    assert response.status_code == 302
+    assert "the limit is 1 MB" in client.get("/").get_data(as_text=True)
 
 
 def test_an_import_above_the_import_limit_is_refused(logged_in_client, app):
@@ -439,7 +442,9 @@ def test_an_import_above_the_import_limit_is_refused(logged_in_client, app):
         data={"csv_file": (io.BytesIO(b"23-9-26,70,\n" * 500), "big.csv")},
         content_type="multipart/form-data",
     )
-    assert response.status_code == 413
+    assert response.status_code == 302 and response.location == "/"
+    assert "The file is too large" in client.get("/").get_data(as_text=True)
+    assert WeightEntry.query.count() == 0
 
 
 def test_a_single_cell_line_that_is_a_date_is_still_reported_on_the_first_line():

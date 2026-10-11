@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-11 16:55+0200\n"
+"POT-Creation-Date: 2026-10-11 23:29+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: nb\n"
@@ -178,6 +178,17 @@ msgstr "Økten din har utløpt, og ingenting ble endret. Prøv på nytt."
 # machine-translated
 msgid "That page isn't available, so you were taken to the start page."
 msgstr "Siden er ikke tilgjengelig, så du ble sendt til startsiden."
+
+# machine-translated
+#, python-format
+msgid ""
+"The file is too large: the limit is %(size)s. Nothing was imported or "
+"changed."
+msgstr "Filen er for stor: grensen er %(size)s. Ingenting er importert eller endret."
+
+# machine-translated
+msgid "Something went wrong on our side. Please try again in a moment."
+msgstr "Noe gikk galt hos oss. Prøv igjen om et øyeblikk."
 
 # machine-translated
 msgid "Email"
@@ -553,6 +564,19 @@ msgstr "Innstillinger"
 # machine-translated
 msgid "Log out"
 msgstr "Logg ut"
+
+# machine-translated
+#. Heading of the page shown when the server had an unexpected error.
+msgid "Something went wrong"
+msgstr "Noe gikk galt"
+
+# machine-translated
+msgid "If you were saving something, check whether it was saved and try again."
+msgstr "Hvis du holdt på å lagre noe, sjekk om det ble lagret, og prøv igjen."
+
+# machine-translated
+msgid "Back to the start page"
+msgstr "Tilbake til startsiden"
 
 # machine-translated
 #. Title of the public page that shows someone's weight chart.

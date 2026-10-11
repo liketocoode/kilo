@@ -11,14 +11,18 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-"""Tests for the friendly error handling in app/errors.py: CSRF failures and missing pages."""
+"""Tests for the friendly error handling in app/errors.py: CSRF failures, missing pages, uploads
+that are too large and unexpected errors."""
 
 import html as html_lib
+import io
 import re
 
 import pytest
 
-from app.models import WeightEntry
+from app import db, errors
+from app.models import User, WeightEntry
+from tests.conftest import signup_and_verify
 
 BROWSER = {"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}
 EXPIRED = "Your session has expired and nothing was changed. Please try again."
@@ -263,3 +267,137 @@ def test_a_page_stays_usable_for_30_days_and_then_asks_to_reload(logged_in_clien
         assert response.status_code == 400 and response.get_json()["code"] == "csrf_expired"
     # only the page's token aged; the user is still signed in (reloading the page fixes it)
     assert client.get("/settings").status_code == 200
+
+
+# --- 413: an upload that is too large ---------------------------------------------------------
+
+MB = 1024 * 1024
+
+
+def test_a_too_large_import_goes_back_to_the_settings_with_the_limit(logged_in_client):
+    client, _user_id = logged_in_client
+    big = io.BytesIO(b"1-1-26,80.0,x\n" * (9 * MB // 14))
+    response = client.post(
+        "/settings/import",
+        data={"csv_file": (big, "big.csv")},
+        headers={"Referer": "http://localhost/settings"},
+    )
+    assert response.status_code == 302 and response.location == "/settings"
+    page = html_lib.unescape(client.get("/settings").get_data(as_text=True))
+    assert "The file is too large: the limit is 8 MB. Nothing was imported or changed." in page
+    assert WeightEntry.query.count() == 0
+
+
+def test_an_import_just_under_the_limit_still_works(logged_in_client):
+    client, _user_id = logged_in_client
+    line = b"1-1-26,80.0," + b"x" * 200 + b"\n"
+    data = line * (7 * MB // len(line))  # 7 MB: over the 1 MB of other pages
+    response = client.post("/settings/import", data={"csv_file": (io.BytesIO(data), "a.csv")})
+    assert response.status_code == 302
+    assert WeightEntry.query.count() == 1
+
+
+def test_other_forms_name_their_own_limit_in_the_visitors_language(logged_in_client):
+    client, _user_id = logged_in_client
+    response = client.post(
+        "/settings",
+        data={"height_value": "x" * (2 * MB)},
+        headers={"Referer": "http://localhost/settings", "Accept-Language": "nl"},
+    )
+    assert response.status_code == 302
+    page = html_lib.unescape(client.get("/settings", headers={"Accept-Language": "nl"}).get_data(as_text=True))
+    assert "de limiet is 1 MB" in page
+
+
+def test_a_too_large_background_save_gets_json(logged_in_client):
+    client, _user_id = logged_in_client
+    response = client.post("/entries/field", json={"date": "2026-10-01", "weight": "80", "note": "x" * (2 * MB)})
+    assert response.status_code == 413
+    assert response.get_json()["error"].startswith("The file is too large: the limit is 1 MB.")
+
+
+# --- 500: an unexpected error -------------------------------------------------------------------
+
+BOOM = "Something went wrong on our side. Please try again in a moment."
+
+
+@pytest.fixture
+def boom_app(app):
+    """An app with a page that fails, answering like production (TESTING re-raises errors)."""
+    app.config["PROPAGATE_EXCEPTIONS"] = False
+
+    @app.route("/boom", methods=["GET", "POST"])
+    def boom():
+        raise RuntimeError("an unexpected bug")
+
+    @app.route("/boom-db")
+    def boom_db():
+        # A failed flush leaves the session unusable until it is rolled back.
+        db.session.add(User(email_hash=User.query.first().email_hash))
+        db.session.flush()
+
+    return app
+
+
+def test_an_unexpected_error_shows_a_friendly_page(boom_app):
+    response = boom_app.test_client().get("/boom", headers=BROWSER)
+    assert response.status_code == 500
+    page = html_lib.unescape(response.get_data(as_text=True))
+    assert "Something went wrong" in page and BOOM in page
+    assert 'href="/"' in page and 'class="site-header"' in page
+    assert "RuntimeError" not in page and "an unexpected bug" not in page  # no internals
+
+
+def test_the_error_is_still_logged(boom_app, caplog):
+    boom_app.test_client().get("/boom")
+    assert "an unexpected bug" in caplog.text
+
+
+def test_the_error_page_is_translated(boom_app):
+    response = boom_app.test_client().get("/boom", headers={**BROWSER, "Accept-Language": "nl"})
+    page = html_lib.unescape(response.get_data(as_text=True))
+    assert '<html lang="nl"' in page and "Er ging iets mis" in page
+
+
+def test_a_background_request_gets_json(boom_app):
+    response = boom_app.test_client().post("/boom", json={})
+    assert response.status_code == 500
+    assert response.get_json() == {"error": BOOM}
+
+
+def test_a_failed_database_transaction_does_not_break_the_error_page(boom_app):
+    client = boom_app.test_client()
+    signup_and_verify(client, "someone@example.com")
+    response = client.get("/boom-db", headers=BROWSER)
+    assert response.status_code == 500
+    page = response.get_data(as_text=True)
+    assert BOOM in page and "someone@example.com" in page  # the header still shows the account
+
+
+def test_when_the_error_page_itself_fails_a_plain_page_is_sent(boom_app, monkeypatch):
+    def broken(*args, **kwargs):
+        raise RuntimeError("the template is broken too")
+
+    monkeypatch.setattr(errors, "render_template", broken)
+    response = boom_app.test_client().get("/boom", headers=BROWSER)
+    assert response.status_code == 500 and response.mimetype == "text/html"
+    assert "Something went wrong" in response.get_data(as_text=True)
+
+
+def test_the_rest_of_a_refused_upload_is_read_so_the_browser_gets_the_answer(app):
+    """gunicorn closes the connection after answering; a browser still sending the file would
+    show "connection reset" instead of the message (seen with Chromium), so the body is read."""
+    body = io.BytesIO(b"x" * (3 * MB))
+    with app.test_request_context("/settings/import", method="POST", input_stream=body,
+                                  headers={"Content-Length": str(3 * MB)}):
+        errors._drain_upload()
+    assert body.read() == b""
+
+
+def test_a_huge_upload_is_not_read(app, monkeypatch):
+    monkeypatch.setattr(errors, "DRAIN_MAX_BYTES", 1 * MB)
+    body = io.BytesIO(b"x" * (3 * MB))
+    with app.test_request_context("/settings/import", method="POST", input_stream=body,
+                                  headers={"Content-Length": str(3 * MB)}):
+        errors._drain_upload()
+    assert len(body.read()) == 3 * MB

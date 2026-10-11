@@ -77,6 +77,13 @@ def kg(value, signed=False):
     )
 
 
+def megabytes(n_bytes):
+    """A size in bytes as whole megabytes with the unit: `8 MB` (`8 Mo` in French)."""
+    return format_unit(
+        n_bytes / (1024 * 1024), "digital-megabyte", length="short", format="0.#", locale=get_locale()
+    )
+
+
 def grams_per_day(value):
     """A signed rate in grams per day, e.g. `-35 g/day`."""
     # NOTE: Rate of weight change. %(grams)s is a signed whole number; g is gram.
@@ -113,7 +120,7 @@ def localdate(value):
 def init_app(app):
     """Register Flask-Babel with `select_locale` as the locale selector, and the template filters."""
     babel.init_app(app, locale_selector=select_locale)
-    for func in (kg, meters, grams_per_day, decimal1, decimal_input, localdate):
+    for func in (kg, meters, megabytes, grams_per_day, decimal1, decimal_input, localdate):
         app.add_template_filter(func)
 
     @app.before_request

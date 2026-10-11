@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-11 16:55+0200\n"
+"POT-Creation-Date: 2026-10-11 23:29+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: hu\n"
@@ -178,6 +178,17 @@ msgstr "A munkamenet lejárt, és semmi sem változott. Próbáld újra."
 # machine-translated
 msgid "That page isn't available, so you were taken to the start page."
 msgstr "Ez az oldal nem érhető el, ezért a kezdőoldalra irányítottunk."
+
+# machine-translated
+#, python-format
+msgid ""
+"The file is too large: the limit is %(size)s. Nothing was imported or "
+"changed."
+msgstr "A fájl túl nagy: a korlát %(size)s. Semmi sem lett importálva vagy módosítva."
+
+# machine-translated
+msgid "Something went wrong on our side. Please try again in a moment."
+msgstr "Valami hiba történt nálunk. Próbáld újra egy kicsit később."
 
 # machine-translated
 msgid "Email"
@@ -552,6 +563,19 @@ msgstr "Beállítások"
 # machine-translated
 msgid "Log out"
 msgstr "Kijelentkezés"
+
+# machine-translated
+#. Heading of the page shown when the server had an unexpected error.
+msgid "Something went wrong"
+msgstr "Valami hiba történt"
+
+# machine-translated
+msgid "If you were saving something, check whether it was saved and try again."
+msgstr "Ha éppen mentettél valamit, ellenőrizd, hogy elmentődött-e, és próbáld újra."
+
+# machine-translated
+msgid "Back to the start page"
+msgstr "Vissza a kezdőlapra"
 
 # machine-translated
 #. Title of the public page that shows someone's weight chart.

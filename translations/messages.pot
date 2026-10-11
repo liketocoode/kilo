@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker VERSION\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-11 16:55+0200\n"
+"POT-Creation-Date: 2026-10-11 23:29+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -133,6 +133,15 @@ msgid "Your session has expired and nothing was changed. Please try again."
 msgstr ""
 
 msgid "That page isn't available, so you were taken to the start page."
+msgstr ""
+
+#, python-format
+msgid ""
+"The file is too large: the limit is %(size)s. Nothing was imported or "
+"changed."
+msgstr ""
+
+msgid "Something went wrong on our side. Please try again in a moment."
 msgstr ""
 
 msgid "Email"
@@ -416,6 +425,16 @@ msgid "Settings"
 msgstr ""
 
 msgid "Log out"
+msgstr ""
+
+#. Heading of the page shown when the server had an unexpected error.
+msgid "Something went wrong"
+msgstr ""
+
+msgid "If you were saving something, check whether it was saved and try again."
+msgstr ""
+
+msgid "Back to the start page"
 msgstr ""
 
 #. Title of the public page that shows someone's weight chart.

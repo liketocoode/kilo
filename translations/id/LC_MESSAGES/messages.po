@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-11 16:55+0200\n"
+"POT-Creation-Date: 2026-10-11 23:29+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: id\n"
@@ -167,6 +167,17 @@ msgstr "Sesimu telah berakhir dan tidak ada yang diubah. Silakan coba lagi."
 # machine-translated
 msgid "That page isn't available, so you were taken to the start page."
 msgstr "Halaman itu tidak tersedia, jadi kamu dialihkan ke halaman awal."
+
+# machine-translated
+#, python-format
+msgid ""
+"The file is too large: the limit is %(size)s. Nothing was imported or "
+"changed."
+msgstr "Berkas terlalu besar: batasnya %(size)s. Tidak ada yang diimpor atau diubah."
+
+# machine-translated
+msgid "Something went wrong on our side. Please try again in a moment."
+msgstr "Ada yang salah di pihak kami. Coba lagi sebentar lagi."
 
 # machine-translated
 msgid "Email"
@@ -536,6 +547,21 @@ msgstr "Pengaturan"
 # machine-translated
 msgid "Log out"
 msgstr "Keluar"
+
+# machine-translated
+#. Heading of the page shown when the server had an unexpected error.
+msgid "Something went wrong"
+msgstr "Ada yang salah"
+
+# machine-translated
+msgid "If you were saving something, check whether it was saved and try again."
+msgstr ""
+"Kalau kamu sedang menyimpan sesuatu, periksa apakah sudah tersimpan lalu "
+"coba lagi."
+
+# machine-translated
+msgid "Back to the start page"
+msgstr "Kembali ke halaman awal"
 
 # machine-translated
 #. Title of the public page that shows someone's weight chart.
