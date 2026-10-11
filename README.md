@@ -329,10 +329,13 @@ writes can still be in the `-wal` file):
 sqlite3 /srv/kilo/instance/weight.db ".backup /backups/weight.db"
 ```
 
-To update: `git pull`, `.venv/bin/pip install -r requirements.txt`,
+To update: `git pull`, `.venv/bin/pip install -U -r requirements.txt`,
 `.venv/bin/pybabel compile -d translations` (the translations are compiled at
 deploy time, not stored in git), then `sudo systemctl restart kilo`. New
-database columns are added automatically at startup.
+database columns are added automatically at startup. The `-U` matters: without
+it pip keeps an installed package that is older than a raised minimum in
+`requirements.txt` (Flask 3.0 left every import failing with an error 500,
+because the app needs Flask 3.1).
 
 The About page shows the running version, read from the git checkout: the tag
 of the checked-out commit if it has one (for example `git tag v1.0.0`),
