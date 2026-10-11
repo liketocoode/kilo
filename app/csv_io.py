@@ -18,10 +18,15 @@ d-M-yyyy (or ISO, 2026-09-23) and weights in kilograms. A first line that looks
 like a header (neither a date nor a weight) is skipped without a warning.
 This module also holds what every importer shares: the result type, the
 "this file cannot be imported at all" error and the text decoding.
+
+A note that a spreadsheet would read as a formula (it starts with =, +, -, @, a tab
+or a carriage return) is exported with an apostrophe in front, and the apostrophe is
+taken off again on import (see `protect_cell`).
 """
 
 import csv
 import io
+import re
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -31,6 +36,24 @@ from app.utils import parse_decimal
 
 MIN_WEIGHT_KG = 1
 MAX_WEIGHT_KG = 500
+
+# Excel, LibreOffice and Google Sheets treat a cell that starts with one of these as a formula
+# ("CSV injection"): a note such as =HYPERLINK(...) would run when the export is opened. An
+# apostrophe in front makes the spreadsheet show the text as it is. A note that already starts
+# with apostrophes before such a character gets one more, so the import can always take exactly
+# one off and every note survives an export and import unchanged.
+_FORMULA_START = re.compile(r"'*[=+\-@\t\r]")
+_PROTECTED = re.compile(r"'+[=+\-@\t\r]")
+
+
+def protect_cell(text):
+    """`text` made safe to open in a spreadsheet: an apostrophe in front of a would-be formula."""
+    return "'" + text if _FORMULA_START.match(text) else text
+
+
+def unprotect_cell(text):
+    """The reverse of `protect_cell`, for a note read from a CSV file."""
+    return text[1:] if _PROTECTED.match(text) else text
 
 
 class CsvRowError(Exception):
@@ -123,7 +146,7 @@ def parse_generic_csv(text):
             continue
 
         date_str, weight_str = row[0].strip(), row[1].strip()
-        note = ",".join(row[2:]).strip()[:280] or None
+        note = unprotect_cell(",".join(row[2:]).strip())[:280] or None
 
         try:
             entry_date = parse_ddmyy(date_str)
@@ -156,9 +179,13 @@ def parse_csv(file_bytes):
 
 
 def export_csv(entries):
-    """Render entries as CSV text: `date,weight,note`, with the weight in kg to one decimal."""
+    """Render entries as CSV text: `date,weight,note`, with the weight in kg to one decimal.
+
+    Only the note is free text; it goes through `protect_cell` (the date and weight are made here
+    and can never start like a formula).
+    """
     buf = io.StringIO()
     writer = csv.writer(buf)
     for entry in entries:
-        writer.writerow([format_ddmyy(entry.entry_date), f"{entry.weight:.1f}", entry.note or ""])
+        writer.writerow([format_ddmyy(entry.entry_date), f"{entry.weight:.1f}", protect_cell(entry.note or "")])
     return buf.getvalue()

