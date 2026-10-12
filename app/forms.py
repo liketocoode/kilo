@@ -130,6 +130,8 @@ class PublicChartForm(FlaskForm):
     # NOTE: Switch in the settings that makes the weight chart visible on a public web page.
     public_enabled = BooleanField(_l("Share my chart on a public page"))
     # NOTE: Switch in the settings: show the boxes with the current average, BMI and changes under the public chart.
+    # NOTE: Switch in the settings: show the kilograms on the public chart, or only the shape of the line.
+    public_show_weight = BooleanField(_l("Show my weight"))
     public_show_stats = BooleanField(_l("Show the stat boxes on the public page"))
     public_id = StringField(
         # NOTE: Label of the field with the last part of the public page's web address, e.g. the "ramon" in kilo.example.com/public/ramon.

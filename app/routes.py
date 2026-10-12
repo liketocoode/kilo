@@ -380,6 +380,34 @@ def _chart_context(user, overview):
     }
 
 
+def _without_weights(overview):
+    """The chart data of `overview` with nothing that gives the weight away, for a public chart
+    whose owner turned "Show my weight" off.
+
+    The weights and the moving average are rescaled together to 0-100 (the lowest value 0, the
+    highest 100), so the line keeps its shape; the BMIs, the height and the stats are left out,
+    since a BMI with a height gives the weight back. The page itself gets nothing else: this
+    is not hidden by the browser, it is never sent.
+    """
+    values = overview["chart_values"]
+    moving_average = overview["chart_moving_average"]
+    everything = [v for v in values + moving_average if v is not None]
+    low, high = (min(everything), max(everything)) if everything else (0, 0)
+    span = high - low
+
+    def rescale(value):
+        return 50.0 if span == 0 else round((value - low) / span * 100, 2)
+
+    return {
+        **overview,
+        "chart_values": [rescale(v) for v in values],
+        "chart_moving_average": [rescale(v) for v in moving_average],
+        "chart_bmis": None,
+        "stats": None,
+        "bmi": None,
+    }
+
+
 @bp.route("/public/<public_id>", methods=["GET"])
 def public_chart(public_id):
     """A user's chart (and the stat boxes, unless turned off) for anyone, also inside another
@@ -398,12 +426,18 @@ def public_chart(public_id):
     theme = request.args.get("theme")
     if theme not in ("light", "dark"):
         theme = "dark" if user.dark_mode else "light"
+    overview = _overview(user, notes=False)
+    context = _chart_context(user, overview)
+    show_weight = user.public_show_weight
+    if not show_weight:
+        context.update(_without_weights(overview), height_cm=None)
     return render_template(
         "index.html",
         public=True,
-        show_stats=user.public_show_stats,
+        show_stats=show_weight and user.public_show_stats,
+        hide_weights=not show_weight,
         theme=theme,
-        **_chart_context(user, _overview(user, notes=False)),
+        **context,
     )
 
 
@@ -586,8 +620,11 @@ def _render_settings(user, form=None, public_form=None):
     if public_form is None:
         public_form = PublicChartForm(formdata=None)
         public_form.public_enabled.data = user.public_enabled
-        public_form.public_show_stats.data = user.public_show_stats
+        public_form.public_show_weight.data = user.public_show_weight
+        public_form.public_show_stats.data = user.public_show_weight and user.public_show_stats
         public_form.public_id.data = user.public_id or propose_public_id(session.get("email"))
+    if not public_form.public_show_weight.data:
+        public_form.public_show_stats.data = False  # shown switched off and greyed out
     return render_template(
         "settings.html", form=form, public_form=public_form, import_form=ImportForm(), user=user
     )
@@ -628,7 +665,9 @@ def set_public_chart():
         return _render_settings(user, public_form=form)
 
     user.public_enabled = form.public_enabled.data
-    user.public_show_stats = form.public_show_stats.data
+    user.public_show_weight = form.public_show_weight.data
+    # The stat boxes show kilograms, so they go when the weight does.
+    user.public_show_stats = form.public_show_weight.data and form.public_show_stats.data
     user.public_id = form.public_id.data or propose_public_id(session.get("email"))
     try:
         db.session.commit()

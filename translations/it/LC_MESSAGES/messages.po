@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 14:27+0200\n"
+"POT-Creation-Date: 2026-10-12 15:08+0200\n"
 "PO-Revision-Date: 2026-10-02 16:37+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: it\n"
@@ -241,6 +241,12 @@ msgstr "Condividi il mio grafico su una pagina pubblica"
 # machine-translated
 #. NOTE: Switch in the settings: show the boxes with the current average, BMI
 #. and changes under the public chart.
+#. NOTE: Switch in the settings: show the kilograms on the public chart, or
+#. only the shape of the line.
+msgid "Show my weight"
+msgstr "Mostra il mio peso"
+
+# machine-translated
 msgid "Show the stat boxes on the public page"
 msgstr "Mostra le statistiche nella pagina pubblica"
 
@@ -933,6 +939,14 @@ msgstr ""
 "chiunque abbia il link può vedere e che puoi incorporare in un altro sito "
 "web. Le tue note, il tuo indirizzo email e il tuo registro giornaliero non "
 "vengono mai mostrati."
+
+# machine-translated
+msgid ""
+"Switched off, the chart shows only the shape of the line: no kilograms, no "
+"BMI and no stat boxes."
+msgstr ""
+"Se disattivato, il grafico mostra solo la forma della linea: niente chili, "
+"niente BMI e niente statistiche."
 
 # machine-translated
 #, python-format

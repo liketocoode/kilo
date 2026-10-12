@@ -427,6 +427,9 @@
   // "zones" (red high / green healthy / red low) regardless of where the
   // line's trend actually falls in time.
   const heightCm = {{ height_cm|tojson }};
+  // A public chart whose owner hid the weight: the values are an abstract 0-100 scale (see
+  // routes._without_weights), so no axis numbers and no tooltip values are shown.
+  const hideWeights = {{ (hide_weights|default(false))|tojson }};
   // One gradient stop per color stop (top of the chart = highest BMI).
   const BMI_GRADIENT_STOPS = [BMI_LUT_MAX, ...BMI_COLOR_STOPS.map((s) => s[0]).reverse(), BMI_LUT_MIN];
 
@@ -747,6 +750,7 @@
       plugins: {
         legend: { display: false },
         tooltip: {
+          enabled: !hideWeights,
           // Interpolated points carry no real value — don't show one. The
           // average lines always have a value at every plotted point
           // though, so that filter only applies to the weight series.
@@ -777,7 +781,7 @@
           grid: { color: xGridStyle, tickColor: xGridStyle },
           ticks: { autoSkip: false, maxRotation: 0, callback: xTickLabel },
         },
-        y: { beginAtZero: false },
+        y: { beginAtZero: false, ticks: { display: !hideWeights } },
         // BMI scale on the right, at the same ticks as the weight scale:
         // BMI is just weight / height^2, so this axis spans the same weight
         // range and only relabels each tick (it has no data of its own).

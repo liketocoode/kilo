@@ -47,12 +47,14 @@ def owner(client):
     return user
 
 
-def share(client, public_id="", enabled=True, show_stats=True):
+def share(client, public_id="", enabled=True, show_stats=True, show_weight=True):
     data = {"public_id": public_id}
     if enabled:
         data["public_enabled"] = "y"
     if show_stats:
         data["public_show_stats"] = "y"
+    if show_weight:
+        data["public_show_weight"] = "y"
     return client.post("/settings/public", data=data)
 
 
@@ -287,11 +289,96 @@ def test_an_older_database_gets_the_columns_and_the_unique_index(tmp_path):
     made = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{path}"})
     with made.app_context():
         columns = {c["name"] for c in inspect(db.engine).get_columns("user")}
-        assert {"public_enabled", "public_id", "public_show_stats", "session_version"} <= columns
+        assert {"public_enabled", "public_id", "public_show_stats", "public_show_weight", "session_version"} <= columns
         indexes = {i["name"]: i for i in inspect(db.engine).get_indexes("user")}
         assert indexes["ix_user_public_id"]["unique"]
         user = User.query.one()
         assert user.public_enabled is False and user.public_id is None
         assert user.public_show_stats is False
+        assert user.public_show_weight is True
         db.session.remove()
         db.engine.dispose()
+
+
+# --- "Show my weight" -----------------------------------------------------------------------------
+
+def test_the_weight_is_shown_until_turned_off(client, owner):
+    assert owner.public_show_weight is True
+    assert '<input checked id="public_show_weight"' in client.get("/settings").data.decode()
+    share(client, "mine")
+    html = client.get("/public/mine").data.decode()
+    assert script_value(html, "fullValues")[-1] == 80.0
+    assert "const hideWeights = false;" in html
+
+
+def test_without_the_weight_no_kilogram_reaches_the_page(client, owner):
+    share(client, "mine")
+    shown = client.get("/public/mine").data.decode()
+    real = script_value(shown, "fullValues") + script_value(shown, "fullMovingAvg")
+    share(client, "mine", show_weight=False, show_stats=False)
+    assert owner.public_show_weight is False
+    html = client.get("/public/mine").data.decode()
+    assert "const hideWeights = true;" in html
+    assert "const heightCm = null;" in html
+    assert script_value(html, "fullBmis") is None
+    values = [v for v in script_value(html, "fullValues") if v is not None]
+    moving = [v for v in script_value(html, "fullMovingAvg") if v is not None]
+    assert min(values + moving) == 0 and max(values + moving) == 100
+    # Exactly the real values rescaled to 0-100, and nothing else in the data.
+    low, high = min(real), max(real)
+    assert values + moving == [round((v - low) / (high - low) * 100, 2) for v in real]
+    assert "kg" not in html.split('<section class="chart-wrap">')[1].split("</section>")[0]
+    assert 'class="stats' not in html and "Height:" not in html and "BMI" not in html.split("<script")[0]
+
+
+def test_the_shape_of_the_line_is_kept(client, owner, app):
+    share(client, "mine")
+    shown = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    share(client, "mine", show_weight=False, show_stats=False)
+    hidden = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    assert len(hidden) == len(shown)
+    # Same order everywhere: a higher weight is a higher point, and equal ones stay equal.
+    for i in range(len(shown)):
+        for j in range(len(shown)):
+            assert (shown[i] < shown[j]) == (hidden[i] < hidden[j])
+            assert (shown[i] == shown[j]) == (hidden[i] == hidden[j])
+
+
+def test_a_flat_line_stays_in_the_middle(client, owner):
+    for entry in WeightEntry.query.all():
+        entry.weight = 80
+    db.session.commit()
+    share(client, "mine", show_weight=False, show_stats=False)
+    values = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    assert set(values) == {50.0}
+
+
+def test_without_the_weight_the_stat_boxes_are_off_whatever_was_sent(client, owner):
+    share(client, "mine", show_weight=False, show_stats=True)  # e.g. without the page script
+    assert owner.public_show_weight is False and owner.public_show_stats is False
+    assert 'class="stats' not in client.get("/public/mine").data.decode()
+
+
+def test_an_older_stats_setting_is_ignored_while_the_weight_is_hidden(client, owner):
+    share(client, "mine")
+    owner.public_show_stats, owner.public_show_weight = True, False  # as if set before this rule
+    db.session.commit()
+    assert 'class="stats' not in client.get("/public/mine").data.decode()
+
+
+def test_the_settings_grey_the_stat_boxes_out_without_the_weight(client, owner):
+    share(client, "mine", show_weight=False, show_stats=False)
+    page = client.get("/settings").data.decode()
+    assert '<input disabled id="public_show_stats"' in page
+    assert 'class="toggle-row is-disabled" id="public-stats-row"' in page
+    share(client, "mine")
+    page = client.get("/settings").data.decode()
+    assert '<input checked id="public_show_stats"' in page
+    assert 'class="toggle-row" id="public-stats-row"' in page
+
+
+def test_the_dashboard_always_shows_the_weights(client, owner):
+    share(client, "mine", show_weight=False, show_stats=False)
+    html = client.get("/").data.decode()
+    assert "const hideWeights = false;" in html
+    assert script_value(html, "fullValues")[-1] == 80.0

@@ -988,6 +988,14 @@ body.dashboard-body.public-body {
   .public-dashboard .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* A switch that cannot be used right now ("Show the stat boxes" while the weight is hidden). */
+.toggle-row.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-row.is-disabled input { cursor: not-allowed; }
+
 /* Settings: a short explanation under a field, and the iframe code to copy. */
 .field-hint {
   margin: 0.3rem 0 0;

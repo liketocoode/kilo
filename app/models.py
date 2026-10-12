@@ -76,6 +76,9 @@ class User(db.Model):
     public_id = db.Column(db.String(64), nullable=True, unique=True, index=True)
     # Whether the public chart shows the stat boxes under it; off by default: only the chart.
     public_show_stats = db.Column(db.Boolean, nullable=False, default=False)
+    # Whether the public chart shows the weights. Off: only the shape of the line (see
+    # routes._without_weights), and never the stat boxes, whatever public_show_stats says.
+    public_show_weight = db.Column(db.Boolean, nullable=False, default=True)
 
     entries = db.relationship(
         "WeightEntry", backref="user", cascade="all, delete-orphan", lazy="dynamic"

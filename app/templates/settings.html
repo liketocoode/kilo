@@ -61,9 +61,22 @@
       </div>
       <div class="field field-wide">
         <label class="toggle-row">
+          {{ public_form.public_show_weight.label.text }}
+          <span class="toggle-switch">
+            {{ public_form.public_show_weight() }}
+            <span class="toggle-slider"></span>
+          </span>
+        </label>
+        <p class="field-hint">{{ _("Switched off, the chart shows only the shape of the line: no kilograms, no BMI and no stat boxes.") }}</p>
+      </div>
+      {# The stat boxes show kilograms: they can only be on while the weight is shown (the script
+         below greys this switch out; the server enforces it too). #}
+      {% set weight_off = not public_form.public_show_weight.data %}
+      <div class="field field-wide">
+        <label class="toggle-row{{ ' is-disabled' if weight_off }}" id="public-stats-row">
           {{ public_form.public_show_stats.label.text }}
           <span class="toggle-switch">
-            {{ public_form.public_show_stats() }}
+            {{ public_form.public_show_stats(disabled=weight_off) }}
             <span class="toggle-slider"></span>
           </span>
         </label>
@@ -151,6 +164,19 @@
 
 {% block scripts %}
 <script nonce="{{ csp_nonce() }}">
+  // "Show the stat boxes" only while "Show my weight" is on: switched off and greyed out otherwise.
+  (function () {
+    var weight = document.getElementById('public_show_weight');
+    var stats = document.getElementById('public_show_stats');
+    var row = document.getElementById('public-stats-row');
+    if (!weight || !stats) return;
+    weight.addEventListener('change', function () {
+      if (!weight.checked) stats.checked = false;
+      stats.disabled = !weight.checked;
+      row.classList.toggle('is-disabled', !weight.checked);
+    });
+  })();
+
   // The public chart's full address as the browser sees it (https:// behind the proxy).
   // Refuse a file over the import limit before it is uploaded at all.
   (function () {

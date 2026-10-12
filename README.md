@@ -64,7 +64,9 @@ axis) on a public page at `/public/<id>`, which anyone with the link can open
 and which can be embedded in another website; the settings show the address and
 an `<iframe>` code to copy. By default the page shows only the chart and its
 range buttons; the stat boxes (including the BMI and height) can be switched on
-there. The day notes, the email address and the daily log are never shown. The proposed ID is the SHA-256
+there. With **Show my weight** switched off, the page shows only the shape of the
+line: the server rescales the weights to an abstract 0-100 range and leaves out the
+height and the BMI, so no kilogram is in the page at all, and the stat boxes are off. The day notes, the email address and the daily log are never shown. The proposed ID is the SHA-256
 of the user's email address and the time in seconds (not the email hash, which is
 also the Gravatar id); the user can choose their own instead: 3 to 64 letters
 (a-z), digits, hyphens or underscores, unique among all users and not
