@@ -48,9 +48,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      # Pinned: a newer ruff can add findings for the same code and turn the check red without
-      # any change to Kilo. Raise it on purpose (and fix or list what it finds).
+      # Pinned in requirements-lint.txt: a newer ruff can add findings for the same code. Dependabot
+      # proposes a new version; its pull request shows here what that version finds.
       - name: Install
-        run: pip install ruff==0.17.0
+        run: pip install -r requirements-lint.txt
       - name: Ruff
         run: ruff check --output-format=github .

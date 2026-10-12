@@ -1,0 +1,28 @@
+# Dependabot (https://docs.github.com/code-security/dependabot) opens pull requests for newer
+# versions; CI runs on each of them. Monthly, and grouped, so there is at most one pull request a
+# month per kind instead of one per package.
+version: 2
+updates:
+  # requirements.txt, requirements-dev.txt and requirements-lint.txt. They use minimums
+  # (Flask>=3.1), which pip and CI already resolve to the newest version, so Dependabot would
+  # have nothing to propose; "increase" lets it raise the minimum to the version it tested, so a
+  # deploy with `pip install -U -r requirements.txt` is at least on that. The exact ruff pin in
+  # requirements-lint.txt is simply moved to the new version.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    versioning-strategy: increase
+    groups:
+      python-packages:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+
+  # The actions in .github/workflows/ (checkout, setup-python).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]

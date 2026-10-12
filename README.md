@@ -475,11 +475,15 @@ run that check on its own with `python scripts/check_i18n.py` (see
 [TRANSLATING.md](TRANSLATING.md)).
 
 The lint settings are in `ruff.toml`; with [ruff](https://docs.astral.sh/ruff/) installed
-(it is not a requirement), `ruff check .` checks the code. It should pass without findings;
+(`pip install -r requirements-lint.txt`, the version CI uses; it is not needed to run or test
+Kilo), `ruff check .` checks the code. It should pass without findings;
 the deliberate exceptions are listed in that file with their reasons.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the tests on Python 3.12 (as in
 production) and 3.14, and ruff, on every push to `main` and every pull request.
+Dependabot (`.github/dependabot.yml`) proposes newer Python packages and GitHub Actions
+once a month, each kind grouped in one pull request that CI then checks. The vendored
+Chart.js is not covered: see `app/static/vendor/README.md` for updating it by hand.
 
 ## License
 
