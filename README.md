@@ -16,6 +16,11 @@ all your data as CSV whenever you like (the CSV and XML exports of
 the CSV export of [Yet Another Diet Tool](https://yadt.iotide.com/) can be
 imported too). You can even share your chart on a public page, or embed it in
 your own website.
+
+Kilo is metric only, and that will not change: the clue is in the name. It is called
+Kilo, not Pound. Stones belong in the garden, feet in your shoes, and a hundredweight is
+just a bad week.
+
 Give it a spin, and if you'd rather host it yourself, everything you need is
 below.
 
