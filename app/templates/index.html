@@ -177,6 +177,13 @@
     </div>
   </div>
 
+  {# Shown for a few seconds after a weight is cleared in the daily log; Undo saves it back. #}
+  <div class="undo-toast" id="undo-toast" role="status" aria-live="polite" hidden>
+    <span id="undo-message"></span>
+    {# NOTE: Button that brings back a weight that was just deleted from the daily log. #}
+    <button type="button" class="undo-btn" id="undo-btn">{{ _("Undo") }}</button>
+  </div>
+
   {# Shown when a background save is refused because the session or its CSRF token has expired. #}
   <div class="modal-overlay" id="session-expired-prompt" hidden>
     <div class="modal-box" role="alertdialog" aria-labelledby="session-expired-title" aria-describedby="session-expired-message">
@@ -207,6 +214,7 @@
   "couldNotSave": _("Could not save"),
   "couldNotSavePrompt": _("Could not save."),
   "errorSaving": _("Error saving"),
+  "weightRemoved": _("Weight of %(date)s removed.", date="%(date)s"),
 }|tojson }}</script>
 {# Chart.js 4.4.4 (MIT), served from here rather than a CDN so no visitor data goes to a third
    party; see app/static/vendor/README.md. #}
@@ -1235,6 +1243,38 @@
     if (confirmFn) confirmFn();
   });
 
+  // "Weight of 5 Oct 2026 removed. Undo": one notice for the whole log, for the latest
+  // removal only, gone after UNDO_SECONDS. Clearing a weight deletes the entry at once, so
+  // this is the way back from a slip of the finger.
+  const UNDO_SECONDS = 8;
+  const undoToast = document.getElementById('undo-toast');
+  const undoMessage = document.getElementById('undo-message');
+  let undoTimer = null;
+  let undoAction = null;
+  let undoDate = null;
+
+  function hideUndo() {
+    clearTimeout(undoTimer);
+    undoToast.hidden = true;
+    undoAction = null;
+    undoDate = null;
+  }
+
+  function offerUndo(date, action) {
+    clearTimeout(undoTimer);
+    undoMessage.textContent = t('weightRemoved', { date: fmtDate(date) });
+    undoAction = action;
+    undoDate = date;
+    undoToast.hidden = false;
+    undoTimer = setTimeout(hideUndo, UNDO_SECONDS * 1000);
+  }
+
+  document.getElementById('undo-btn').addEventListener('click', () => {
+    const action = undoAction;
+    hideUndo();
+    if (action) action();
+  });
+
   function bindRow(row) {
     const weightInput = row.querySelector('.day-weight');
     const noteValue = row.querySelector('.day-note-value');
@@ -1285,9 +1325,28 @@
         statusEl.textContent = t('saved');
         statusTimer = setTimeout(() => { statusEl.textContent = ''; }, 1500);
         updateOverview(data);
+        if (data.status === 'cleared' && data.removed) {
+          // The note went with the entry: show the row as it now is (Undo brings both back).
+          // A note typed on a day that had no weight is not touched: it is saved together
+          // with the weight once one is entered.
+          noteValue.value = '';
+          refreshNoteDisplay();
+          offerUndo(row.dataset.date, () => restore(data.removed));
+        } else if (undoDate === row.dataset.date) {
+          hideUndo(); // this day was saved again: nothing left to undo
+        }
       } catch (err) {
         statusEl.textContent = t('couldNotSave');
       }
+    }
+
+    // Puts a removed weight and its note back (the Undo button). confirm: it was already
+    // accepted once, so the outlier check would only ask the same question again.
+    function restore(removed) {
+      weightInput.value = inputWeightFormat.format(removed.weight);
+      noteValue.value = removed.note;
+      refreshNoteDisplay();
+      save(true);
     }
 
     // Not `save` directly: the change Event object would otherwise be

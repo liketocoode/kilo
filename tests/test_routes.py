@@ -71,6 +71,43 @@ def test_save_field_empty_weight_deletes_entry(logged_in_client, app):
         assert WeightEntry.query.filter_by(user_id=user_id).count() == 0
 
 
+def test_clearing_a_weight_says_what_was_removed_so_it_can_be_undone(logged_in_client, app):
+    client, user_id = logged_in_client
+    client.post("/entries/field", json={"date": "2026-01-01", "weight": "80,5", "note": "after the party"})
+    removed = client.post("/entries/field", json={"date": "2026-01-01", "weight": ""}).get_json()["removed"]
+    assert removed == {"weight": 80.5, "note": "after the party"}
+
+    # "Undo" saves the same values again (confirmed, so no outlier question).
+    resp = client.post(
+        "/entries/field", json={"date": "2026-01-01", "weight": str(removed["weight"]), "note": removed["note"],
+                                "confirm": True},
+    )
+    assert resp.get_json()["status"] == "saved"
+    with app.app_context():
+        (entry,) = WeightEntry.query.filter_by(user_id=user_id).all()
+        assert (entry.weight, entry.note) == (80.5, "after the party")
+
+
+def test_clearing_a_day_without_a_weight_removes_nothing(logged_in_client):
+    client, _ = logged_in_client
+    data = client.post("/entries/field", json={"date": "2026-01-01", "weight": ""}).get_json()
+    assert data["status"] == "cleared" and data["removed"] is None
+
+
+def test_a_removed_weight_without_a_note_gives_an_empty_note(logged_in_client):
+    client, _ = logged_in_client
+    client.post("/entries/field", json={"date": "2026-01-01", "weight": 80.5})
+    data = client.post("/entries/field", json={"date": "2026-01-01", "weight": ""}).get_json()
+    assert data["removed"] == {"weight": 80.5, "note": ""}
+
+
+def test_the_dashboard_has_the_undo_notice(logged_in_client):
+    client, _ = logged_in_client
+    html = client.get("/").get_data(as_text=True)
+    assert 'id="undo-toast"' in html and 'role="status"' in html and ">Undo</button>" in html
+    assert '"weightRemoved": "Weight of %(date)s removed."' in html
+
+
 def test_save_field_rejects_invalid_weight(logged_in_client, app):
     client, user_id = logged_in_client
     resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": -5})

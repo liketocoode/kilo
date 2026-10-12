@@ -479,10 +479,13 @@ def save_field():
 
     weight_raw = data.get("weight")
     if weight_raw in (None, ""):
+        removed = None
         if entry is not None:
+            # Sent back so the page can offer "Undo": saving these again restores the entry.
+            removed = {"weight": entry.weight, "note": entry.note or ""}
             db.session.delete(entry)
             db.session.commit()
-        return jsonify(status="cleared", **_overview(user))
+        return jsonify(status="cleared", removed=removed, **_overview(user))
 
     # Plain decimals only, "80.5" or "80,5": float() would also take "1e2", "1_0", "nan"...
     if isinstance(weight_raw, str):

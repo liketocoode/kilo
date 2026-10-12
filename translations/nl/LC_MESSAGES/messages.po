@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 13:00+0200\n"
+"POT-Creation-Date: 2026-10-12 14:27+0200\n"
 "PO-Revision-Date: 2026-10-02 16:37+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: nl\n"
@@ -757,6 +757,11 @@ msgid "Save anyway"
 msgstr "Toch opslaan"
 
 # machine-translated
+#. Button that brings back a weight that was just deleted from the daily log.
+msgid "Undo"
+msgstr "Ongedaan maken"
+
+# machine-translated
 #. Title of a dialog: the login session has timed out; the page must be
 #. reloaded.
 msgid "Session expired"
@@ -804,6 +809,11 @@ msgstr "Opslaan mislukt."
 # machine-translated
 msgid "Error saving"
 msgstr "Fout bij opslaan"
+
+# machine-translated
+#, python-format
+msgid "Weight of %(date)s removed."
+msgstr "Gewicht van %(date)s verwijderd."
 
 # machine-translated
 msgid "Sign in"
