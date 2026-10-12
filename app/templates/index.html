@@ -33,6 +33,8 @@
 {% block content %}
   <div class="dashboard{{ ' public-dashboard' if public }}">
     <section class="chart-wrap">
+      {# A public chart embedded with ?range=... is fixed to that range: no buttons. #}
+      {% if not fixed_range %}
       <div class="chart-header">
         <div class="range-buttons" id="range-buttons">
           {% for key, label, _days in chart_ranges %}
@@ -45,6 +47,7 @@
           {% endfor %}
         </div>
       </div>
+      {% endif %}
       <div class="chart-canvas-wrap">
         <canvas id="weight-chart"></canvas>
       </div>
@@ -79,16 +82,24 @@
       </div>
       {% if stats %}
         {% for c in stats.changes %}
+          {% if fixed_range %}
+          <div class="stat-card" data-days="{{ c.days }}">
+          {% else %}
           <div class="stat-card stat-card-link" data-days="{{ c.days }}" data-range="{{ c.range }}"
                role="button" tabindex="0" title="{{ _('Show the %(range)s chart', range=chart_range_labels[c.range]) }}">
+          {% endif %}
             <span class="stat-label">{{ ngettext("%(num)d-day change", "%(num)d-day change", c.days) }}</span>
             <span class="stat-value change-value {{ 'down' if c.change is not none and c.change < 0 else 'up' if c.change }}">{{ c.change|kg(signed=True) if c.change is not none else "—" }}</span>
             <span class="stat-sub change-rate {{ 'down' if c.g_per_day is not none and c.g_per_day < 0 else 'up' if c.g_per_day }}">{{ c.g_per_day|grams_per_day if c.g_per_day is not none else "—" }}</span>
           </div>
         {% endfor %}
         {% set t = stats.total %}
+        {% if fixed_range %}
+        <div class="stat-card" id="stat-total-card">
+        {% else %}
         <div class="stat-card stat-card-link" id="stat-total-card" data-range="all"
              role="button" tabindex="0" title="{{ _('Show the whole history in the chart') }}">
+        {% endif %}
           <span class="stat-label" id="stat-total-label">{{ ngettext("%(num)d-day change", "%(num)d-day change", t.days) }}</span>
           <span class="stat-value change-value {{ 'down' if t.change is not none and t.change < 0 else 'up' if t.change }}">{{ t.change|kg(signed=True) if t.change is not none else "—" }}</span>
           <span class="stat-sub change-rate {{ 'down' if t.g_per_day is not none and t.g_per_day < 0 else 'up' if t.g_per_day }}">{{ t.g_per_day|grams_per_day if t.g_per_day is not none else "—" }}</span>

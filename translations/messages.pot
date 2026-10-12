@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker VERSION\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 15:08+0200\n"
+"POT-Creation-Date: 2026-10-12 15:25+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -726,6 +726,15 @@ msgid ""
 msgstr ""
 
 msgid "Your public chart:"
+msgstr ""
+
+#. Label of a menu in the settings: which period the shared chart shows.
+msgid "Chart range"
+msgstr ""
+
+#. First choice of the chart range menu: the chart keeps its range buttons and
+#. the visitor picks.
+msgid "Visitor chooses (range buttons)"
 msgstr ""
 
 msgid "To show it in another website, put this code in that page's HTML:"

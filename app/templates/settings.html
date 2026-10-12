@@ -99,6 +99,17 @@
       {% set public_url = request.host_url.rstrip('/') ~ public_path %}
       <p>{{ _("Your public chart:") }}
         <a href="{{ public_path }}" target="_blank" rel="noopener" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">{{ public_url }}</a></p>
+      <div class="field">
+        {# NOTE: Label of a menu in the settings: which period the shared chart shows. #}
+        <label for="embed-range">{{ _("Chart range") }}</label>
+        <select id="embed-range">
+          {# NOTE: First choice of the chart range menu: the chart keeps its range buttons and the visitor picks. #}
+          <option value="">{{ _("Visitor chooses (range buttons)") }}</option>
+          {% for key, label, _days in chart_ranges %}
+            <option value="{{ key }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <p>{{ _("To show it in another website, put this code in that page's HTML:") }}</p>
       <pre class="csv-example embed-code" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">&lt;iframe src="{{ public_url }}" title="Kilo Tracker" width="100%" height="600" style="border: 0;" loading="lazy"&gt;&lt;/iframe&gt;</pre>
     {% endif %}
@@ -200,8 +211,23 @@
     });
   })();
 
-  document.querySelectorAll('[data-public-path]').forEach(function (el) {
-    el.textContent = el.textContent.split(el.dataset.serverUrl).join(location.origin + el.dataset.publicPath);
-  });
+  // The public chart's address and iframe code, with ?range=... when a fixed range is picked.
+  (function () {
+    var shown = document.querySelectorAll('[data-public-path]');
+    if (!shown.length) return;
+    // What each element shows now; replaced by the new address on every change.
+    var current = Array.prototype.map.call(shown, function (el) { return el.dataset.serverUrl; });
+    function update() {
+      var range = document.getElementById('embed-range').value;
+      var url = location.origin + shown[0].dataset.publicPath + (range ? '?range=' + encodeURIComponent(range) : '');
+      shown.forEach(function (el, i) {
+        el.textContent = el.textContent.split(current[i]).join(url);
+        if (el.tagName === 'A') el.href = url;
+        current[i] = url;
+      });
+    }
+    document.getElementById('embed-range').addEventListener('change', update);
+    update();
+  })();
 </script>
 {% endblock %}

@@ -72,8 +72,11 @@ also the Gravatar id); the user can choose their own instead: 3 to 64 letters
 (a-z), digits, hyphens or underscores, unique among all users and not
 case-sensitive. Turning sharing off keeps the ID, so turning it on again brings
 back the same address. Add `?theme=dark` or `?theme=light` to the address to
-override the owner's theme. The page sets no framing restriction, so any site
-can show it; every other page refuses to be shown in a frame
+override the owner's theme, and `?range=3m` (or any range key: `1w`, `2w`, `1m`,
+`3m`, `6m`, `1y`, `5y`, `10y`, `15y`, `20y`, `all`, in any case) to fix the chart to that range
+without range buttons; the settings' "Chart range" menu puts it in the link and the
+`<iframe>` code. The page sets no framing restriction, so any site can show it; every
+other page refuses to be shown in a frame
 (`frame-ancestors 'none'` in its Content-Security-Policy and `X-Frame-Options: DENY`,
 against clickjacking). `robots.txt` asks search engines to leave public charts
 alone. An address without a shared chart answers 404 and is written to the

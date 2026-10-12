@@ -382,3 +382,50 @@ def test_the_dashboard_always_shows_the_weights(client, owner):
     html = client.get("/").data.decode()
     assert "const hideWeights = false;" in html
     assert script_value(html, "fullValues")[-1] == 80.0
+
+
+# --- a fixed range: ?range=3m ----------------------------------------------------------------------
+
+
+def test_a_range_in_the_address_fixes_the_chart(client, owner):
+    share(client, "mine")
+    html = client.get("/public/mine?range=1w").data.decode()
+    assert script_value(html, "currentRange") == "1w"
+    assert 'id="range-buttons"' not in html and "range-btn" not in html.split("<script")[0]
+    # The stat boxes no longer switch the range either.
+    assert "stat-card-link" not in html.split("<script")[0] and 'role="button"' not in html
+    assert 'id="stat-current"' in html and 'data-days="7"' in html
+
+
+@pytest.mark.parametrize("value, key", [("3M", "3m"), ("ALL", "all"), ("All", "all"), ("1W", "1w"), ("10Y", "10y")])
+def test_the_range_is_not_case_sensitive(client, owner, value, key):
+    share(client, "mine")
+    html = client.get(f"/public/mine?range={value}").data.decode()
+    assert script_value(html, "currentRange") == key and 'id="range-buttons"' not in html
+
+
+def test_any_range_may_be_fixed_even_one_the_data_does_not_span(client, owner):
+    share(client, "mine")
+    assert script_value(client.get("/public/mine?range=20y").data.decode(), "currentRange") == "20y"
+
+
+@pytest.mark.parametrize("query", ["", "?range=", "?range=3x", "?range=3 m", "?range=<b>"])
+def test_without_a_known_range_the_buttons_stay(client, owner, query):
+    share(client, "mine")
+    html = client.get("/public/mine" + query).data.decode()
+    assert 'id="range-buttons"' in html and "stat-card-link" in html
+    assert script_value(html, "currentRange") == owner.chart_range
+
+
+def test_the_dashboard_ignores_it(client, owner):
+    html = client.get("/?range=1w").data.decode()
+    assert 'id="range-buttons"' in html
+    assert script_value(html, "currentRange") == owner.chart_range
+
+
+def test_the_settings_offer_the_ranges_for_the_embed_code(client, owner):
+    share(client, "mine")
+    page = client.get("/settings").data.decode()
+    menu = page.split('<select id="embed-range">')[1].split("</select>")[0]
+    assert re.findall(r'<option value="([^"]*)"', menu) == ["", *[key for key, _label, _days in routes.CHART_RANGES]]
+    assert "Visitor chooses (range buttons)" in menu

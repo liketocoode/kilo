@@ -428,6 +428,13 @@ def public_chart(public_id):
         theme = "dark" if user.dark_mode else "light"
     overview = _overview(user, notes=False)
     context = _chart_context(user, overview)
+    # ?range=3m (from the embed code) fixes the chart to that range, buttons and all; any range
+    # key is allowed, also one the data does not span yet, in any case (3M, All). Anything else
+    # is ignored.
+    range_key = request.args.get("range", "").lower()
+    fixed_range = range_key in CHART_RANGE_KEYS
+    if fixed_range:
+        context["chart_range"] = range_key
     show_weight = user.public_show_weight
     if not show_weight:
         context.update(_without_weights(overview), height_cm=None)
@@ -436,6 +443,7 @@ def public_chart(public_id):
         public=True,
         show_stats=show_weight and user.public_show_stats,
         hide_weights=not show_weight,
+        fixed_range=fixed_range,
         theme=theme,
         **context,
     )
@@ -626,7 +634,12 @@ def _render_settings(user, form=None, public_form=None):
     if not public_form.public_show_weight.data:
         public_form.public_show_stats.data = False  # shown switched off and greyed out
     return render_template(
-        "settings.html", form=form, public_form=public_form, import_form=ImportForm(), user=user
+        "settings.html",
+        form=form,
+        public_form=public_form,
+        import_form=ImportForm(),
+        user=user,
+        chart_ranges=CHART_RANGES,
     )
 
 
