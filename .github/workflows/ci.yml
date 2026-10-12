@@ -1,0 +1,56 @@
+# Continuous integration: the tests (which include the translation check) on every push and pull
+# request, on the Python that production runs and on the newest one, plus ruff with the committed
+# ruff.toml.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an older, still running check pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.12 is what production runs; 3.14 catches what the next upgrade would break.
+        python: ["3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: Install
+        run: pip install -r requirements-dev.txt
+      # tests/conftest.py compiles the catalogs itself, and tests/test_i18n_catalogs.py runs
+      # scripts/check_i18n.py, so this one step also checks the translations.
+      - name: Test
+        run: pytest -q
+
+  lint:
+    name: Ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Pinned: a newer ruff can add findings for the same code and turn the check red without
+      # any change to Kilo. Raise it on purpose (and fix or list what it finds).
+      - name: Install
+        run: pip install ruff==0.17.0
+      - name: Ruff
+        run: ruff check --output-format=github .

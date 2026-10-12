@@ -478,6 +478,9 @@ The lint settings are in `ruff.toml`; with [ruff](https://docs.astral.sh/ruff/) 
 (it is not a requirement), `ruff check .` checks the code. It should pass without findings;
 the deliberate exceptions are listed in that file with their reasons.
 
+GitHub Actions (`.github/workflows/ci.yml`) runs the tests on Python 3.12 (as in
+production) and 3.14, and ruff, on every push to `main` and every pull request.
+
 ## License
 
 Copyright (C) 2026 Ramón de Vries <ramon@11tools.com>
