@@ -6,6 +6,9 @@
   --border: #dfe3df;
   --accent: #2f6f4f;
   --danger: #b3261e;
+  /* Traffic-light amber, for an action that is not destructive but not routine either. */
+  --warning: #f2a007;
+  --on-warning: #1b1f1c;
   --chart-line: #2f6f4f;
   /* BMI-zone colours for the chart fill and dots: the brighter logo palette
      rather than the UI --danger/--accent. */
@@ -36,6 +39,8 @@ html[data-theme="dark"] {
   --border: #333c3d;
   --accent: #4fbf87;
   --danger: #ff7a70;
+  --warning: #ffb627;
+  --on-warning: #1b1f1c;
   --chart-line: #4fbf87;
   --chart-red: #ff6369;
   --chart-green: #3dd68c;
@@ -557,6 +562,18 @@ button.back-link {
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field-wide { grid-column: 1 / -1; }
 
+/* The settings page keeps every button (Save, Import, Export, ...) at the right-hand side of its
+   section: in a form grid the last column, sized to its text; elsewhere a right-aligned row. */
+.entry-form > .form-action {
+  grid-column: -2 / -1;
+  justify-self: end;
+}
+
+.section-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* A text input with its submit button on the same line. */
 .input-with-button {
   display: flex;
@@ -941,6 +958,11 @@ code {
 .button-danger {
   background: var(--danger);
   color: #fff;
+}
+
+.button-warning {
+  background: var(--warning);
+  color: var(--on-warning);
 }
 
 /* The public chart (/public/<id>, also inside other sites' iframes): the chart over the stat

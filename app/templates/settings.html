@@ -40,7 +40,7 @@
         {% endfor %}
       </div>
       {# NOTE: Button that saves the settings (verb). #}
-      <button type="submit">{{ _("Save") }}</button>
+      <button type="submit" class="form-action">{{ _("Save") }}</button>
     </form>
   </section>
 
@@ -89,30 +89,33 @@
           <p class="flash flash-error">{{ error }}</p>
         {% endfor %}
       </div>
+      {% if user.public_enabled and user.public_id %}
+        {% set public_path = url_for('main.public_chart', public_id=user.public_id) %}
+        {# The full addresses are completed by the script below with the address the browser
+           sees: behind a proxy the server itself may only know http://. The range menu has no
+           name: it only changes the address shown here, nothing is saved. #}
+        {% set public_url = request.host_url.rstrip('/') ~ public_path %}
+        <div class="field-wide">
+          <div class="field">
+            {# NOTE: Label of a menu in the settings: which period the shared chart shows. #}
+            <label for="embed-range">{{ _("Chart range") }}</label>
+            <select id="embed-range">
+              {# NOTE: First choice of the chart range menu: the chart keeps its range buttons and the visitor picks. #}
+              <option value="">{{ _("Visitor chooses (range buttons)") }}</option>
+              {% for key, label, _days in chart_ranges %}
+                <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <p>{{ _("Your public chart:") }}
+            <a href="{{ public_path }}" target="_blank" rel="noopener" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">{{ public_url }}</a></p>
+          <p>{{ _("To show it in another website, put this code in that page's HTML:") }}</p>
+          <pre class="csv-example embed-code" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">&lt;iframe src="{{ public_url }}" title="Kilo Tracker" width="100%" height="600" style="border: 0;" loading="lazy"&gt;&lt;/iframe&gt;</pre>
+        </div>
+      {% endif %}
       {# NOTE: Button that saves the settings (verb). #}
-      <button type="submit">{{ _("Save") }}</button>
+      <button type="submit" class="form-action">{{ _("Save") }}</button>
     </form>
-    {% if user.public_enabled and user.public_id %}
-      {% set public_path = url_for('main.public_chart', public_id=user.public_id) %}
-      {# The full addresses are completed by the script below with the address the browser
-         sees: behind a proxy the server itself may only know http://. #}
-      {% set public_url = request.host_url.rstrip('/') ~ public_path %}
-      <p>{{ _("Your public chart:") }}
-        <a href="{{ public_path }}" target="_blank" rel="noopener" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">{{ public_url }}</a></p>
-      <div class="field">
-        {# NOTE: Label of a menu in the settings: which period the shared chart shows. #}
-        <label for="embed-range">{{ _("Chart range") }}</label>
-        <select id="embed-range">
-          {# NOTE: First choice of the chart range menu: the chart keeps its range buttons and the visitor picks. #}
-          <option value="">{{ _("Visitor chooses (range buttons)") }}</option>
-          {% for key, label, _days in chart_ranges %}
-            <option value="{{ key }}">{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <p>{{ _("To show it in another website, put this code in that page's HTML:") }}</p>
-      <pre class="csv-example embed-code" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">&lt;iframe src="{{ public_url }}" title="Kilo Tracker" width="100%" height="600" style="border: 0;" loading="lazy"&gt;&lt;/iframe&gt;</pre>
-    {% endif %}
   </section>
 
   <section class="add-entry">
@@ -144,24 +147,26 @@
         {% endfor %}
         <p class="flash flash-error" id="import-too-large" hidden></p>
       </div>
-      <button type="submit">{{ _("Import") }}</button>
+      <button type="submit" class="form-action">{{ _("Import") }}</button>
     </form>
   </section>
 
   <section class="add-entry">
     <h2>{{ _("Export data") }}</h2>
     <p>{{ _("Download all your weigh-ins as a CSV file (date, weight in kilograms, note).") }}</p>
-    <a class="button-link" href="{{ url_for('main.export_entries') }}">{{ _("Export CSV") }}</a>
+    <div class="section-actions">
+      <a class="button-link" href="{{ url_for('main.export_entries') }}">{{ _("Export CSV") }}</a>
+    </div>
   </section>
 
   <section class="add-entry">
     {# NOTE: Heading of the settings section that ends the sign-in on every other browser and device. #}
     <h2>{{ _("Sign out everywhere") }}</h2>
     <p>{{ _("Signed in on a computer that isn't yours, or lost a phone? This signs you out on every other browser and device. You stay signed in here.") }}</p>
-    <form method="post" action="{{ url_for('account.sign_out_everywhere') }}">
+    <form method="post" action="{{ url_for('account.sign_out_everywhere') }}" class="section-actions">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {# NOTE: Button that ends the sign-in on all other browsers and devices (not on this one). #}
-      <button type="submit">{{ _("Sign out on other devices") }}</button>
+      <button type="submit" class="button-warning">{{ _("Sign out on other devices") }}</button>
     </form>
   </section>
 
@@ -169,7 +174,9 @@
     <h2>{{ _("Remove my data") }}</h2>
     <p>{% trans trimmed %}Permanently delete your account and all your weigh-ins. You'll be asked
       to download your data and confirm with a code sent by email first.{% endtrans %}</p>
-    <a class="button-link button-danger" href="{{ url_for('account.remove_data') }}">{{ _("Remove my data…") }}</a>
+    <div class="section-actions">
+      <a class="button-link button-danger" href="{{ url_for('account.remove_data') }}">{{ _("Remove my data…") }}</a>
+    </div>
   </section>
 {% endblock %}
 
