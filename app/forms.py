@@ -134,7 +134,7 @@ class PublicChartForm(FlaskForm):
     public_show_weight = BooleanField(_l("Show my weight"))
     public_show_stats = BooleanField(_l("Show the stat boxes on the public page"))
     public_id = StringField(
-        # NOTE: Label of the field with the last part of the public page's web address, e.g. the "ramon" in kilo.example.com/public/ramon.
+        # NOTE: Label of the field with the last part of the public page's address (the "ramon" in .../public/ramon).
         _l("Page ID"),
         filters=[lambda value: value.strip().lower() if value else value],
         validators=[

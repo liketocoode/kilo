@@ -474,6 +474,10 @@ The tests also check that the translations are complete and up to date; you can
 run that check on its own with `python scripts/check_i18n.py` (see
 [TRANSLATING.md](TRANSLATING.md)).
 
+The lint settings are in `ruff.toml`; with [ruff](https://docs.astral.sh/ruff/) installed
+(it is not a requirement), `ruff check .` checks the code. It should pass without findings;
+the deliberate exceptions are listed in that file with their reasons.
+
 ## License
 
 Copyright (C) 2026 Ramón de Vries <ramon@11tools.com>

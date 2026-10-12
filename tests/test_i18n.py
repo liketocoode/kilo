@@ -593,7 +593,7 @@ def test_the_menu_order(client, accept_language, expected):
 
 
 def test_the_alphabet_is_the_languages_own_names():
-    assert ALPHABETICAL == sorted(SUPPORTED_LANGUAGES, key=lambda code: LANGUAGE_NAMES[code].casefold())
+    assert sorted(SUPPORTED_LANGUAGES, key=lambda code: LANGUAGE_NAMES[code].casefold()) == ALPHABETICAL
     assert [LANGUAGE_NAMES[code] for code in ALPHABETICAL][:4] == ["Bahasa Indonesia", "Dansk", "Deutsch", "English"]
 
 

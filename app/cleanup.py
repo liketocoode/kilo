@@ -36,7 +36,7 @@ or at any time of day, is safe.
 
 import argparse
 import sys
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 
 from sqlalchemy import and_, delete, exists, func, or_, select, update
 
@@ -126,7 +126,7 @@ def cleanup(now=None, dry_run=False, stale_days=STALE_SIGNUP_DAYS):
 
 def _timestamp(now):
     """A naive UTC datetime as a Unix time, for comparing with file modification times."""
-    return now.replace(tzinfo=timezone.utc).timestamp()
+    return now.replace(tzinfo=UTC).timestamp()
 
 
 def _known_hashes(exclude=None):

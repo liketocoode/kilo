@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 15:25+0200\n"
+"POT-Creation-Date: 2026-10-12 18:48+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: id\n"
@@ -240,8 +240,8 @@ msgid "Show the stat boxes on the public page"
 msgstr "Tampilkan kotak statistik di halaman publik"
 
 # machine-translated
-#. NOTE: Label of the field with the last part of the public page's web
-#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+#. NOTE: Label of the field with the last part of the public page's address
+#. (the "ramon" in .../public/ramon).
 msgid "Page ID"
 msgstr "ID halaman"
 
@@ -935,10 +935,6 @@ msgstr ""
 "baru."
 
 # machine-translated
-msgid "Your public chart:"
-msgstr "Grafik publikmu:"
-
-# machine-translated
 #. Label of a menu in the settings: which period the shared chart shows.
 msgid "Chart range"
 msgstr "Rentang grafik"
@@ -948,6 +944,10 @@ msgstr "Rentang grafik"
 #. the visitor picks.
 msgid "Visitor chooses (range buttons)"
 msgstr "Pengunjung memilih (tombol rentang)"
+
+# machine-translated
+msgid "Your public chart:"
+msgstr "Grafik publikmu:"
 
 # machine-translated
 msgid "To show it in another website, put this code in that page's HTML:"

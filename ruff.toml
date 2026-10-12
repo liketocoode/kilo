@@ -1,0 +1,55 @@
+# Ruff (https://docs.astral.sh/ruff/) settings for Kilo Tracker: `ruff check .` from the
+# project root. Not a test requirement; install ruff in any environment to use it.
+
+# Production runs Python 3.12.
+target-version = "py312"
+line-length = 120
+# The user's drop folder (local data, never committed) and the database folder.
+extend-exclude = [".claude", "instance"]
+
+[lint]
+# Bugs and security first, plus the import order and modern syntax. Left out on purpose:
+# the pylint "refactor" rules (PLR: magic numbers, too many arguments or branches) and
+# PLC0415 (imports inside functions are deliberate here, to avoid import cycles), and the
+# flake8-datetimez rules (DTZ): the app stores naive UTC on purpose, see utils.utcnow().
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # import order
+    "B",        # bugbear: likely bugs
+    "UP",       # pyupgrade: syntax for the target Python
+    "S",        # bandit: security
+    "C4",       # comprehensions
+    "SIM",      # simplifications
+    "RUF",      # ruff's own
+    "PLE",      # pylint errors
+    "PLW",      # pylint warnings
+]
+ignore = [
+    "SIM105",   # contextlib.suppress instead of try/except/pass: a matter of taste
+]
+
+[lint.isort]
+# `from x import a, b as c` on one line instead of one line per alias.
+combine-as-imports = true
+known-first-party = ["app", "tests"]
+
+[lint.per-file-ignores]
+# The warning about the insecure default key compares against "dev"; it is not a password.
+"app/__init__.py" = ["S105"]
+# Fetches only the fixed https://www.gravatar.com URL, never input from a visitor.
+"app/avatar.py" = ["S310"]
+# The import layout is deliberate (wtforms.validators on one wrapped line).
+"app/forms.py" = ["I001"]
+# The XML is guarded: no DTD is fetched and a document declaring its own <!ENTITY is refused.
+"app/hackdiet_io.py" = ["S314"]
+# A module-level "warned once" flag.
+"app/ratelimit.py" = ["PLW0603"]
+# Runs git with fixed arguments to read the version.
+"app/version.py" = ["S603", "S607"]
+# Runs pybabel (sys.executable) with fixed arguments.
+"scripts/check_i18n.py" = ["S603"]
+# Tests assert, run fixed commands, and use made-up keys and addresses.
+"tests/**" = ["S101", "S104", "S105", "S106", "S603", "S607"]
+# The no-break and narrow no-break spaces are what these tests check.
+"tests/test_i18n.py" = ["S101", "RUF001"]

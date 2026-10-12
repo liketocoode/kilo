@@ -44,8 +44,8 @@ from sqlalchemy.exc import IntegrityError
 from app import avatar, db
 from app.auth import get_current_user, login_required
 from app.csv_io import MAX_WEIGHT_KG, MIN_WEIGHT_KG, ImportFileError, export_csv
-from app.forms import ImportForm, PublicChartForm, SettingsForm, SignupForm
 from app.errors import back_url
+from app.forms import ImportForm, PublicChartForm, SettingsForm, SignupForm
 from app.i18n import LANGUAGE_COOKIE, LANGUAGE_COOKIE_DAYS, meters
 from app.importing import parse_import
 from app.models import User, WeightEntry

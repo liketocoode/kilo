@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker VERSION\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 15:25+0200\n"
+"POT-Creation-Date: 2026-10-12 18:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -190,8 +190,8 @@ msgstr ""
 msgid "Show the stat boxes on the public page"
 msgstr ""
 
-#. NOTE: Label of the field with the last part of the public page's web
-#. address, e.g. the "ramon" in kilo.example.com/public/ramon.
+#. NOTE: Label of the field with the last part of the public page's address
+#. (the "ramon" in .../public/ramon).
 msgid "Page ID"
 msgstr ""
 
@@ -725,9 +725,6 @@ msgid ""
 "digits, hyphens or underscores. Leave it empty for a new random ID."
 msgstr ""
 
-msgid "Your public chart:"
-msgstr ""
-
 #. Label of a menu in the settings: which period the shared chart shows.
 msgid "Chart range"
 msgstr ""
@@ -735,6 +732,9 @@ msgstr ""
 #. First choice of the chart range menu: the chart keeps its range buttons and
 #. the visitor picks.
 msgid "Visitor chooses (range buttons)"
+msgstr ""
+
+msgid "Your public chart:"
 msgstr ""
 
 msgid "To show it in another website, put this code in that page's HTML:"

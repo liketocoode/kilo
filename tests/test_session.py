@@ -16,7 +16,7 @@
 import logging
 import re
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 
 import pytest
@@ -49,7 +49,7 @@ def expiry(cookie):
 
 
 def in_days(days):
-    return datetime.now(timezone.utc) + timedelta(days=days)
+    return datetime.now(UTC) + timedelta(days=days)
 
 
 # ---- signing in --------------------------------------------------------------
