@@ -217,6 +217,47 @@ html[data-theme="dark"] .brand-logo-dark { display: block; }
   background: var(--bg);
 }
 
+/* The language menu: a globe and a plain select, in the header (signed out) or as a row of the
+   account menu (signed in). */
+.language-form { margin: 0; }
+
+.language-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: var(--fs-ui);
+}
+
+.language-icon { flex-shrink: 0; }
+
+.language-select {
+  font: inherit;
+  font-size: var(--fs-ui);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.35rem;
+  max-width: 11rem;
+}
+
+.dropdown-item.language-form { cursor: default; }
+.dropdown-item.language-form:hover { background: none; }
+.dropdown-item .language-label { flex-wrap: wrap; color: var(--text); }
+.dropdown-item .language-select { flex: 1 1 auto; max-width: none; }
+
+.language-go { margin-inline-start: 0.4rem; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .container {
   max-width: 760px;
   margin: 0 auto;

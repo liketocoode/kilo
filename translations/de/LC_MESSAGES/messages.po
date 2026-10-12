@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 00:20+0200\n"
+"POT-Creation-Date: 2026-10-12 13:00+0200\n"
 "PO-Revision-Date: 2026-10-02 16:37+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: de\n"
@@ -568,6 +568,21 @@ msgstr ""
 "Adresse sieht."
 
 # machine-translated
+#. Label of the menu that picks the language of the website.
+msgid "Language"
+msgstr "Sprache"
+
+# machine-translated
+#. First choice in the language menu: follow the language set in the web
+#. browser.
+msgid "Browser language"
+msgstr "Browsersprache"
+
+# machine-translated
+msgid "OK"
+msgstr "OK"
+
+# machine-translated
 msgid "Signed in"
 msgstr "Angemeldet"
 
@@ -736,10 +751,6 @@ msgstr "z. B. 82,4"
 # machine-translated
 msgid "Skip"
 msgstr "Überspringen"
-
-# machine-translated
-msgid "OK"
-msgstr "OK"
 
 # machine-translated
 msgid "Unusual value"

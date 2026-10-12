@@ -11,11 +11,16 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-"""Tests for language selection (app/i18n.py)."""
+"""Tests for language selection (app/i18n.py) and the language menu (routes.set_language)."""
 
 import re
 
 import pytest
+
+from app import db
+from app.i18n import LANGUAGE_COOKIE, LANGUAGE_NAMES, SUPPORTED_LANGUAGES
+from app.models import User
+from tests.conftest import signup_and_verify
 
 
 def html_lang(response):
@@ -480,3 +485,154 @@ def test_the_metres_filter_always_ends_in_the_m_symbol(app, lang):
     with app.test_request_context(f"/?lang={lang}"):
         text = meters(1.86).replace(" ", " ").replace(" ", " ")
     assert text in ("1.86 m", "1,86 m"), (lang, text)
+
+
+# --- the language menu (routes.set_language, the kilo_lang cookie) ------------------------------
+
+def pick(client, language, referrer="http://localhost/about"):
+    return client.post("/language", data={"language": language}, headers={"Referer": referrer})
+
+
+def language_cookie(response):
+    for header in response.headers.getlist("Set-Cookie"):
+        if header.startswith(LANGUAGE_COOKIE + "="):
+            return header
+    return None
+
+
+def test_a_picked_language_wins_over_the_browser_and_is_remembered(client):
+    response = pick(client, "fi")
+    assert response.status_code == 302 and response.location == "/about"
+    for _ in range(2):
+        assert html_lang(client.get("/", headers={"Accept-Language": "de"})) == "fi"
+
+
+def test_the_query_parameter_still_wins_for_one_page(client):
+    pick(client, "fi")
+    assert html_lang(client.get("/?lang=sv")) == "sv"
+    assert html_lang(client.get("/")) == "fi"
+
+
+def test_browser_language_forgets_the_choice(client):
+    pick(client, "fi")
+    response = pick(client, "")
+    assert language_cookie(response).startswith(LANGUAGE_COOKIE + "=;")  # deleted
+    assert html_lang(client.get("/", headers={"Accept-Language": "de"})) == "de"
+
+
+@pytest.mark.parametrize("value", ["xx", "../en", "EN", "nl-BE", "<b>"])
+def test_an_unknown_choice_is_not_stored(client, value):
+    pick(client, "fi")
+    header = language_cookie(pick(client, value))
+    assert header.startswith(LANGUAGE_COOKIE + "=;")  # the cookie is deleted, never set to it
+    assert html_lang(client.get("/", headers={"Accept-Language": "de"})) == "de"
+
+
+def test_a_tampered_cookie_is_ignored(client):
+    client.set_cookie(LANGUAGE_COOKIE, "klingon")
+    assert html_lang(client.get("/", headers={"Accept-Language": "nl"})) == "nl"
+
+
+def test_the_cookie_flags(client, app):
+    header = language_cookie(pick(client, "nl"))
+    assert "HttpOnly" in header and "SameSite=Lax" in header
+    assert f"Max-Age={365 * 24 * 3600}" in header
+    assert "Secure" not in header
+    app.config["SESSION_COOKIE_SECURE"] = True
+    assert "Secure" in language_cookie(pick(client, "nl"))
+
+
+def test_it_goes_back_only_to_a_page_of_this_site(client):
+    assert pick(client, "nl", referrer="https://evil.example/x").location == "/"
+
+
+def test_it_needs_a_csrf_token(client, app):
+    app.config["WTF_CSRF_ENABLED"] = True
+    response = pick(client, "fi")
+    assert language_cookie(response) is None
+
+
+def test_answers_say_they_depend_on_the_cookie(client):
+    # Flask adds it because every request reads the session; the language cookie relies on it.
+    assert "Cookie" in client.get("/robots.txt").headers["Vary"]
+
+
+def menu_options(client, accept_language=None):
+    headers = {"Accept-Language": accept_language} if accept_language else {}
+    html = client.get("/", headers=headers).get_data(as_text=True)
+    return re.findall(r'<option value="([^"]*)"(?: lang="([^"]*)")?[^>]*>([^<]*)</option>', html)
+
+
+ALPHABETICAL = ["id", "da", "de", "en", "es", "fr", "it", "hu", "nl", "nb", "pl", "pt", "ro", "fi", "sv"]
+
+
+def rest(*first):
+    return [code for code in ALPHABETICAL if code not in first]
+
+
+@pytest.mark.parametrize(
+    "accept_language, expected",
+    [
+        # nothing asked: English, then the rest alphabetically by their own names
+        (None, ["en", *rest("en")]),
+        # the browser's languages first, in its order; English next; nl-BE and nl count once
+        ("fi, de;q=0.8, xx;q=0.7, nl-BE;q=0.5, nl;q=0.4", ["fi", "de", "nl", "en", *rest("fi", "de", "nl", "en")]),
+        # English among them keeps its place
+        ("de, en;q=0.9, fr;q=0.8", ["de", "en", "fr", *rest("de", "en", "fr")]),
+        # the order of preference comes from the q values, not from how the header is written
+        ("sv;q=0.5, da", ["da", "sv", "en", *rest("da", "sv", "en")]),
+        # Norwegian codes give Bokmål
+        ("nn, no", ["nb", "en", *rest("nb", "en")]),
+        # only languages Kilo does not have
+        ("ja, zh", ["en", *rest("en")]),
+    ],
+)
+def test_the_menu_order(client, accept_language, expected):
+    options = menu_options(client, accept_language)
+    assert [value for value, _lang, _name in options] == ["", *expected]
+
+
+def test_the_alphabet_is_the_languages_own_names():
+    assert ALPHABETICAL == sorted(SUPPORTED_LANGUAGES, key=lambda code: LANGUAGE_NAMES[code].casefold())
+    assert [LANGUAGE_NAMES[code] for code in ALPHABETICAL][:4] == ["Bahasa Indonesia", "Dansk", "Deutsch", "English"]
+
+
+def test_the_menu_lists_every_language_in_its_own_name(client):
+    options = menu_options(client)
+    assert sorted(value for value, _lang, _name in options) == sorted(["", *SUPPORTED_LANGUAGES])
+    assert options[0][2] == "Browser language"
+    for value, lang, name in options[1:]:
+        assert lang == value and name == LANGUAGE_NAMES[value]
+
+
+def test_the_menu_marks_the_current_choice(client):
+    assert re.search(r'<option value=""\s*>', client.get("/").get_data(as_text=True))  # nothing chosen
+    pick(client, "da")
+    html = client.get("/").get_data(as_text=True)
+    assert '<option value="da" lang="da" selected>Dansk</option>' in html
+    assert "Sprog" in html  # the label, in Danish
+
+
+def test_signed_in_it_is_in_the_account_menu(client):
+    signup_and_verify(client, "someone@example.com")
+    html = client.get("/").get_data(as_text=True)
+    dropdown = html.split('id="account-dropdown"')[1].split("</header>")[0]
+    assert 'action="/language"' in dropdown
+    assert html.count('action="/language"') == 1
+    # The first item of the menu, above Dark mode.
+    assert dropdown.index('action="/language"') < dropdown.index("dark-mode-toggle")
+
+
+def test_the_public_chart_has_no_menu(client):
+    signup_and_verify(client, "someone@example.com")
+    user = User.query.one()
+    user.public_id, user.public_enabled = "mine", True
+    db.session.commit()
+    assert 'action="/language"' not in client.get("/public/mine").get_data(as_text=True)
+
+
+def test_the_menu_sends_itself_with_the_csp_nonce(client):
+    html = client.get("/").get_data(as_text=True)
+    script = re.search(r'<script nonce="([^"]+)">\s*// The language menu', html)
+    assert script, "the auto-submit script must carry the nonce"
+    assert "<noscript>" in html  # an OK button without JavaScript

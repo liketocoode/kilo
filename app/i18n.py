@@ -13,11 +13,11 @@
 
 """Language selection for Kilo Tracker.
 
-The UI language follows the browser's Accept-Language header, matched on the
-primary subtag (`nl-BE` -> `nl`, `pt-PT` -> `pt`). A hidden `?lang=xx` query
-parameter overrides it for testing; it is never stored. English is the
-fallback. The supported languages are listed once, in `SUPPORTED_LANGUAGES`
-in the app config.
+The UI language is, in this order: a hidden `?lang=xx` query parameter (for testing; never
+stored), the language picked in the language menu (the LANGUAGE_COOKIE, see routes.set_language),
+the browser's Accept-Language header matched on the primary subtag (`nl-BE` -> `nl`, `pt-PT` ->
+`pt`), and English. The supported languages are listed once, in `SUPPORTED_LANGUAGES` in the app
+config.
 
 Also holds the Jinja filters that show numbers, weights and dates the way the
 active language writes them (`72,5 kg` in Dutch, `72.5 kg` in English).
@@ -42,6 +42,29 @@ DEFAULT_LANGUAGE = "en"
 # Bokmål ("nb") by most people, but browsers also send "no" and "nn" (Nynorsk).
 LANGUAGE_ALIASES = {"no": "nb", "nn": "nb"}
 
+# Each language in the language menu, named in itself (a German reader looks for "Deutsch").
+LANGUAGE_NAMES = {
+    "en": "English",
+    "nl": "Nederlands",
+    "fr": "Français",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "id": "Bahasa Indonesia",
+    "pl": "Polski",
+    "ro": "Română",
+    "hu": "Magyar",
+    "da": "Dansk",
+    "fi": "Suomi",
+    "sv": "Svenska",
+    "nb": "Norsk bokmål",
+}
+
+# The cookie that holds the language picked in the menu; without it the browser decides.
+LANGUAGE_COOKIE = "kilo_lang"
+LANGUAGE_COOKIE_DAYS = 365
+
 babel = Babel()
 
 
@@ -62,12 +85,41 @@ def select_locale():
     if override:
         return override
 
+    chosen = chosen_language()
+    if chosen:
+        return chosen
+
     for tag, _quality in request.accept_languages:
         language = _supported_language(tag, supported)
         if language:
             return language
 
     return current_app.config["BABEL_DEFAULT_LOCALE"]
+
+
+def menu_languages():
+    """The languages in the order the language menu lists them.
+
+    First the supported languages the browser asks for, in its order of preference; then
+    English, if it was not among them; then all the others alphabetically by their own name
+    (`LANGUAGE_NAMES`), so a visitor finds theirs at the top or by its first letter.
+    """
+    supported = current_app.config["SUPPORTED_LANGUAGES"]
+    ordered = []
+    for tag, _quality in request.accept_languages:
+        language = _supported_language(tag, supported)
+        if language and language not in ordered:
+            ordered.append(language)
+    if DEFAULT_LANGUAGE not in ordered:
+        ordered.append(DEFAULT_LANGUAGE)
+    rest = [code for code in supported if code not in ordered]
+    return ordered + sorted(rest, key=lambda code: LANGUAGE_NAMES[code].casefold())
+
+
+def chosen_language():
+    """The language picked in the language menu (the cookie), or None to follow the browser."""
+    value = request.cookies.get(LANGUAGE_COOKIE, "")
+    return value if value in current_app.config["SUPPORTED_LANGUAGES"] else None
 
 
 def kg(value, signed=False):
@@ -120,6 +172,9 @@ def localdate(value):
 def init_app(app):
     """Register Flask-Babel with `select_locale` as the locale selector, and the template filters."""
     babel.init_app(app, locale_selector=select_locale)
+    app.add_template_global(chosen_language)
+    app.add_template_global(menu_languages)
+    app.jinja_env.globals["LANGUAGE_NAMES"] = LANGUAGE_NAMES
     for func in (kg, meters, megabytes, grams_per_day, decimal1, decimal_input, localdate):
         app.add_template_filter(func)
 
@@ -134,7 +189,9 @@ def init_app(app):
     def _vary_on_language(response):
         # Pages, flashes and JSON errors all depend on Accept-Language. Without
         # this, a cache in front of the app (Apache mod_cache, a CDN, the
-        # browser) serves the first visitor's language to everyone.
+        # browser) serves the first visitor's language to everyone. They depend on
+        # the language cookie too; "Vary: Cookie" is already added by Flask, because
+        # every request reads the session (auth.keep_session_alive).
         if request.endpoint != "static":
             response.vary.add("Accept-Language")
         return response

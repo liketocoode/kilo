@@ -48,9 +48,12 @@ Weights are in kilograms and heights in centimetres or metres.
 
 Kilo speaks English, Dutch, French, Spanish, Brazilian Portuguese, German,
 Italian, Indonesian, Polish, Romanian, Hungarian, Danish, Finnish, Swedish and
-Norwegian (Bokmål). The language follows the browser's `Accept-Language` setting (there is
-no switcher); add `?lang=de` to a URL to try another one. The translations are
-machine-generated and welcome improvements: see [TRANSLATING.md](TRANSLATING.md).
+Norwegian (Bokmål). By default the language follows the browser's `Accept-Language`
+setting; the language menu (in the header, or in the account menu when signed in) picks
+another one, which that browser remembers for a year in a `kilo_lang` cookie ("Browser
+language" forgets it again). Add `?lang=de` to a URL to try a language for one page. The
+translations are machine-generated and welcome improvements: see
+[TRANSLATING.md](TRANSLATING.md).
 The compiled catalogs (`*.mo`) are not in git: run `pybabel compile -d
 translations` after cloning and after every update, as below.
 

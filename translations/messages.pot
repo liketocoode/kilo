@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker VERSION\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 00:20+0200\n"
+"POT-Creation-Date: 2026-10-12 13:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -421,6 +421,18 @@ msgid ""
 " so Gravatar never sees your visits, your browser or your IP address."
 msgstr ""
 
+#. Label of the menu that picks the language of the website.
+msgid "Language"
+msgstr ""
+
+#. First choice in the language menu: follow the language set in the web
+#. browser.
+msgid "Browser language"
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
 msgid "Signed in"
 msgstr ""
 
@@ -550,9 +562,6 @@ msgid "e.g. 82.4"
 msgstr ""
 
 msgid "Skip"
-msgstr ""
-
-msgid "OK"
 msgstr ""
 
 msgid "Unusual value"

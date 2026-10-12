@@ -8,7 +8,10 @@ fallback. All fourteen translations were **machine-generated** and need review
 by people who speak the language; that is the most useful contribution you can
 make.
 
-There is no language switcher. The page language follows the browser's
+Visitors can pick a language in the language menu (in the header, or in the account
+menu when signed in; the names come from `LANGUAGE_NAMES` in `app/i18n.py`, so a new
+language needs its own name there). The choice is kept in a `kilo_lang` cookie. Without
+one, the page language follows the browser's
 `Accept-Language` header, matched on the first part of the tag (`nl-BE` and
 `nl-NL` both give Dutch, `pt-PT` gives Brazilian Portuguese). Browsers send
 `no` or `nn` for Norwegian; both give Bokmål (`LANGUAGE_ALIASES` in
@@ -141,7 +144,8 @@ English; the check script fails on them.
 
 ## Add a language
 
-1. Add its code to `SUPPORTED_LANGUAGES` in `app/i18n.py`.
+1. Add its code to `SUPPORTED_LANGUAGES` in `app/i18n.py`, and its name, written in the
+   language itself, to `LANGUAGE_NAMES` there (for the language menu).
 2. Create the catalog (replace `xx`):
 
    ```bash

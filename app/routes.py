@@ -45,7 +45,8 @@ from app import avatar, db
 from app.auth import get_current_user, login_required
 from app.csv_io import MAX_WEIGHT_KG, MIN_WEIGHT_KG, ImportFileError, export_csv
 from app.forms import ImportForm, PublicChartForm, SettingsForm, SignupForm
-from app.i18n import meters
+from app.errors import back_url
+from app.i18n import LANGUAGE_COOKIE, LANGUAGE_COOKIE_DAYS, meters
 from app.importing import parse_import
 from app.models import User, WeightEntry
 from app.security import log_event
@@ -300,6 +301,29 @@ Disallow: /
 def robots_txt():
     """Ask search-engine crawlers to stay out of everything but the public pages."""
     return Response(ROBOTS_TXT, mimetype="text/plain")
+
+
+@bp.route("/language", methods=["POST"])
+def set_language():
+    """Remember the language picked in the language menu, or forget it ("browser language").
+
+    Kept in a cookie, so it works signed out too and needs nothing stored on the server; it is
+    per browser. Goes back to the page the menu was on.
+    """
+    language = request.form.get("language", "")
+    response = redirect(back_url())
+    if language in current_app.config["SUPPORTED_LANGUAGES"]:
+        response.set_cookie(
+            LANGUAGE_COOKIE,
+            language,
+            max_age=LANGUAGE_COOKIE_DAYS * 24 * 60 * 60,
+            secure=current_app.config["SESSION_COOKIE_SECURE"],
+            httponly=True,
+            samesite="Lax",
+        )
+    else:
+        response.delete_cookie(LANGUAGE_COOKIE)
+    return response
 
 
 @bp.route("/avatar", methods=["GET"])
