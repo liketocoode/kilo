@@ -429,3 +429,13 @@ def test_the_settings_offer_the_ranges_for_the_embed_code(client, owner):
     menu = page.split('<select id="embed-range">')[1].split("</select>")[0]
     assert re.findall(r'<option value="([^"]*)"', menu) == ["", *[key for key, _label, _days in routes.CHART_RANGES]]
     assert "Visitor chooses (range buttons)" in menu
+
+
+def test_the_settings_offer_a_theme_for_the_embed_code_starting_as_the_owners(client, owner):
+    share(client, "mine")
+    page = client.get("/settings").data.decode()
+    assert '<input type="checkbox" id="embed-dark">' in page  # light owner: off
+    assert 'name="embed' not in page  # nothing in it is saved
+    owner.dark_mode = True
+    db.session.commit()
+    assert '<input type="checkbox" id="embed-dark" checked>' in client.get("/settings").data.decode()

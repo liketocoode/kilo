@@ -95,7 +95,18 @@
            sees: behind a proxy the server itself may only know http://. The range menu has no
            name: it only changes the address shown here, nothing is saved. #}
         {% set public_url = request.host_url.rstrip('/') ~ public_path %}
-        <div class="field-wide">
+        <div class="field-wide embed-options">
+          {# Like the range menu: no name, only changes the address shown below. It starts as the
+             owner's own theme; the address always says which one, so an embed keeps its look. #}
+          <div class="field">
+            <label class="toggle-row">
+              {{ _("Dark mode") }}
+              <span class="toggle-switch">
+                <input type="checkbox" id="embed-dark"{{ ' checked' if user.dark_mode }}>
+                <span class="toggle-slider"></span>
+              </span>
+            </label>
+          </div>
           <div class="field">
             {# NOTE: Label of a menu in the settings: which period the shared chart shows. #}
             <label for="embed-range">{{ _("Chart range") }}</label>
@@ -218,15 +229,19 @@
     });
   })();
 
-  // The public chart's address and iframe code, with ?range=... when a fixed range is picked.
+  // The public chart's address and iframe code: always with ?theme=light or dark, and with
+  // ?range=... when a fixed range is picked.
   (function () {
     var shown = document.querySelectorAll('[data-public-path]');
     if (!shown.length) return;
     // What each element shows now; replaced by the new address on every change.
     var current = Array.prototype.map.call(shown, function (el) { return el.dataset.serverUrl; });
     function update() {
+      var params = new URLSearchParams();
+      params.set('theme', document.getElementById('embed-dark').checked ? 'dark' : 'light');
       var range = document.getElementById('embed-range').value;
-      var url = location.origin + shown[0].dataset.publicPath + (range ? '?range=' + encodeURIComponent(range) : '');
+      if (range) params.set('range', range);
+      var url = location.origin + shown[0].dataset.publicPath + '?' + params.toString();
       shown.forEach(function (el, i) {
         el.textContent = el.textContent.split(current[i]).join(url);
         if (el.tagName === 'A') el.href = url;
@@ -234,6 +249,7 @@
       });
     }
     document.getElementById('embed-range').addEventListener('change', update);
+    document.getElementById('embed-dark').addEventListener('change', update);
     update();
   })();
 </script>
