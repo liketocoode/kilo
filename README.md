@@ -354,8 +354,9 @@ sqlite3 /srv/kilo/instance/weight.db ".backup /backups/weight.db"
 
 To update: `git pull`, `.venv/bin/pip install -U -r requirements.txt`,
 `.venv/bin/pybabel compile -d translations` (the translations are compiled at
-deploy time, not stored in git), then `sudo systemctl restart kilo`. New
-database columns are added automatically at startup. The `-U` matters: without
+deploy time, not stored in git), then `sudo systemctl restart kilo`. Database
+changes are applied automatically at startup (see "Database migrations" below);
+make a backup first. The `-U` matters: without
 it pip keeps an installed package that is older than a raised minimum in
 `requirements.txt` (Flask 3.0 left every import failing with an error 500,
 because the app needs Flask 3.1).
@@ -463,6 +464,29 @@ sudo systemctl enable --now flaskapp-kilo-cleanup.timer
 systemctl list-timers flaskapp-kilo-cleanup.timer      # when it runs next
 journalctl -u flaskapp-kilo-cleanup                    # what the last runs did
 ```
+
+## Database migrations
+
+The database schema is managed with [Alembic](https://alembic.sqlalchemy.org/) through
+Flask-Migrate; the migrations are in `migrations/versions/`. The app applies the ones a
+database has not had yet **at every start**, under a lock so that two processes never
+migrate at once, so an update needs no extra step. The first migration (`0001`) brings any
+existing database, however old, to the schema of that moment without touching its data, and
+creates the tables in a new one.
+
+To change the schema, change `app/models.py` and generate a migration (this runs the app
+against your development database in `instance/`):
+
+```bash
+flask --app run db migrate -m "Add a goal weight"
+```
+
+Read the new file in `migrations/versions/` before committing it: Alembic cannot always tell a
+rename from a drop and an add, and a new `NOT NULL` column on an existing table needs a
+`server_default` for the rows already there. SQLite cannot alter most things in place, so the
+migrations use Alembic's batch mode, which copies the table. The tests check that migrating an
+empty database gives exactly the schema of the models, so a model change without a migration
+fails `pytest` (and CI).
 
 ## Test
 

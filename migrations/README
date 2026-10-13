@@ -1,0 +1,2 @@
+Database migrations (Alembic, through Flask-Migrate). The app applies them itself at every start,
+so a deploy needs no extra step. How to write one: see "Database migrations" in the README.

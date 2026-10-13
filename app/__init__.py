@@ -21,10 +21,17 @@ ones.
 
 import os
 import sqlite3
+from contextlib import contextmanager
 from datetime import timedelta
+
+try:
+    import fcntl
+except ImportError:  # Windows: no lock (production runs on Linux)
+    fcntl = None
 
 from flask import Flask, request
 from flask_mail import Mail
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 from sqlalchemy import event
@@ -33,6 +40,9 @@ from sqlalchemy.engine import Engine
 from . import csp, i18n, security
 
 db = SQLAlchemy()
+# Alembic through Flask-Migrate; the migrations are in migrations/versions (see _migrate_database).
+# Batch mode: SQLite can only add columns in place, so other changes copy the table.
+migrate = Migrate(render_as_batch=True)
 csrf = CSRFProtect()
 mail = Mail()
 
@@ -161,39 +171,45 @@ def create_app(test_config=None):
     app.register_blueprint(account.bp)
     app.register_blueprint(auth.bp)
 
+    migrate.init_app(app, db, directory=MIGRATIONS_DIR)
     with app.app_context():
-        db.create_all()
-        _add_missing_columns()
+        _migrate_database(app)
 
     return app
 
 
-def _add_missing_columns():
-    """db.create_all() only creates tables that don't exist yet — it never
-    alters an existing one. There's no migration framework here, so new
-    nullable-with-default columns are added by hand with a plain ALTER TABLE
-    when a pre-existing database is missing them."""
-    from sqlalchemy import inspect, text
+MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "migrations")
 
-    inspector = inspect(db.engine)
-    if "user" not in inspector.get_table_names():
+
+@contextmanager
+def _migration_lock():
+    """Only one process migrates a database file at a time.
+
+    gunicorn's preload_app runs create_app() once, in the master, but the daily cleanup script
+    starts its own app and could meet a restart. The lock is a file next to the database, so it
+    works for any number of processes on this machine. An in-memory database (the tests) needs none.
+    """
+    path = db.engine.url.database
+    if not path or path == ":memory:" or fcntl is None:
+        yield
         return
-    existing = {col["name"] for col in inspector.get_columns("user")}
-    new_columns = {
-        "moving_avg_days": "INTEGER NOT NULL DEFAULT 10",
-        "delete_code_hash": "VARCHAR(255)",
-        "delete_code_expires_at": "DATETIME",
-        "delete_code_attempts": "INTEGER NOT NULL DEFAULT 0",
-        "public_enabled": "BOOLEAN NOT NULL DEFAULT 0",
-        "public_id": "VARCHAR(64)",
-        "public_show_stats": "BOOLEAN NOT NULL DEFAULT 0",
-        "public_show_weight": "BOOLEAN NOT NULL DEFAULT 1",
-        "session_version": "INTEGER NOT NULL DEFAULT 0",
-    }
-    for name, ddl in new_columns.items():
-        if name not in existing:
-            db.session.execute(text(f"ALTER TABLE user ADD COLUMN {name} {ddl}"))
-    # SQLite cannot add a UNIQUE column, so the index create_all() makes on a new database is
-    # added separately (NULLs do not clash in a unique index).
-    db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_user_public_id ON user (public_id)"))
-    db.session.commit()
+    with open(path + ".migrate-lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def _migrate_database(app):
+    """Bring the database to the newest migration (migrations/versions), at every start.
+
+    A new database is created by the migrations themselves; an existing one only gets the ones it
+    has not had yet (Alembic remembers them in the alembic_version table). Databases from before
+    Alembic are handled by the first migration, which completes whatever they lack.
+    """
+    from alembic import command
+
+    with _migration_lock():
+        command.upgrade(migrate.get_config(MIGRATIONS_DIR), "head")
+
