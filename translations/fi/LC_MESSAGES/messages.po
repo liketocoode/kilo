@@ -295,7 +295,6 @@ msgstr "3kk"
 msgid "1M"
 msgstr "1kk"
 
-# machine-translated
 #. NOTE: Chart range button: 2 weeks. The letter is the unit, W for week.
 msgid "2W"
 msgstr "2vk"
