@@ -40,9 +40,8 @@ msgstr "Lähetimme vahvistuskoodin osoitteeseen %(email)s."
 msgid "Enter the 6-digit code."
 msgstr "Anna 6-numeroinen koodi."
 
-# machine-translated
 msgid "That code has expired. Request a new one."
-msgstr "Koodi on vanhentunut. Pyydä uusi."
+msgstr "Koodi on vanhentunut. Pyydä uusi koodi."
 
 # machine-translated
 msgid "Too many attempts. Request a new code."
@@ -78,9 +77,8 @@ msgstr "Sähköposti vahvistettu – olet kirjautunut sisään."
 msgid "We sent a new code to %(email)s."
 msgstr "Lähetimme uuden koodin osoitteeseen %(email)s."
 
-# machine-translated
 msgid "Signed out."
-msgstr "Kirjauduit ulos."
+msgstr "Olet kirjautunut ulos."
 
 # machine-translated
 #. NOTE: date,weight[,note] names the columns of a CSV line; translate the
@@ -163,25 +161,21 @@ msgstr[1] ""
 "vanhenee %(num)d minuutin kuluttua. Jos et pyytänyt sitä, jätä tämä "
 "sähköposti huomiotta, niin tietosi säilyvät koskemattomina."
 
-# machine-translated
 msgid "That email domain doesn't accept mail (no MX record)."
-msgstr "Tämä sähköpostialue ei vastaanota viestejä (ei MX-tietuetta)."
+msgstr "Tämä sähköpostin verkkotunnus ei vastaanota viestejä (ei MX-tietuetta)."
 
-# machine-translated
 msgid "Couldn't check that email domain right now. Try again."
-msgstr "Sähköpostialuetta ei voitu tarkistaa juuri nyt. Yritä uudelleen."
+msgstr "Sähköpostin verkkotunnusta ei voitu tarkistaa juuri nyt. Yritä uudelleen."
 
 # machine-translated
 msgid "Your session has expired. Reload the page and try again."
 msgstr "Istuntosi on vanhentunut. Lataa sivu uudelleen ja yritä uudelleen."
 
-# machine-translated
 msgid "Your session has expired and nothing was changed. Please try again."
-msgstr "Istuntosi on vanhentunut, eikä mitään muutettu. Yritä uudelleen."
+msgstr "Istuntosi on vanhentunut eikä muutoksia tehty. Yritä uudelleen."
 
-# machine-translated
 msgid "That page isn't available, so you were taken to the start page."
-msgstr "Sivu ei ole saatavilla, joten ohjasimme sinut aloitussivulle."
+msgstr "Sivu ei ole saatavilla, joten sinut on ohjattu aloitussivulle."
 
 # machine-translated
 #, python-format
@@ -513,7 +507,6 @@ msgstr "Versio %(version)s"
 msgid "How signing in works"
 msgstr "Miten kirjautuminen toimii"
 
-# machine-translated
 #, python-format
 msgid ""
 "There are no passwords. Enter your email and we send a 6-digit code that's "
@@ -523,11 +516,11 @@ msgid_plural ""
 "valid for %(num)s minutes — enter it and you're signed in."
 msgstr[0] ""
 "Salasanoja ei ole. Anna sähköpostiosoitteesi, niin lähetämme 6-numeroisen "
-"koodin, joka on voimassa %(num)s minuutin – anna se, ja olet kirjautunut "
+"koodin, joka on voimassa %(num)s minuuttia – anna se, ja olet kirjautunut "
 "sisään."
 msgstr[1] ""
 "Salasanoja ei ole. Anna sähköpostiosoitteesi, niin lähetämme 6-numeroisen "
-"koodin, joka on voimassa %(num)s minuutin – anna se, ja olet kirjautunut "
+"koodin, joka on voimassa %(num)s minuuttia – anna se, ja olet kirjautunut "
 "sisään."
 
 # machine-translated
@@ -937,13 +930,12 @@ msgstr ""
 "linkin saanut voi nähdä ja jonka voit upottaa toiseen verkkosivustoon. "
 "Muistiinpanojasi, sähköpostiosoitettasi ja päiväkirjaasi ei koskaan näytetä."
 
-# machine-translated
 msgid ""
 "Switched off, the chart shows only the shape of the line: no kilograms, no "
 "BMI and no stat boxes."
 msgstr ""
-"Pois päältä kaavio näyttää vain viivan muodon: ei kilogrammoja, ei BMI:tä "
-"eikä tilastoruutuja."
+"Jos tämä on pois päältä, kaavio näyttää vain viivan muodon: ei kilogrammoja, "
+"ei BMI:tä eikä tilastoruutuja."
 
 # machine-translated
 #, python-format
@@ -1012,7 +1004,6 @@ msgstr ""
 "Päivämäärät ovat muotoa <code>p-K-vv</code> tai <code>p-K-vvvv</code>; paino"
 " on kilogrammoina. Jos tuot päivämäärän, jolla on jo merkintä, se korvataan."
 
-# machine-translated
 #. "The Hacker's Diet Online" and "Yet Another Diet Tool" are names of web
 #. services; do not translate them.
 msgid ""
@@ -1021,8 +1012,8 @@ msgid ""
 "file, your height are imported; everything else is ignored."
 msgstr ""
 "Voit tuoda myös The Hacker's Diet Onlinen CSV- tai XML-viennin tai Yet "
-"Another Diet Toolin CSV-viennin. Painot, muistiinpanot ja XML-tiedostosta "
-"pituutesi tuodaan; kaikki muu ohitetaan."
+"Another Diet Toolin CSV-viennin. Tuonnissa otetaan mukaan painot ja "
+"muistiinpanot (sekä XML-tiedostosta myös pituutesi); kaikki muu ohitetaan."
 
 # machine-translated
 msgid "Import"
@@ -1048,14 +1039,13 @@ msgstr "Vie CSV"
 msgid "Sign out everywhere"
 msgstr "Kirjaudu ulos kaikkialta"
 
-# machine-translated
 msgid ""
 "Signed in on a computer that isn't yours, or lost a phone? This signs you "
 "out on every other browser and device. You stay signed in here."
 msgstr ""
 "Kirjauduitko jonkun toisen tietokoneella tai hukkasitko puhelimen? Tämä "
 "kirjaa sinut ulos kaikilla muilla selaimilla ja laitteilla. Täällä pysyt "
-"kirjautuneena."
+"edelleen kirjautuneena."
 
 # machine-translated
 #. Button that ends the sign-in on all other browsers and devices (not on this
