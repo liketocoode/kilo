@@ -19,99 +19,78 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-# machine-translated
 msgid "You are now signed out on all other browsers and devices."
 msgstr "Olet nyt kirjautunut ulos kaikilla muilla selaimilla ja laitteilla."
 
-# machine-translated
 msgid "Download your data first."
 msgstr "Lataa ensin tietosi."
 
-# machine-translated
 msgid "Sign in again to confirm this request."
 msgstr "Kirjaudu uudelleen sisään vahvistaaksesi pyynnön."
 
-# machine-translated
 #, python-format
 msgid "We sent a confirmation code to %(email)s."
 msgstr "Lähetimme vahvistuskoodin osoitteeseen %(email)s."
 
-# machine-translated
 msgid "Enter the 6-digit code."
 msgstr "Anna 6-numeroinen koodi."
 
-# machine-translated
 msgid "That code has expired. Request a new one."
-msgstr "Koodi on vanhentunut. Pyydä uusi."
+msgstr "Koodi on vanhentunut. Pyydä uusi koodi."
 
-# machine-translated
 msgid "Too many attempts. Request a new code."
 msgstr "Liian monta yritystä. Pyydä uusi koodi."
 
-# machine-translated
 msgid "Incorrect code."
 msgstr "Virheellinen koodi."
 
-# machine-translated
 msgid "Your account and all your data have been removed."
 msgstr "Tilisi ja kaikki tietosi on poistettu."
 
-# machine-translated
 msgid "Enter your email to sign in."
 msgstr "Kirjoita sähköpostiosoitteesi kirjautuaksesi sisään."
 
-# machine-translated
 #, python-format
 msgid "We sent a verification code to %(email)s."
 msgstr "Lähetimme varmennuskoodin osoitteeseen %(email)s."
 
-# machine-translated
 msgid "Enter your email to get a verification code."
 msgstr "Kirjoita sähköpostiosoitteesi saadaksesi varmennuskoodin."
 
-# machine-translated
 msgid "Email verified — you're signed in."
 msgstr "Sähköposti vahvistettu – olet kirjautunut sisään."
 
-# machine-translated
 #, python-format
 msgid "We sent a new code to %(email)s."
 msgstr "Lähetimme uuden koodin osoitteeseen %(email)s."
 
-# machine-translated
 msgid "Signed out."
-msgstr "Kirjauduit ulos."
+msgstr "Olet kirjautunut ulos."
 
-# machine-translated
 #. NOTE: date,weight[,note] names the columns of a CSV line; translate the
 #. names (note is optional).
 #, python-format
 msgid "line %(line)d: expected date,weight[,note]"
 msgstr "rivi %(line)d: odotettiin päivämäärä,paino[,muistiinpano]"
 
-# machine-translated
 #, python-format
 msgid "line %(line)d: invalid date %(value)s"
 msgstr "rivi %(line)d: virheellinen päivämäärä %(value)s"
 
-# machine-translated
 #, python-format
 msgid "line %(line)d: invalid weight %(value)s"
 msgstr "rivi %(line)d: virheellinen paino %(value)s"
 
-# machine-translated
 #, python-format
 msgid "line %(line)d: weight out of range"
 msgstr "rivi %(line)d: paino alueen ulkopuolella"
 
-# machine-translated
 #. NOTE: The email subject; the code is at the end, with no full stop, so it
 #. can be copied.
 #, python-format
 msgid "Your verification code is %(code)s"
 msgstr "Varmennuskoodisi on %(code)s"
 
-# machine-translated
 #, python-format
 msgid ""
 "Your verification code is %(code)s.\n"
@@ -132,11 +111,9 @@ msgstr[1] ""
 "Koodi vanhenee %(num)d minuutin kuluttua. Jos et pyytänyt sitä, voit jättää "
 "tämän sähköpostin huomiotta."
 
-# machine-translated
 msgid "Confirm removal of your data"
 msgstr "Vahvista tietojesi poistaminen"
 
-# machine-translated
 #, python-format
 msgid ""
 "Your confirmation code is %(code)s.\n"
@@ -163,80 +140,63 @@ msgstr[1] ""
 "vanhenee %(num)d minuutin kuluttua. Jos et pyytänyt sitä, jätä tämä "
 "sähköposti huomiotta, niin tietosi säilyvät koskemattomina."
 
-# machine-translated
 msgid "That email domain doesn't accept mail (no MX record)."
-msgstr "Tämä sähköpostialue ei vastaanota viestejä (ei MX-tietuetta)."
+msgstr "Tämä sähköpostin verkkotunnus ei vastaanota viestejä (ei MX-tietuetta)."
 
-# machine-translated
 msgid "Couldn't check that email domain right now. Try again."
-msgstr "Sähköpostialuetta ei voitu tarkistaa juuri nyt. Yritä uudelleen."
+msgstr "Sähköpostin verkkotunnusta ei voitu tarkistaa juuri nyt. Yritä uudelleen."
 
-# machine-translated
 msgid "Your session has expired. Reload the page and try again."
 msgstr "Istuntosi on vanhentunut. Lataa sivu uudelleen ja yritä uudelleen."
 
-# machine-translated
 msgid "Your session has expired and nothing was changed. Please try again."
-msgstr "Istuntosi on vanhentunut, eikä mitään muutettu. Yritä uudelleen."
+msgstr "Istuntosi on vanhentunut eikä muutoksia tehty. Yritä uudelleen."
 
-# machine-translated
 msgid "That page isn't available, so you were taken to the start page."
-msgstr "Sivu ei ole saatavilla, joten ohjasimme sinut aloitussivulle."
+msgstr "Sivu ei ole saatavilla, joten sinut on ohjattu aloitussivulle."
 
-# machine-translated
 #, python-format
 msgid ""
 "The file is too large: the limit is %(size)s. Nothing was imported or "
 "changed."
 msgstr "Tiedosto on liian suuri: raja on %(size)s. Mitään ei tuotu eikä muutettu."
 
-# machine-translated
 msgid "Something went wrong on our side. Please try again in a moment."
 msgstr "Jotain meni vikaan meidän päässämme. Yritä hetken päästä uudelleen."
 
-# machine-translated
 msgid "Email"
 msgstr "Sähköpostiosoite"
 
-# machine-translated
 msgid "Verification code"
 msgstr "Varmennuskoodi"
 
-# machine-translated
 msgid "Enter the height as a plain number, e.g. 180 or 1.8."
 msgstr "Anna pituus pelkkänä lukuna, esim. 180 tai 1,8."
 
-# machine-translated
 #. NOTE: Label of the body height field in the settings.
 msgid "Height"
 msgstr "Pituus"
 
-# machine-translated
 msgid "Unit"
 msgstr "Yksikkö"
 
-# machine-translated
 msgid "Dark mode"
 msgstr "Tumma tila"
 
-# machine-translated
 msgid "Moving average (days)"
 msgstr "Liukuva keskiarvo (päivää)"
 
-# machine-translated
 #, python-format
 msgid ""
 "Height must be between %(min_cm)s and %(max_cm)s cm (%(min_m)s and %(max_m)s"
 " m)."
 msgstr "Pituuden on oltava %(min_cm)s–%(max_cm)s cm (%(min_m)s–%(max_m)s m)."
 
-# machine-translated
 #. NOTE: Switch in the settings that makes the weight chart visible on a public
 #. web page.
 msgid "Share my chart on a public page"
 msgstr "Jaa kaavioni julkisella sivulla"
 
-# machine-translated
 #. NOTE: Switch in the settings: show the boxes with the current average, BMI
 #. and changes under the public chart.
 #. NOTE: Switch in the settings: show the kilograms on the public chart, or
@@ -244,66 +204,53 @@ msgstr "Jaa kaavioni julkisella sivulla"
 msgid "Show my weight"
 msgstr "Näytä painoni"
 
-# machine-translated
 msgid "Show the stat boxes on the public page"
 msgstr "Näytä tilastoruudut julkisella sivulla"
 
-# machine-translated
 #. NOTE: Label of the field with the last part of the public page's address
 #. (the "ramon" in .../public/ramon).
 msgid "Page ID"
 msgstr "Sivun tunnus"
 
-# machine-translated
 #, python-format
 msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
 msgstr ""
 "Käytä %(min)d–%(max)d kirjainta (a-z), numeroita, yhdysviivoja tai "
 "alaviivoja."
 
-# machine-translated
 msgid "That ID is already taken. Choose another one."
 msgstr "Tunnus on jo käytössä. Valitse toinen."
 
-# machine-translated
 msgid "CSV or XML file"
 msgstr "CSV- tai XML-tiedosto"
 
-# machine-translated
 msgid "CSV, XML or text files only."
 msgstr "Vain CSV-, XML- tai tekstitiedostoja."
 
-# machine-translated
 #, python-format
 msgid "That file stores weights in %(unit)s, which can't be imported."
 msgstr "Tiedosto tallentaa painot yksikössä %(unit)s, jota ei voi tuoda."
 
-# machine-translated
 msgid "That file isn't a valid Hacker's Diet XML export."
 msgstr "Tiedosto ei ole kelvollinen Hacker's Dietin XML-vienti."
 
-# machine-translated
 #, python-format
 msgid "%(date)s: invalid date"
 msgstr "%(date)s: virheellinen päivämäärä"
 
-# machine-translated
 #, python-format
 msgid "%(date)s: invalid weight %(value)s"
 msgstr "%(date)s: virheellinen paino %(value)s"
 
-# machine-translated
 #, python-format
 msgid "%(date)s: weight out of range"
 msgstr "%(date)s: paino alueen ulkopuolella"
 
-# machine-translated
 #. NOTE: Rate of weight change. %(grams)s is a signed whole number; g is gram.
 #, python-format
 msgid "%(grams)s g/day"
 msgstr "%(grams)s g/pv"
 
-# machine-translated
 #. NOTE: Shown when too many sign-in codes were requested. %(num)d is a number
 #. of minutes.
 #, python-format
@@ -312,156 +259,125 @@ msgid_plural "Too many requests. Try again in %(num)d minutes."
 msgstr[0] "Liian monta pyyntöä. Yritä uudelleen %(num)d minuutin kuluttua."
 msgstr[1] "Liian monta pyyntöä. Yritä uudelleen %(num)d minuutin kuluttua."
 
-# machine-translated
 #. NOTE: Chart range button: the whole recorded history.
 msgid "All"
 msgstr "Kaikki"
 
-# machine-translated
 #. NOTE: Chart range button: 20 years. The letter is the unit, Y for year.
 msgid "20Y"
 msgstr "20v"
 
-# machine-translated
 #. NOTE: Chart range button: 15 years. The letter is the unit, Y for year.
 msgid "15Y"
 msgstr "15v"
 
-# machine-translated
 #. NOTE: Chart range button: 10 years. The letter is the unit, Y for year.
 msgid "10Y"
 msgstr "10v"
 
-# machine-translated
 #. NOTE: Chart range button: 5 years. The letter is the unit, Y for year.
 msgid "5Y"
 msgstr "5v"
 
-# machine-translated
 #. NOTE: Chart range button: 1 year. The letter is the unit, Y for year.
 msgid "1Y"
 msgstr "1v"
 
-# machine-translated
 #. NOTE: Chart range button: 6 months. The letter is the unit, M for month.
 msgid "6M"
 msgstr "6kk"
 
-# machine-translated
 #. NOTE: Chart range button: 3 months. The letter is the unit, M for month.
 msgid "3M"
 msgstr "3kk"
 
-# machine-translated
 #. NOTE: Chart range button: 1 month. The letter is the unit, M for month.
 msgid "1M"
 msgstr "1kk"
 
-# machine-translated
 #. NOTE: Chart range button: 2 weeks. The letter is the unit, W for week.
 msgid "2W"
 msgstr "2vk"
 
-# machine-translated
 #. NOTE: Chart range button: 1 week. The letter is the unit, W for week.
 msgid "1W"
 msgstr "1vk"
 
-# machine-translated
 #, python-format
 msgid "%(num)d-day change"
 msgid_plural "%(num)d-day change"
 msgstr[0] "%(num)d päivän muutos"
 msgstr[1] "%(num)d päivän muutos"
 
-# machine-translated
 msgid "Invalid date."
 msgstr "Virheellinen päivämäärä."
 
-# machine-translated
 #, python-format
 msgid ""
 "%(weight)s is %(percent)s%% different from your entry of %(other)s on "
 "%(date)s."
 msgstr "%(weight)s poikkeaa %(percent)s %% merkinnästäsi %(other)s (%(date)s)."
 
-# machine-translated
 msgid "Enter a valid weight, like 72.5."
 msgstr "Anna kelvollinen paino, esim. 72,5."
 
-# machine-translated
 #, python-format
 msgid "Weight must be between %(min)s and %(max)s kg."
 msgstr "Painon on oltava %(min)s–%(max)s kg."
 
-# machine-translated
 msgid "Invalid range."
 msgstr "Virheellinen alue."
 
-# machine-translated
 msgid "Settings updated."
 msgstr "Asetukset päivitetty."
 
-# machine-translated
 msgid "Your chart is now public."
 msgstr "Kaaviosi on nyt julkinen."
 
-# machine-translated
 msgid "Your chart is no longer public."
 msgstr "Kaaviosi ei ole enää julkinen."
 
-# machine-translated
 #, python-format
 msgid "Imported %(num)d entry."
 msgid_plural "Imported %(num)d entries."
 msgstr[0] "%(num)d merkintä tuotu."
 msgstr[1] "%(num)d merkintää tuotu."
 
-# machine-translated
 #, python-format
 msgid "Your height was set to %(height)s."
 msgstr "Pituudeksesi asetettiin %(height)s."
 
-# machine-translated
 #, python-format
 msgid "%(num)d note without a weight was skipped."
 msgid_plural "%(num)d notes without a weight were skipped."
 msgstr[0] "%(num)d muistiinpano ilman painoa ohitettiin."
 msgstr[1] "%(num)d muistiinpanoa ilman painoa ohitettiin."
 
-# machine-translated
 #, python-format
 msgid "%(details)s (+%(count)d more)"
 msgstr "%(details)s (+%(count)d lisää)"
 
-# machine-translated
 #, python-format
 msgid "Skipped %(num)d invalid line: %(details)s"
 msgid_plural "Skipped %(num)d invalid lines: %(details)s"
 msgstr[0] "%(num)d virheellinen rivi ohitettu: %(details)s"
 msgstr[1] "%(num)d virheellistä riviä ohitettu: %(details)s"
 
-# machine-translated
 msgid "No rows found in the file."
 msgstr "Tiedostosta ei löytynyt rivejä."
 
-# machine-translated
 msgid "Back"
 msgstr "Takaisin"
 
-# machine-translated
 msgid "About"
 msgstr "Tietoja"
 
-# machine-translated
 msgid "Back to the dashboard"
 msgstr "Takaisin yleisnäkymään"
 
-# machine-translated
 msgid "About Kilo Tracker"
 msgstr "Tietoja Kilo Trackerista"
 
-# machine-translated
 #, python-format
 msgid ""
 "For many years I tracked my weight with %(hdo_link)s, created by "
@@ -472,7 +388,6 @@ msgstr ""
 "%(walker_link)s. Se toimi vielä pitkään hänen kuolemansa jälkeen, mutta "
 "maaliskuussa 2026 se lopulta lakkasi toimimasta."
 
-# machine-translated
 #, python-format
 msgid ""
 "I tried %(yadt_link)s as a replacement, but its interface wasn't for me. So "
@@ -483,7 +398,6 @@ msgstr ""
 "sopinut minulle. Niinpä tein oman versioni vibe codingilla, ja tulos on Kilo"
 " Tracker. Se on ilmainen kaikille."
 
-# machine-translated
 #, python-format
 msgid ""
 "Kilo Tracker is open source software. You can download the source code and "
@@ -492,28 +406,23 @@ msgstr ""
 "Kilo Tracker on avoimen lähdekoodin ohjelmisto. Voit ladata lähdekoodin ja "
 "ajaa oman kopiosi osoitteesta %(github_link)s."
 
-# machine-translated
 #, python-format
 msgid "I hope you like it! You can reach me at %(mail_link)s."
 msgstr "Toivottavasti pidät siitä! Tavoitat minut osoitteesta %(mail_link)s."
 
-# machine-translated
 #. Version of the app, with the date of its last change. %(version)s is a link
 #. such as v1.2 or a commit id.
 #, python-format
 msgid "Version %(version)s &middot; committed %(date)s"
 msgstr "Versio %(version)s &middot; commit %(date)s"
 
-# machine-translated
 #, python-format
 msgid "Version %(version)s"
 msgstr "Versio %(version)s"
 
-# machine-translated
 msgid "How signing in works"
 msgstr "Miten kirjautuminen toimii"
 
-# machine-translated
 #, python-format
 msgid ""
 "There are no passwords. Enter your email and we send a 6-digit code that's "
@@ -523,18 +432,16 @@ msgid_plural ""
 "valid for %(num)s minutes — enter it and you're signed in."
 msgstr[0] ""
 "Salasanoja ei ole. Anna sähköpostiosoitteesi, niin lähetämme 6-numeroisen "
-"koodin, joka on voimassa %(num)s minuutin – anna se, ja olet kirjautunut "
+"koodin, joka on voimassa %(num)s minuuttia – anna se, ja olet kirjautunut "
 "sisään."
 msgstr[1] ""
 "Salasanoja ei ole. Anna sähköpostiosoitteesi, niin lähetämme 6-numeroisen "
-"koodin, joka on voimassa %(num)s minuutin – anna se, ja olet kirjautunut "
+"koodin, joka on voimassa %(num)s minuuttia – anna se, ja olet kirjautunut "
 "sisään."
 
-# machine-translated
 msgid "Gravatar uses"
 msgstr "Gravatar"
 
-# machine-translated
 #, python-format
 msgid ""
 "We never store your email address itself in our database. Instead we keep a "
@@ -544,7 +451,6 @@ msgstr ""
 " sijaan säilytämme siitä yksisuuntaisen SHA-256-tiivisteen (sama menetelmä, "
 "jota %(gravatar_hash_link)s käyttää)."
 
-# machine-translated
 #, python-format
 msgid ""
 "That hash also doubles as your Gravatar id — if you have an avatar set up at"
@@ -554,7 +460,6 @@ msgstr ""
 "osoitteessa %(gravatar_link)s, se tulee näkyviin automaattisesti "
 "kirjauduttuasi sisään."
 
-# machine-translated
 msgid ""
 "Kilo fetches that avatar from Gravatar itself and keeps a copy for a day, so"
 " Gravatar never sees your visits, your browser or your IP address."
@@ -562,293 +467,230 @@ msgstr ""
 "Kilo hakee avatarin itse Gravatarista ja säilyttää siitä kopion vuorokauden,"
 " joten Gravatar ei koskaan näe käyntejäsi, selaintasi tai IP-osoitettasi."
 
-# machine-translated
 #. Label of the menu that picks the language of the website.
 msgid "Language"
 msgstr "Kieli"
 
-# machine-translated
 #. First choice in the language menu: follow the language set in the web
 #. browser.
 msgid "Browser language"
 msgstr "Selaimen kieli"
 
-# machine-translated
 msgid "OK"
 msgstr "OK"
 
-# machine-translated
 msgid "Signed in"
 msgstr "Kirjautunut"
 
-# machine-translated
 msgid "Settings"
 msgstr "Asetukset"
 
-# machine-translated
 msgid "Log out"
 msgstr "Kirjaudu ulos"
 
-# machine-translated
 #. Heading of the page shown when the server had an unexpected error.
 msgid "Something went wrong"
 msgstr "Jotain meni vikaan"
 
-# machine-translated
 msgid "If you were saving something, check whether it was saved and try again."
 msgstr "Jos olit tallentamassa jotain, tarkista, tallentuiko se, ja yritä uudelleen."
 
-# machine-translated
 msgid "Back to the start page"
 msgstr "Takaisin aloitussivulle"
 
-# machine-translated
 #. Title of the public page that shows someone's weight chart.
 msgid "Weight chart"
 msgstr "Painokaavio"
 
-# machine-translated
 msgid "View or edit note"
 msgstr "Näytä tai muokkaa muistiinpanoa"
 
-# machine-translated
 msgid "No note"
 msgstr "Ei muistiinpanoa"
 
-# machine-translated
 msgid "Add a note…"
 msgstr "Lisää muistiinpano…"
 
-# machine-translated
 #. Tooltip and screen-reader label of the button that opens a panel of emoji to
 #. put in a note.
 msgid "Insert an emoji"
 msgstr "Lisää emoji"
 
-# machine-translated
 msgid "Cancel"
 msgstr "Peruuta"
 
-# machine-translated
 #. Button that saves a note (verb).
 #. Button that saves the settings (verb).
 msgid "Save"
 msgstr "Tallenna"
 
-# machine-translated
 #. Label above the latest moving-average weight.
 msgid "Current average"
 msgstr "Nykyinen keskiarvo"
 
-# machine-translated
 msgid "No entries yet."
 msgstr "Ei vielä merkintöjä."
 
-# machine-translated
 msgid "No entries yet — add your weight below."
 msgstr "Ei vielä merkintöjä – lisää painosi alle."
 
-# machine-translated
 #. BMI is Body Mass Index; keep the abbreviation people know in your language.
 msgid "BMI"
 msgstr "BMI"
 
-# machine-translated
 #. Third line of the BMI box: the body height in metres, for example "Height:
 #. 1.86 m". %(height)s already includes the unit.
 #, python-format
 msgid "Height: %(height)s"
 msgstr "Pituus: %(height)s"
 
-# machine-translated
 msgid "Set your height"
 msgstr "Aseta pituutesi"
 
-# machine-translated
 #, python-format
 msgid "Show the %(range)s chart"
 msgstr "Näytä kaavio: %(range)s"
 
-# machine-translated
 msgid "Show the whole history in the chart"
 msgstr "Näytä koko historia kaaviossa"
 
-# machine-translated
 #. Heading of the box about the logged weigh-ins: first date, last date and how
 #. many.
 msgid "Entries"
 msgstr "Merkinnät"
 
-# machine-translated
 #. The date of the first entry.
 msgid "First"
 msgstr "Ensimmäinen"
 
-# machine-translated
 #. The date of the last (most recent) entry.
 msgid "Last"
 msgstr "Viimeisin"
 
-# machine-translated
 #. The total number of entries.
 msgid "Total"
 msgstr "Yhteensä"
 
-# machine-translated
 msgid "Daily log"
 msgstr "Päiväkirja"
 
-# machine-translated
 msgid "Scroll to the most recent entry"
 msgstr "Vieritä viimeisimpään merkintään"
 
-# machine-translated
 msgid "Most recent entry"
 msgstr "Viimeisin merkintä"
 
-# machine-translated
 #. Column headers of the daily log: the day, the weight in kilograms, and a
 #. free-text note.
 msgid "Date"
 msgstr "Päivä"
 
-# machine-translated
 msgid "Weight (kg)"
 msgstr "Paino (kg)"
 
-# machine-translated
 msgid "Note"
 msgstr "Muistio"
 
-# machine-translated
 #. Heading above the emoji the user picked most recently.
 msgid "Recently used"
 msgstr "Viimeksi käytetyt"
 
-# machine-translated
 msgid "Loading more days…"
 msgstr "Ladataan lisää päiviä…"
 
-# machine-translated
 msgid "Log today's weight?"
 msgstr "Kirjataanko tämän päivän paino?"
 
-# machine-translated
 msgid "You haven't recorded a weight for today yet."
 msgstr "Et ole vielä kirjannut painoa tälle päivälle."
 
-# machine-translated
 msgid "e.g. 82.4"
 msgstr "esim. 82,4"
 
-# machine-translated
 msgid "Skip"
 msgstr "Ohita"
 
-# machine-translated
 msgid "Unusual value"
 msgstr "Epätavallinen arvo"
 
-# machine-translated
 msgid "Correct it"
 msgstr "Korjaa"
 
-# machine-translated
 msgid "Save anyway"
 msgstr "Tallenna silti"
 
-# machine-translated
 #. Button that brings back a weight that was just deleted from the daily log.
 msgid "Undo"
 msgstr "Kumoa"
 
-# machine-translated
 #. Title of a dialog: the login session has timed out; the page must be
 #. reloaded.
 msgid "Session expired"
 msgstr "Istunto vanhentunut"
 
-# machine-translated
 #. Button that reloads the web page.
 msgid "Reload page"
 msgstr "Lataa sivu uudelleen"
 
-# machine-translated
 #, python-format
 msgid "%(num)d-day average"
 msgid_plural "%(num)d-day average"
 msgstr[0] "%(num)d päivän keskiarvo"
 msgstr[1] "%(num)d päivän keskiarvo"
 
-# machine-translated
 msgid "Overall average"
 msgstr "Kokonaiskeskiarvo"
 
-# machine-translated
 #, python-format
 msgid "BMI (%(num)d-day avg): %(bmi)s"
 msgid_plural "BMI (%(num)d-day avg): %(bmi)s"
 msgstr[0] "BMI (%(num)d päivän keskiarvo): %(bmi)s"
 msgstr[1] "BMI (%(num)d päivän keskiarvo): %(bmi)s"
 
-# machine-translated
 msgid "Saving…"
 msgstr "Tallennetaan…"
 
-# machine-translated
 msgid "Saved"
 msgstr "Tallennettu"
 
-# machine-translated
 msgid "Could not save"
 msgstr "Tallennus epäonnistui"
 
-# machine-translated
 msgid "Could not save."
 msgstr "Tallennus epäonnistui."
 
-# machine-translated
 msgid "Error saving"
 msgstr "Tallennusvirhe"
 
-# machine-translated
 #, python-format
 msgid "Weight of %(date)s removed."
 msgstr "Paino päivältä %(date)s poistettu."
 
-# machine-translated
 msgid "Sign in"
 msgstr "Kirjaudu sisään"
 
-# machine-translated
 msgid "Enter your email and we'll send you a 6-digit code — no password needed."
 msgstr ""
 "Anna sähköpostiosoitteesi, niin lähetämme sinulle 6-numeroisen koodin – "
 "salasanaa ei tarvita."
 
-# machine-translated
 msgid "Send code"
 msgstr "Lähetä koodi"
 
-# machine-translated
 msgid "How does this work?"
 msgstr "Miten tämä toimii?"
 
-# machine-translated
 #. Shown at a public chart's address when there is no chart there, or its owner
 #. stopped sharing it.
 msgid "There is no public chart at this address (any more)."
 msgstr "Tässä osoitteessa ei ole (enää) julkista kaaviota."
 
-# machine-translated
 msgid "Remove my data"
 msgstr "Poista tietoni"
 
-# machine-translated
 msgid "Back to settings"
 msgstr "Takaisin asetuksiin"
 
-# machine-translated
 msgid ""
 "This permanently deletes your account, all your weigh-ins and notes, and "
 "your settings. It can't be undone."
@@ -856,36 +698,28 @@ msgstr ""
 "Tämä poistaa pysyvästi tilisi, kaikki punnituksesi ja muistiinpanosi sekä "
 "asetuksesi. Toimintoa ei voi perua."
 
-# machine-translated
 msgid "Step 1: Download your data"
 msgstr "Vaihe 1: Lataa tietosi"
 
-# machine-translated
 msgid "download it again"
 msgstr "ladata ne uudelleen"
 
-# machine-translated
 #, python-format
 msgid "Downloaded. You can %(again_link)s."
 msgstr "Ladattu. Voit %(again_link)s."
 
-# machine-translated
 msgid "Download a copy of your weigh-ins before they're deleted. This is required."
 msgstr "Lataa kopio punnituksistasi ennen kuin ne poistetaan. Tämä on pakollista."
 
-# machine-translated
 msgid "Download my data (CSV)"
 msgstr "Lataa tietoni (CSV)"
 
-# machine-translated
 msgid "I've downloaded it — continue"
 msgstr "Olen ladannut ne – jatka"
 
-# machine-translated
 msgid "Step 2: Confirm by email"
 msgstr "Vaihe 2: Vahvista sähköpostilla"
 
-# machine-translated
 #, python-format
 msgid ""
 "We sent a 6-digit code to <strong>%(email)s</strong>. It expires in %(num)s "
@@ -900,34 +734,27 @@ msgstr[1] ""
 "Lähetimme 6-numeroisen koodin osoitteeseen <strong>%(email)s</strong>. Se "
 "vanhenee %(num)s minuutin kuluttua."
 
-# machine-translated
 msgid "Delete everything"
 msgstr "Poista kaikki"
 
-# machine-translated
 msgid "Resend code"
 msgstr "Lähetä koodi uudelleen"
 
-# machine-translated
 #, python-format
 msgid "We'll email a confirmation code to <strong>%(email)s</strong>."
 msgstr "Lähetämme vahvistuskoodin osoitteeseen <strong>%(email)s</strong>."
 
-# machine-translated
 msgid "Send confirmation code"
 msgstr "Lähetä vahvistuskoodi"
 
-# machine-translated
 msgid "Your height is used to calculate your BMI."
 msgstr "Pituuttasi käytetään BMI:n laskemiseen."
 
-# machine-translated
 #. Heading of the settings section about showing the weight chart on a public
 #. web page.
 msgid "Public chart"
 msgstr "Julkinen kaavio"
 
-# machine-translated
 msgid ""
 "Show your chart and stat boxes on a public page that anyone with the link "
 "can see, and that you can embed in another website. Your notes, your email "
@@ -937,15 +764,13 @@ msgstr ""
 "linkin saanut voi nähdä ja jonka voit upottaa toiseen verkkosivustoon. "
 "Muistiinpanojasi, sähköpostiosoitettasi ja päiväkirjaasi ei koskaan näytetä."
 
-# machine-translated
 msgid ""
 "Switched off, the chart shows only the shape of the line: no kilograms, no "
 "BMI and no stat boxes."
 msgstr ""
-"Pois päältä kaavio näyttää vain viivan muodon: ei kilogrammoja, ei BMI:tä "
-"eikä tilastoruutuja."
+"Jos tämä on pois päältä, kaavio näyttää vain viivan muodon: ei kilogrammoja, "
+"ei BMI:tä eikä tilastoruutuja."
 
-# machine-translated
 #, python-format
 msgid ""
 "The last part of the page's address: %(min)d to %(max)d letters (a-z), "
@@ -955,30 +780,24 @@ msgstr ""
 "yhdysviivoja tai alaviivoja. Jätä tyhjäksi, niin saat uuden satunnaisen "
 "tunnuksen."
 
-# machine-translated
 #. Label of a menu in the settings: which period the shared chart shows.
 msgid "Chart range"
 msgstr "Kaavion aikaväli"
 
-# machine-translated
 #. First choice of the chart range menu: the chart keeps its range buttons and
 #. the visitor picks.
 msgid "Visitor chooses (range buttons)"
 msgstr "Kävijä valitsee (aikavälipainikkeet)"
 
-# machine-translated
 msgid "Your public chart:"
 msgstr "Julkinen kaaviosi:"
 
-# machine-translated
 msgid "To show it in another website, put this code in that page's HTML:"
 msgstr "Näyttääksesi sen toisella sivustolla lisää tämä koodi sen sivun HTML:ään:"
 
-# machine-translated
 msgid "Import data"
 msgstr "Tuo tiedot"
 
-# machine-translated
 #. The text in <code> only names the three columns of a line such as
 #. 23-9-26,79.7,text. Translate the names (date, weight, note): the file itself
 #. has no header and is the same in every language.
@@ -990,17 +809,14 @@ msgstr ""
 "<code>päivämäärä,paino,muistiinpano</code> (muistiinpano on valinnainen), "
 "esimerkiksi:"
 
-# machine-translated
 #. Example notes in the CSV sample. The CSV format itself (dates, dot as
 #. decimal separator) stays the same in every language.
 msgid "optional notes"
 msgstr "valinnaisia muistiinpanoja"
 
-# machine-translated
 msgid "some text"
 msgstr "jotain tekstiä"
 
-# machine-translated
 #. d-M-yy and d-M-yyyy describe the date pattern, as in 23-9-26 or 23-9-2026.
 #. Use the first letter of the word for day, month (keep a capital M, so it
 #. cannot be mistaken for minutes) and year in your language, e.g. j-M-aa in
@@ -1012,7 +828,6 @@ msgstr ""
 "Päivämäärät ovat muotoa <code>p-K-vv</code> tai <code>p-K-vvvv</code>; paino"
 " on kilogrammoina. Jos tuot päivämäärän, jolla on jo merkintä, se korvataan."
 
-# machine-translated
 #. "The Hacker's Diet Online" and "Yet Another Diet Tool" are names of web
 #. services; do not translate them.
 msgid ""
@@ -1021,49 +836,41 @@ msgid ""
 "file, your height are imported; everything else is ignored."
 msgstr ""
 "Voit tuoda myös The Hacker's Diet Onlinen CSV- tai XML-viennin tai Yet "
-"Another Diet Toolin CSV-viennin. Painot, muistiinpanot ja XML-tiedostosta "
-"pituutesi tuodaan; kaikki muu ohitetaan."
+"Another Diet Toolin CSV-viennin. Tuonnissa otetaan mukaan painot ja "
+"muistiinpanot (sekä XML-tiedostosta myös pituutesi); kaikki muu ohitetaan."
 
-# machine-translated
 msgid "Import"
 msgstr "Tuo"
 
-# machine-translated
 msgid "Export data"
 msgstr "Vie tiedot"
 
-# machine-translated
 msgid "Download all your weigh-ins as a CSV file (date, weight in kilograms, note)."
 msgstr ""
 "Lataa kaikki punnituksesi CSV-tiedostona (päivämäärä, paino kilogrammoina, "
 "muistiinpano)."
 
-# machine-translated
 msgid "Export CSV"
 msgstr "Vie CSV"
 
-# machine-translated
 #. Heading of the settings section that ends the sign-in on every other browser
 #. and device.
 msgid "Sign out everywhere"
 msgstr "Kirjaudu ulos kaikkialta"
 
-# machine-translated
 msgid ""
 "Signed in on a computer that isn't yours, or lost a phone? This signs you "
 "out on every other browser and device. You stay signed in here."
 msgstr ""
 "Kirjauduitko jonkun toisen tietokoneella tai hukkasitko puhelimen? Tämä "
 "kirjaa sinut ulos kaikilla muilla selaimilla ja laitteilla. Täällä pysyt "
-"kirjautuneena."
+"edelleen kirjautuneena."
 
-# machine-translated
 #. Button that ends the sign-in on all other browsers and devices (not on this
 #. one).
 msgid "Sign out on other devices"
 msgstr "Kirjaudu ulos muilta laitteilta"
 
-# machine-translated
 msgid ""
 "Permanently delete your account and all your weigh-ins. You'll be asked to "
 "download your data and confirm with a code sent by email first."
@@ -1071,29 +878,23 @@ msgstr ""
 "Poista tilisi ja kaikki punnituksesi pysyvästi. Sinua pyydetään ensin "
 "lataamaan tietosi ja vahvistamaan sähköpostitse lähetetyllä koodilla."
 
-# machine-translated
 msgid "Remove my data…"
 msgstr "Poista tietoni…"
 
-# machine-translated
 msgid "Sign up"
 msgstr "Rekisteröidy"
 
-# machine-translated
 msgid "Enter your email and we'll send you a 6-digit verification code."
 msgstr ""
 "Anna sähköpostiosoitteesi, niin lähetämme sinulle 6-numeroisen "
 "varmennuskoodin."
 
-# machine-translated
 msgid "Verify your email"
 msgstr "Varmenna sähköpostiosoitteesi"
 
-# machine-translated
 msgid "Enter your code"
 msgstr "Anna koodisi"
 
-# machine-translated
 msgid "Verify"
 msgstr "Varmenna"
 
