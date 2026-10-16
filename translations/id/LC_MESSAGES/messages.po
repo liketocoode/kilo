@@ -23,95 +23,75 @@ msgstr ""
 msgid "You are now signed out on all other browsers and devices."
 msgstr "Kamu sekarang sudah keluar di semua browser dan perangkat lain."
 
-# machine-translated
 msgid "Download your data first."
 msgstr "Unduh datamu terlebih dahulu."
 
-# machine-translated
 msgid "Sign in again to confirm this request."
 msgstr "Masuk lagi untuk mengonfirmasi permintaan ini."
 
-# machine-translated
 #, python-format
 msgid "We sent a confirmation code to %(email)s."
 msgstr "Kami telah mengirim kode konfirmasi ke %(email)s."
 
-# machine-translated
 msgid "Enter the 6-digit code."
 msgstr "Masukkan kode 6 digit."
 
-# machine-translated
 msgid "That code has expired. Request a new one."
 msgstr "Kode itu sudah kedaluwarsa. Minta kode baru."
 
-# machine-translated
 msgid "Too many attempts. Request a new code."
 msgstr "Terlalu banyak percobaan. Minta kode baru."
 
-# machine-translated
 msgid "Incorrect code."
 msgstr "Kode salah."
 
-# machine-translated
 msgid "Your account and all your data have been removed."
 msgstr "Akun dan semua datamu telah dihapus."
 
-# machine-translated
 msgid "Enter your email to sign in."
 msgstr "Masukkan emailmu untuk masuk."
 
-# machine-translated
 #, python-format
 msgid "We sent a verification code to %(email)s."
 msgstr "Kami telah mengirim kode verifikasi ke %(email)s."
 
-# machine-translated
 msgid "Enter your email to get a verification code."
 msgstr "Masukkan emailmu untuk mendapatkan kode verifikasi."
 
-# machine-translated
 msgid "Email verified — you're signed in."
 msgstr "Email terverifikasi – kamu sudah masuk."
 
-# machine-translated
 #, python-format
 msgid "We sent a new code to %(email)s."
 msgstr "Kami telah mengirim kode baru ke %(email)s."
 
-# machine-translated
 msgid "Signed out."
 msgstr "Sudah keluar."
 
-# machine-translated
 #. NOTE: date,weight[,note] names the columns of a CSV line; translate the
 #. names (note is optional).
 #, python-format
 msgid "line %(line)d: expected date,weight[,note]"
-msgstr "baris %(line)d: diharapkan tanggal,berat[,catatan]"
+msgstr "baris %(line)d: tanggal yang diharapkan,berat[,catatan]"
 
-# machine-translated
 #, python-format
 msgid "line %(line)d: invalid date %(value)s"
 msgstr "baris %(line)d: tanggal tidak valid %(value)s"
 
-# machine-translated
 #, python-format
 msgid "line %(line)d: invalid weight %(value)s"
 msgstr "baris %(line)d: berat tidak valid %(value)s"
 
-# machine-translated
 #, python-format
 msgid "line %(line)d: weight out of range"
 msgstr "baris %(line)d: berat di luar rentang"
 
-# machine-translated
 #. NOTE: The email subject; the code is at the end, with no full stop, so it
 #. can be copied.
 #, python-format
 msgid "Your verification code is %(code)s"
 msgstr "Kode verifikasimu adalah %(code)s"
 
-# machine-translated
 #, python-format
 msgid ""
 "Your verification code is %(code)s.\n"
@@ -127,11 +107,9 @@ msgstr[0] ""
 "Kode ini berlaku selama %(num)d menit. Jika kamu tidak memintanya, abaikan "
 "email ini."
 
-# machine-translated
 msgid "Confirm removal of your data"
 msgstr "Konfirmasi penghapusan datamu"
 
-# machine-translated
 #, python-format
 msgid ""
 "Your confirmation code is %(code)s.\n"
@@ -152,82 +130,65 @@ msgstr[0] ""
 "Kode ini berlaku selama %(num)d menit. Jika kamu tidak memintanya, abaikan "
 "email ini dan datamu tidak akan diubah."
 
-# machine-translated
 msgid "That email domain doesn't accept mail (no MX record)."
 msgstr "Domain email itu tidak menerima surat (tidak ada catatan MX)."
 
-# machine-translated
 msgid "Couldn't check that email domain right now. Try again."
-msgstr "Domain email itu tidak dapat diperiksa sekarang. Coba lagi."
+msgstr "Domain email tersebut tidak dapat diperiksa saat ini. Coba lagi."
 
-# machine-translated
 msgid "Your session has expired. Reload the page and try again."
 msgstr "Sesimu telah berakhir. Muat ulang halaman lalu coba lagi."
 
-# machine-translated
 msgid "Your session has expired and nothing was changed. Please try again."
 msgstr "Sesimu telah berakhir dan tidak ada yang diubah. Silakan coba lagi."
 
-# machine-translated
 msgid "That page isn't available, so you were taken to the start page."
 msgstr "Halaman itu tidak tersedia, jadi kamu dialihkan ke halaman awal."
 
-# machine-translated
 #, python-format
 msgid ""
 "The file is too large: the limit is %(size)s. Nothing was imported or "
 "changed."
-msgstr "Berkas terlalu besar: batasnya %(size)s. Tidak ada yang diimpor atau diubah."
+msgstr "File terlalu besar: batasnya %(size)s. Tidak ada yang diimpor atau diubah."
 
-# machine-translated
 msgid "Something went wrong on our side. Please try again in a moment."
-msgstr "Ada yang salah di pihak kami. Coba lagi sebentar lagi."
+msgstr "Ada yang salah di pihak kami. Silakan coba lagi beberapa saat lagi."
 
-# machine-translated
 msgid "Email"
 msgstr "Email"
 
-# machine-translated
 msgid "Verification code"
 msgstr "Kode verifikasi"
 
-# machine-translated
 msgid "Enter the height as a plain number, e.g. 180 or 1.8."
 msgstr "Masukkan tinggi badan sebagai angka biasa, misalnya 180 atau 1,8."
 
-# machine-translated
 #. NOTE: Label of the body height field in the settings.
 msgid "Height"
 msgstr "Tinggi badan"
 
-# machine-translated
 msgid "Unit"
 msgstr "Satuan"
 
-# machine-translated
 msgid "Dark mode"
 msgstr "Mode gelap"
 
-# machine-translated
 msgid "Moving average (days)"
 msgstr "Rata-rata bergerak (hari)"
 
-# machine-translated
 #, python-format
 msgid ""
 "Height must be between %(min_cm)s and %(max_cm)s cm (%(min_m)s and %(max_m)s"
 " m)."
 msgstr ""
-"Tinggi badan harus antara %(min_cm)s dan %(max_cm)s cm (%(min_m)s dan "
+"Tinggi badan harus di antara %(min_cm)s dan %(max_cm)s cm (%(min_m)s dan "
 "%(max_m)s m)."
 
-# machine-translated
 #. NOTE: Switch in the settings that makes the weight chart visible on a public
 #. web page.
 msgid "Share my chart on a public page"
 msgstr "Bagikan grafikku di halaman publik"
 
-# machine-translated
 #. NOTE: Switch in the settings: show the boxes with the current average, BMI
 #. and changes under the public chart.
 #. NOTE: Switch in the settings: show the kilograms on the public chart, or
@@ -235,66 +196,54 @@ msgstr "Bagikan grafikku di halaman publik"
 msgid "Show my weight"
 msgstr "Tampilkan berat badanku"
 
-# machine-translated
 msgid "Show the stat boxes on the public page"
 msgstr "Tampilkan kotak statistik di halaman publik"
 
-# machine-translated
 #. NOTE: Label of the field with the last part of the public page's address
 #. (the "ramon" in .../public/ramon).
 msgid "Page ID"
 msgstr "ID halaman"
 
-# machine-translated
 #, python-format
 msgid "Use %(min)d to %(max)d letters (a-z), digits, hyphens or underscores."
 msgstr ""
 "Gunakan %(min)d sampai %(max)d huruf (a-z), angka, tanda hubung, atau garis "
 "bawah."
 
-# machine-translated
 msgid "That ID is already taken. Choose another one."
 msgstr "ID itu sudah dipakai. Pilih yang lain."
 
-# machine-translated
 msgid "CSV or XML file"
 msgstr "File CSV atau XML"
 
-# machine-translated
 msgid "CSV, XML or text files only."
 msgstr "Hanya file CSV, XML, atau teks."
 
-# machine-translated
 #, python-format
 msgid "That file stores weights in %(unit)s, which can't be imported."
 msgstr "File itu menyimpan berat dalam %(unit)s, yang tidak dapat diimpor."
 
-# machine-translated
 msgid "That file isn't a valid Hacker's Diet XML export."
 msgstr "File itu bukan ekspor XML Hacker's Diet yang valid."
 
-# machine-translated
+
 #, python-format
 msgid "%(date)s: invalid date"
 msgstr "%(date)s: tanggal tidak valid"
 
-# machine-translated
 #, python-format
 msgid "%(date)s: invalid weight %(value)s"
 msgstr "%(date)s: berat tidak valid %(value)s"
 
-# machine-translated
 #, python-format
 msgid "%(date)s: weight out of range"
 msgstr "%(date)s: berat di luar rentang"
 
-# machine-translated
 #. NOTE: Rate of weight change. %(grams)s is a signed whole number; g is gram.
 #, python-format
 msgid "%(grams)s g/day"
 msgstr "%(grams)s g/hari"
 
-# machine-translated
 #. NOTE: Shown when too many sign-in codes were requested. %(num)d is a number
 #. of minutes.
 #, python-format
@@ -302,72 +251,58 @@ msgid "Too many requests. Try again in %(num)d minute."
 msgid_plural "Too many requests. Try again in %(num)d minutes."
 msgstr[0] "Terlalu banyak permintaan. Coba lagi dalam %(num)d menit."
 
-# machine-translated
 #. NOTE: Chart range button: the whole recorded history.
 msgid "All"
 msgstr "Semua"
 
-# machine-translated
 #. NOTE: Chart range button: 20 years. The letter is the unit, Y for year.
 msgid "20Y"
 msgstr "20T"
 
-# machine-translated
 #. NOTE: Chart range button: 15 years. The letter is the unit, Y for year.
 msgid "15Y"
 msgstr "15T"
 
-# machine-translated
 #. NOTE: Chart range button: 10 years. The letter is the unit, Y for year.
 msgid "10Y"
 msgstr "10T"
 
-# machine-translated
 #. NOTE: Chart range button: 5 years. The letter is the unit, Y for year.
 msgid "5Y"
 msgstr "5T"
 
-# machine-translated
 #. NOTE: Chart range button: 1 year. The letter is the unit, Y for year.
 msgid "1Y"
 msgstr "1T"
 
-# machine-translated
 #. NOTE: Chart range button: 6 months. The letter is the unit, M for month.
 msgid "6M"
 msgstr "6B"
 
-# machine-translated
 #. NOTE: Chart range button: 3 months. The letter is the unit, M for month.
 msgid "3M"
 msgstr "3B"
 
-# machine-translated
 #. NOTE: Chart range button: 1 month. The letter is the unit, M for month.
 msgid "1M"
 msgstr "1B"
 
-# machine-translated
 #. NOTE: Chart range button: 2 weeks. The letter is the unit, W for week.
 msgid "2W"
 msgstr "2M"
 
-# machine-translated
 #. NOTE: Chart range button: 1 week. The letter is the unit, W for week.
 msgid "1W"
 msgstr "1M"
 
-# machine-translated
 #, python-format
 msgid "%(num)d-day change"
 msgid_plural "%(num)d-day change"
 msgstr[0] "Perubahan %(num)d hari"
 
-# machine-translated
 msgid "Invalid date."
 msgstr "Tanggal tidak valid."
 
-# machine-translated
 #, python-format
 msgid ""
 "%(weight)s is %(percent)s%% different from your entry of %(other)s on "
@@ -376,16 +311,13 @@ msgstr ""
 "%(weight)s berbeda %(percent)s%% dari catatanmu sebesar %(other)s pada "
 "%(date)s."
 
-# machine-translated
 msgid "Enter a valid weight, like 72.5."
 msgstr "Masukkan berat yang valid, misalnya 72,5."
 
-# machine-translated
 #, python-format
 msgid "Weight must be between %(min)s and %(max)s kg."
-msgstr "Berat harus antara %(min)s dan %(max)s kg."
+msgstr "Berat harus di antara %(min)s dan %(max)s kg."
 
-# machine-translated
 msgid "Invalid range."
 msgstr "Rentang tidak valid."
 
