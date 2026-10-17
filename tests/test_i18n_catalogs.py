@@ -15,12 +15,12 @@
 
 import importlib.util
 import shutil
-from pathlib import Path
 
 import pytest
 from babel.messages.pofile import read_po, write_po
 
-ROOT = Path(__file__).resolve().parent.parent
+from tests.conftest import ROOT
+
 LANGUAGES = ["nl", "fr", "es", "pt", "de", "it", "id", "pl", "ro", "hu", "da", "fi", "sv", "nb"]
 
 spec = importlib.util.spec_from_file_location("check_i18n", ROOT / "scripts" / "check_i18n.py")

@@ -37,7 +37,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from . import csp, i18n, security
-from .utils import NOTE_MAX_LENGTH
+from .utils import NOTE_MAX_LENGTH, PROJECT_ROOT
 
 db = SQLAlchemy()
 # Alembic through Flask-Migrate; the migrations are in migrations/versions (see _migrate_database).
@@ -186,7 +186,7 @@ def create_app(test_config=None):
     return app
 
 
-MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "migrations")
+MIGRATIONS_DIR = os.path.join(PROJECT_ROOT, "migrations")
 
 
 @contextmanager

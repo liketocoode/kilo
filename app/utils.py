@@ -14,6 +14,7 @@
 """Small shared helpers: email hashing, decimal parsing, code lifetimes and UTC time."""
 
 import hashlib
+import os
 import re
 from datetime import UTC, datetime
 
@@ -36,6 +37,9 @@ def parse_decimal(raw):
     if not DECIMAL_RE.match(raw):
         return None
     return float(raw.replace(",", "."))
+
+# The project's top folder (the one with app/, migrations/ and translations/).
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # How long an emailed code stays valid. Deleting an account is destructive,
 # so its confirmation code gets a shorter window than the sign-in code.

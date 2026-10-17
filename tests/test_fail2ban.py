@@ -23,13 +23,13 @@ import configparser
 import re
 import shutil
 import subprocess
-from pathlib import Path
 
 import pytest
 
 from app import create_app, mail, security
+from tests.conftest import ROOT
 
-DEPLOY = Path(__file__).resolve().parent.parent / "deploy" / "fail2ban"
+DEPLOY = ROOT / "deploy" / "fail2ban"
 LOGPATH = "/var/log/gunicorn/kilo-security.log"
 REAL = "203.0.113.9"
 
@@ -259,7 +259,7 @@ def test_the_jails_name_existing_filters_and_use_the_agreed_numbers():
 
 
 def test_the_documented_log_path_is_the_one_in_the_jails():
-    readme = (DEPLOY.parent.parent / "README.md").read_text()
+    readme = (ROOT / "README.md").read_text()
     assert LOGPATH in readme
 
 

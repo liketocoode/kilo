@@ -23,8 +23,9 @@ import os
 import subprocess
 from functools import lru_cache
 
+from app.utils import PROJECT_ROOT
+
 SHORT_ID_LENGTH = 7
-_REPO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _git(repo_dir, *args):
@@ -69,4 +70,4 @@ def read_version(repo_dir):
 @lru_cache(maxsize=1)
 def app_version():
     """Version info of this app's own checkout (see `read_version`)."""
-    return read_version(_REPO_DIR)
+    return read_version(PROJECT_ROOT)

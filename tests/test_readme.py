@@ -14,9 +14,9 @@
 """Tests that the README documents every environment variable the app reads."""
 
 import re
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+from tests.conftest import ROOT
+
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 

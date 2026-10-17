@@ -15,6 +15,7 @@
 
 import os
 import re
+from pathlib import Path
 
 import pytest
 from babel.messages.mofile import write_mo
@@ -23,7 +24,9 @@ from babel.messages.pofile import read_po
 from app import create_app, db, mail
 from app.models import User
 
-TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), "..", "translations")
+# The project's top folder, for tests that read its files.
+ROOT = Path(__file__).resolve().parent.parent
+TRANSLATIONS_DIR = str(ROOT / "translations")
 
 
 @pytest.fixture(scope="session", autouse=True)
