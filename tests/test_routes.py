@@ -178,6 +178,30 @@ def test_a_request_without_a_json_body_reports_the_missing_field(logged_in_clien
     assert client.post("/settings/dark-mode", json=None).status_code == 200  # as before: off
 
 
+# Endpoints anyone may reach. Every other endpoint must send a signed-out visitor away; adding one
+# here is a decision about what strangers may do, not a way to make a failing test pass.
+PUBLIC_ENDPOINTS = {
+    "static", "main.index", "main.robots_txt", "main.set_language", "main.user_avatar",
+    "main.public_chart", "auth.about", "auth.signup", "auth.verify", "auth.resend_code", "auth.logout",
+}
+
+
+def test_every_other_endpoint_needs_a_sign_in(app, client):
+    """So a new route that forgets @login_required fails here, not in production."""
+    guarded = sorted(
+        (rule.endpoint, "POST" if "POST" in rule.methods else "GET", rule.rule)
+        for rule in app.url_map.iter_rules()
+        if rule.endpoint not in PUBLIC_ENDPOINTS
+    )
+    assert len(guarded) == 12  # a new route shows up here: decide whether it is public
+    for endpoint, method, path in guarded:
+        resp = client.open(path, method=method, json={} if method == "POST" else None)
+        assert resp.status_code == 302, endpoint
+        assert resp.headers["Location"].endswith("/"), endpoint
+    with client.session_transaction() as sess:
+        assert "user_id" not in sess
+
+
 def test_save_field_requires_login(client):
     resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": 80.5})
     assert resp.status_code == 302
