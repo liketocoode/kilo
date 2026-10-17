@@ -22,6 +22,7 @@ import pytest
 from app.csv_io import (
     CsvRowError,
     data_rows,
+    decode_text,
     export_csv,
     format_ddmyy,
     parse_csv,
@@ -179,3 +180,15 @@ def test_weight_kg(text, factor, digits, expected):
 def test_the_plain_csv_import_does_not_round_a_weight():
     rows, errors = parse_csv(b"1-1-26,72.12345\n")
     assert errors == [] and rows[0][1] == 72.12345
+
+
+@pytest.mark.parametrize(
+    "data, text",
+    [
+        ("señor".encode(), "señor"),  # UTF-8 first
+        ("señor €".encode("cp1252"), "señor €"),  # then Windows-1252
+        (b"\x81\x8d", "\x81\x8d"),  # bytes Windows-1252 leaves undefined: Latin-1, which takes any byte
+    ],
+)
+def test_text_is_decoded_as_utf8_then_windows_1252_then_latin_1(data, text):
+    assert decode_text(data) == text

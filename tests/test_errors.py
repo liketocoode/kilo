@@ -393,6 +393,42 @@ def test_the_rest_of_a_refused_upload_is_read_so_the_browser_gets_the_answer(app
     assert body.read() == b""
 
 
+# The test request helper sets Content-Length from the stream it is given; environ_overrides keeps
+# the length a real client claimed, which is what these cases are about.
+def _claimed(length):
+    return {"CONTENT_LENGTH": str(length)}
+
+
+def test_an_upload_shorter_than_it_claims_does_not_hang(app):
+    body = io.BytesIO(b"x" * MB)  # says 3 MB, sends 1 MB
+    with app.test_request_context("/settings/import", method="POST", input_stream=body,
+                                  environ_overrides=_claimed(3 * MB)) as ctx:
+        assert ctx.request.content_length == 3 * MB
+        errors._drain_upload()
+    assert body.read() == b""
+
+
+def test_a_connection_that_breaks_while_draining_is_ignored(app):
+    reads = []
+
+    class Broken(io.BytesIO):
+        def read(self, *args):
+            reads.append(args)
+            raise OSError("connection reset by peer")
+
+    with app.test_request_context("/settings/import", method="POST", input_stream=Broken(b"x" * MB),
+                                  environ_overrides=_claimed(MB)):
+        errors._drain_upload()  # no exception: the answer still goes out
+    assert len(reads) == 1
+
+
+def test_a_request_without_a_body_stream_is_left_alone(app):
+    with app.test_request_context("/settings/import", method="POST", environ_overrides=_claimed(MB)) as ctx:
+        ctx.request.environ.pop("wsgi.input")
+        assert ctx.request.content_length == MB
+        errors._drain_upload()
+
+
 def test_a_huge_upload_is_not_read(app, monkeypatch):
     monkeypatch.setattr(errors, "DRAIN_MAX_BYTES", 1 * MB)
     body = io.BytesIO(b"x" * (3 * MB))

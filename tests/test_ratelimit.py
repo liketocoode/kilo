@@ -295,6 +295,23 @@ def test_a_failed_send_does_not_use_up_the_allowance(enforcing, clock, client, m
     assert len(sign_up(client, "a@example.com")[1]) == 1  # no wait to sit out
 
 
+def test_a_release_that_fails_is_logged_and_does_not_break_the_request(enforcing, clock, app, monkeypatch, caplog):
+    with app.test_request_context("/signup", method="POST", headers={"X-Real-IP": IP}):
+        reservation = ratelimit.reserve_code("signin", hash_email("a@example.com"))
+    assert reservation.allowed and counted() > 0
+
+    def broken(*args, **kwargs):
+        raise OperationalError("DELETE", {}, Exception("database is locked"))
+
+    monkeypatch.setattr(db.session, "execute", broken)
+    reservation.release()  # no exception: the visitor gets the mail error, not a second one
+    monkeypatch.undo()
+    assert "Could not give back a rate limit reservation" in caplog.text
+    assert counted() > 0  # nothing was given back
+    reservation.release()  # and a second call does nothing
+    assert counted() > 0
+
+
 def test_a_failed_removal_mail_gives_the_allowance_back_too(enforcing, clock, logged_in_client, monkeypatch):
     client, _ = logged_in_client
     client.get("/settings/export")

@@ -24,6 +24,7 @@ import pytest
 
 from app import db
 from app.csv_io import ImportFileError, parse_csv
+from app.hackdiet_io import looks_like_hackdiet_csv
 from app.importing import parse_import
 from app.models import User, WeightEntry
 from tests.builders import EXPECTED_ROWS, hd_csv, hd_xml
@@ -468,3 +469,42 @@ def test_the_import_page_names_both_tools(logged_in_client):
     html = client.get("/settings").get_data(as_text=True)
     assert "The Hacker's Diet Online" in html and "Yet Another Diet Tool" in html
 
+
+# ---- edge cases ----------------------------------------------------------------------------
+
+
+def test_a_file_of_blank_lines_is_not_a_hackers_diet_csv():
+    assert looks_like_hackdiet_csv("\n  \n\t\n") is False
+
+
+def test_a_hackers_diet_csv_line_with_a_date_that_is_not_iso_is_reported():
+    """The export writes 2007-08-01; a hand-edited 23-8-2007 is an error, not a guess."""
+    data = hd_csv(days={(2007, 8): [(1, "94", "")]}) + b"23-8-2007,93,,0,\r\n"
+    result = parse_import(data)
+    assert result.rows == [(date(2007, 8, 1), 94.0, None)]
+    assert result.errors == ["line 8: invalid date '23-8-2007'"]
+
+
+def test_a_month_without_a_year_or_month_is_skipped():
+    no_year = ("<monthlog><properties><month>9</month></properties>"
+               "<days><day><date>1</date><weight>90</weight></day></days></monthlog>")
+    result = parse_import(hd_xml(days={(2007, 8): [(1, "94", "")]}, extra=no_year))
+    assert result.rows == [(date(2007, 8, 1), 94.0, None)] and result.errors == []
+
+
+def test_an_xml_day_without_a_date_is_reported():
+    no_date = ("<monthlog><properties><year>2007</year><month>10</month></properties>"
+               "<days><day><date></date><weight>90</weight></day></days></monthlog>")
+    result = parse_import(hd_xml(days={(2007, 8): [(1, "94", "")]}, extra=no_date))
+    assert result.rows == [(date(2007, 8, 1), 94.0, None)]
+    assert result.errors == ["2007-10: invalid date"]
+
+
+def test_only_the_first_five_bad_lines_are_spelled_out(logged_in_client):
+    client, _ = logged_in_client
+    lines = "".join(f"x{n},80\n" for n in range(1, 8))  # seven bad dates
+    messages = flashes(upload(client, ("1-1-26,80\n" + lines).encode()), "error")
+    assert len(messages) == 1
+    assert messages[0].startswith("Skipped 7 invalid lines: line 2: invalid date 'x1'")
+    assert "line 6: invalid date 'x5'" in messages[0] and "x6" not in messages[0]
+    assert messages[0].endswith("(+2 more)")
