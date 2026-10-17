@@ -439,3 +439,12 @@ def test_the_settings_offer_a_theme_for_the_embed_code_starting_as_the_owners(cl
     owner.dark_mode = True
     db.session.commit()
     assert '<input type="checkbox" id="embed-dark" checked>' in client.get("/settings").data.decode()
+
+
+@pytest.mark.parametrize(
+    "show_weight, show_stats, shown",
+    [(True, True, True), (True, False, False), (False, True, False), (False, False, False)],
+)
+def test_the_stat_boxes_are_shown_only_with_the_weight(show_weight, show_stats, shown):
+    user = User(public_show_weight=show_weight, public_show_stats=show_stats)
+    assert user.public_stats_shown is shown

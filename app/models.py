@@ -85,6 +85,12 @@ class User(db.Model):
     )
 
     @property
+    def public_stats_shown(self):
+        """Whether the public chart shows the stat boxes: they show kilograms, so never without
+        the weight, whatever public_show_stats says."""
+        return self.public_show_weight and self.public_show_stats
+
+    @property
     def is_verified(self):
         """True once the user has entered a correct emailed code."""
         return self.verified_at is not None

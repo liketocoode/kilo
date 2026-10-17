@@ -438,7 +438,7 @@ def public_chart(public_id):
     return render_template(
         "index.html",
         public=True,
-        show_stats=show_weight and user.public_show_stats,
+        show_stats=user.public_stats_shown,
         hide_weights=not show_weight,
         fixed_range=fixed_range,
         theme=theme,
@@ -626,7 +626,7 @@ def _render_settings(user, form=None, public_form=None):
         public_form = PublicChartForm(formdata=None)
         public_form.public_enabled.data = user.public_enabled
         public_form.public_show_weight.data = user.public_show_weight
-        public_form.public_show_stats.data = user.public_show_weight and user.public_show_stats
+        public_form.public_show_stats.data = user.public_stats_shown
         public_form.public_id.data = user.public_id or propose_public_id(session.get("email"))
     if not public_form.public_show_weight.data:
         public_form.public_show_stats.data = False  # shown switched off and greyed out
