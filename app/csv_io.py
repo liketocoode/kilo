@@ -37,6 +37,10 @@ from app.utils import NOTE_MAX_LENGTH, parse_decimal
 MIN_WEIGHT_KG = 1
 MAX_WEIGHT_KG = 500
 
+# What may come before the first real byte of an uploaded file: a UTF-8 byte order mark and
+# whitespace. An XML file is recognised (and parsed) after stripping it.
+LEADING_JUNK = b"\xef\xbb\xbf \t\r\n"
+
 # Excel, LibreOffice and Google Sheets treat a cell that starts with one of these as a formula
 # ("CSV injection"): a note such as =HYPERLINK(...) would run when the export is opened. An
 # apostrophe in front makes the spreadsheet show the text as it is. A note that already starts
@@ -116,6 +120,37 @@ def format_ddmyy(d):
     return f"{d.day}-{d.month}-{d.strftime('%y')}"
 
 
+def data_rows(text):
+    """(line number, cells) for every line of a CSV text that is not blank."""
+    for lineno, row in enumerate(csv.reader(io.StringIO(text)), start=1):
+        if row and any(cell.strip() for cell in row):
+            yield lineno, row
+
+
+def weight_kg(text, factor=1.0, digits=None):
+    """(weight in kg or None, problem) for a weight cell: problem is None, "invalid" or "range".
+
+    `factor` converts the file's unit to kg (pounds: 0.45359237); `digits` rounds the result
+    (the Hacker's Diet importers use 3, so pounds do not turn into long fractions of a kilogram).
+    """
+    value = parse_decimal(text)
+    if value is None:
+        return None, "invalid"
+    kg = value * factor
+    if digits is not None:
+        kg = round(kg, digits)
+    if not (MIN_WEIGHT_KG <= kg <= MAX_WEIGHT_KG):
+        return None, "range"
+    return kg, None
+
+
+def line_weight_error(lineno, text, problem):
+    """The import's message for a CSV line whose weight `weight_kg` refused."""
+    if problem == "invalid":
+        return _("line %(line)d: invalid weight %(value)s", line=lineno, value=repr(text))
+    return _("line %(line)d: weight out of range", line=lineno)
+
+
 def _looks_like_header(row):
     """True if a row is not data at all: its first cell is no date and its second no weight."""
     try:
@@ -134,9 +169,7 @@ def parse_generic_csv(text):
     """
     result = ImportResult()
     first_line = True
-    for lineno, row in enumerate(csv.reader(io.StringIO(text)), start=1):
-        if not row or all(not cell.strip() for cell in row):
-            continue
+    for lineno, row in data_rows(text):
         was_first, first_line = first_line, False
         if was_first and _looks_like_header(row):
             continue
@@ -154,15 +187,12 @@ def parse_generic_csv(text):
             result.errors.append(_("line %(line)d: invalid date %(value)s", line=lineno, value=repr(date_str)))
             continue
 
-        weight_kg = parse_decimal(weight_str)
-        if weight_kg is None:
-            result.errors.append(_("line %(line)d: invalid weight %(value)s", line=lineno, value=repr(weight_str)))
-            continue
-        if not (MIN_WEIGHT_KG <= weight_kg <= MAX_WEIGHT_KG):
-            result.errors.append(_("line %(line)d: weight out of range", line=lineno))
+        weight, problem = weight_kg(weight_str)  # kg as typed, not rounded
+        if problem:
+            result.errors.append(line_weight_error(lineno, weight_str, problem))
             continue
 
-        result.rows.append((entry_date, weight_kg, note))
+        result.rows.append((entry_date, weight, note))
 
     return result
 

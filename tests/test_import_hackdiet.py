@@ -204,6 +204,7 @@ def test_pounds_are_converted_to_kilograms(make):
     rows = parse_import(make(POUNDS, unit="pound")).rows
     assert rows[0] == (date(2020, 1, 1), pytest.approx(81.647, abs=0.001), None)
     assert rows[1] == (date(2020, 1, 2), pytest.approx(90.945, abs=0.001), "heavier")
+    assert [row[1] for row in rows] == [81.647, 90.945]  # rounded to grams, no long tail
 
 
 @pytest.mark.parametrize("make", [hd_csv, hd_xml])
