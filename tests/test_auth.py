@@ -14,6 +14,8 @@
 """Tests for email sign-in: codes, expiry, attempt limits and sign-out."""
 
 
+import re
+
 import pytest
 
 from app import db, mail
@@ -183,3 +185,17 @@ def test_signup_remembers_the_address_and_says_the_code_was_sent(client, app, co
     assert _flashes(client) == ["We sent a verification code to twice@example.com."]
     with client.session_transaction() as sess:
         assert sess["pending_email"] == "twice@example.com"
+
+
+def test_the_code_field_takes_six_digits_with_a_number_keyboard(app, logged_in_client):
+    """The same field on the sign-in code page and on "Remove my data" (_forms.code_field)."""
+    visitor = app.test_client()
+    with mail.record_messages():
+        visitor.post("/signup", data={"email": "field@example.com"})
+    signed_in, _user_id = logged_in_client
+    signed_in.get("/settings/export")  # the removal step needs a download first
+    with mail.record_messages():
+        signed_in.post("/settings/remove/send-code")
+    for page in (visitor.get("/verify"), signed_in.get("/settings/remove")):
+        field = re.search(r'<input[^>]*name="code"[^>]*>', page.get_data(as_text=True)).group(0)
+        assert 'maxlength="6"' in field and 'inputmode="numeric"' in field and 'placeholder="123456"' in field

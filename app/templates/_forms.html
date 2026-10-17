@@ -1,0 +1,32 @@
+{# Form pieces that several pages share. #}
+
+{# A field's validation errors, under the field. #}
+{% macro field_errors(field) %}
+  {% for error in field.errors %}
+    <p class="flash flash-error">{{ error }}</p>
+  {% endfor %}
+{% endmacro %}
+
+{# The "email me a code" form of the sign-in and sign-up pages. #}
+{% macro email_form(form) %}
+  <form method="post" action="{{ url_for('auth.signup') }}" class="entry-form">
+    {{ form.hidden_tag() }}
+    <div class="field field-wide">
+      {{ form.email.label }}
+      <div class="input-with-button">
+        {{ form.email(placeholder="you@example.com", autofocus=true) }}
+        <button type="submit">{{ _("Send code") }}</button>
+      </div>
+      {{ field_errors(form.email) }}
+    </div>
+  </form>
+{% endmacro %}
+
+{# The field for an emailed 6-digit code (sign-in and "Remove my data"). #}
+{% macro code_field(form) %}
+  <div class="field">
+    {{ form.code.label }}
+    {{ form.code(placeholder="123456", autofocus=true, maxlength=6, inputmode="numeric") }}
+    {{ field_errors(form.code) }}
+  </div>
+{% endmacro %}
