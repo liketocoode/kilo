@@ -321,11 +321,9 @@ msgstr "Berat harus di antara %(min)s dan %(max)s kg."
 msgid "Invalid range."
 msgstr "Rentang tidak valid."
 
-# machine-translated
 msgid "Settings updated."
 msgstr "Pengaturan diperbarui."
 
-# machine-translated
 msgid "Your chart is now public."
 msgstr "Grafikmu sekarang publik."
 
@@ -333,66 +331,54 @@ msgstr "Grafikmu sekarang publik."
 msgid "Your chart is no longer public."
 msgstr "Grafikmu tidak lagi publik."
 
-# machine-translated
 #, python-format
 msgid "Imported %(num)d entry."
 msgid_plural "Imported %(num)d entries."
 msgstr[0] "%(num)d entri diimpor."
 
-# machine-translated
 #, python-format
 msgid "Your height was set to %(height)s."
 msgstr "Tinggi badanmu diatur menjadi %(height)s."
 
-# machine-translated
 #, python-format
 msgid "%(num)d note without a weight was skipped."
 msgid_plural "%(num)d notes without a weight were skipped."
 msgstr[0] "%(num)d catatan tanpa berat dilewati."
 
-# machine-translated
 #, python-format
 msgid "%(details)s (+%(count)d more)"
 msgstr "%(details)s (+%(count)d lagi)"
 
-# machine-translated
 #, python-format
 msgid "Skipped %(num)d invalid line: %(details)s"
 msgid_plural "Skipped %(num)d invalid lines: %(details)s"
 msgstr[0] "%(num)d baris tidak valid dilewati: %(details)s"
 
-# machine-translated
 msgid "No rows found in the file."
 msgstr "Tidak ada baris ditemukan dalam file."
 
-# machine-translated
 msgid "Back"
 msgstr "Kembali"
 
-# machine-translated
 msgid "About"
 msgstr "Tentang"
 
-# machine-translated
 msgid "Back to the dashboard"
 msgstr "Kembali ke dasbor"
 
-# machine-translated
 msgid "About Kilo Tracker"
 msgstr "Tentang Kilo Tracker"
 
-# machine-translated
 #, python-format
 msgid ""
 "For many years I tracked my weight with %(hdo_link)s, created by "
 "%(walker_link)s. It kept working for a good while after his death, but in "
 "March 2026 it finally stopped."
 msgstr ""
-"Selama bertahun-tahun saya mencatat berat badan saya dengan %(hdo_link)s, "
-"yang dibuat oleh %(walker_link)s. Situs itu masih berfungsi cukup lama "
-"setelah kematiannya, tetapi pada Maret 2026 akhirnya berhenti."
+"Selama bertahun-tahun saya melacak berat badan saya dengan %(hdo_link)s, "
+"yang dibuat oleh %(walker_link)s. Aplikasi itu masih berfungsi cukup lama "
+"setelah beliau meninggal, tetapi pada Maret 2026, akhirnya aplikasi tersebut berhenti berfungsi."
 
-# machine-translated
 #, python-format
 msgid ""
 "I tried %(yadt_link)s as a replacement, but its interface wasn't for me. So "
@@ -401,9 +387,8 @@ msgid ""
 msgstr ""
 "Saya mencoba %(yadt_link)s sebagai pengganti, tetapi antarmukanya tidak "
 "cocok untuk saya. Jadi saya membuat versi saya sendiri dengan vibe coding, "
-"dan Kilo Tracker adalah hasilnya. Gratis untuk siapa saja."
+"dan Kilo Tracker adalah hasilnya. Gratis untuk digunakan siapa saja."
 
-# machine-translated
 #, python-format
 msgid ""
 "Kilo Tracker is open source software. You can download the source code and "
@@ -412,28 +397,23 @@ msgstr ""
 "Kilo Tracker adalah perangkat lunak sumber terbuka. Kamu dapat mengunduh "
 "kode sumbernya dan menjalankan salinanmu sendiri dari %(github_link)s."
 
-# machine-translated
 #, python-format
 msgid "I hope you like it! You can reach me at %(mail_link)s."
 msgstr "Semoga kamu menyukainya! Kamu bisa menghubungiku di %(mail_link)s."
 
-# machine-translated
 #. Version of the app, with the date of its last change. %(version)s is a link
 #. such as v1.2 or a commit id.
 #, python-format
 msgid "Version %(version)s &middot; committed %(date)s"
 msgstr "Versi %(version)s &middot; di-commit pada %(date)s"
 
-# machine-translated
 #, python-format
 msgid "Version %(version)s"
 msgstr "Versi %(version)s"
 
-# machine-translated
 msgid "How signing in works"
 msgstr "Cara kerja masuk"
 
-# machine-translated
 #, python-format
 msgid ""
 "There are no passwords. Enter your email and we send a 6-digit code that's "
@@ -445,21 +425,18 @@ msgstr[0] ""
 "Tidak ada kata sandi. Masukkan emailmu dan kami mengirim kode 6 digit yang "
 "berlaku selama %(num)s menit – masukkan kode itu dan kamu sudah masuk."
 
-# machine-translated
 msgid "Gravatar uses"
 msgstr "yang digunakan Gravatar"
 
-# machine-translated
 #, python-format
 msgid ""
 "We never store your email address itself in our database. Instead we keep a "
 "one-way SHA-256 hash of it (the same scheme %(gravatar_hash_link)s)."
 msgstr ""
 "Kami tidak pernah menyimpan alamat emailmu di database kami. Sebagai "
-"gantinya, kami menyimpan hash SHA-256 satu arah darinya (skema yang sama "
+"gantinya, kami menyimpan hash SHA-256 satu arah dari alamat emailmu (Skema yang sama "
 "%(gravatar_hash_link)s)."
 
-# machine-translated
 #, python-format
 msgid ""
 "That hash also doubles as your Gravatar id — if you have an avatar set up at"
@@ -469,7 +446,6 @@ msgstr ""
 "avatar di %(gravatar_link)s, avatar itu akan muncul otomatis setelah kamu "
 "masuk."
 
-# machine-translated
 msgid ""
 "Kilo fetches that avatar from Gravatar itself and keeps a copy for a day, so"
 " Gravatar never sees your visits, your browser or your IP address."
@@ -478,192 +454,151 @@ msgstr ""
 "selama sehari, jadi Gravatar tidak pernah melihat kunjunganmu, browsermu, "
 "atau alamat IP-mu."
 
-# machine-translated
 #. Label of the menu that picks the language of the website.
 msgid "Language"
 msgstr "Bahasa"
 
-# machine-translated
 #. First choice in the language menu: follow the language set in the web
 #. browser.
 msgid "Browser language"
 msgstr "Bahasa browser"
 
-# machine-translated
 msgid "OK"
 msgstr "OK"
 
-# machine-translated
 msgid "Signed in"
 msgstr "Sudah masuk"
 
-# machine-translated
 msgid "Settings"
 msgstr "Pengaturan"
 
-# machine-translated
 msgid "Log out"
 msgstr "Keluar"
 
-# machine-translated
 #. Heading of the page shown when the server had an unexpected error.
 msgid "Something went wrong"
 msgstr "Ada yang salah"
 
-# machine-translated
 msgid "If you were saving something, check whether it was saved and try again."
 msgstr ""
 "Kalau kamu sedang menyimpan sesuatu, periksa apakah sudah tersimpan lalu "
 "coba lagi."
 
-# machine-translated
 msgid "Back to the start page"
 msgstr "Kembali ke halaman awal"
 
-# machine-translated
 #. Title of the public page that shows someone's weight chart.
 msgid "Weight chart"
 msgstr "Grafik berat badan"
 
-# machine-translated
 msgid "View or edit note"
 msgstr "Lihat atau ubah catatan"
 
-# machine-translated
 msgid "No note"
 msgstr "Tanpa catatan"
 
-# machine-translated
 msgid "Add a note…"
 msgstr "Tambahkan catatan…"
 
-# machine-translated
 #. Tooltip and screen-reader label of the button that opens a panel of emoji to
 #. put in a note.
 msgid "Insert an emoji"
 msgstr "Sisipkan emoji"
 
-# machine-translated
 msgid "Cancel"
 msgstr "Batal"
 
-# machine-translated
 #. Button that saves a note (verb).
 #. Button that saves the settings (verb).
 msgid "Save"
 msgstr "Simpan"
 
-# machine-translated
 #. Label above the latest moving-average weight.
 msgid "Current average"
 msgstr "Rata-rata saat ini"
 
-# machine-translated
 msgid "No entries yet."
-msgstr "Belum ada catatan."
+msgstr "Belum ada entri."
 
-# machine-translated
 msgid "No entries yet — add your weight below."
 msgstr "Belum ada entri – tambahkan beratmu di bawah."
 
-# machine-translated
 #. BMI is Body Mass Index; keep the abbreviation people know in your language.
 msgid "BMI"
 msgstr "BMI"
 
-# machine-translated
 #. Third line of the BMI box: the body height in metres, for example "Height:
 #. 1.86 m". %(height)s already includes the unit.
 #, python-format
 msgid "Height: %(height)s"
 msgstr "Tinggi badan: %(height)s"
 
-# machine-translated
 msgid "Set your height"
 msgstr "Atur tinggi badanmu"
 
-# machine-translated
 #, python-format
 msgid "Show the %(range)s chart"
 msgstr "Tampilkan grafik %(range)s"
 
-# machine-translated
 msgid "Show the whole history in the chart"
 msgstr "Tampilkan seluruh riwayat di grafik"
 
-# machine-translated
 #. Heading of the box about the logged weigh-ins: first date, last date and how
 #. many.
 msgid "Entries"
 msgstr "Entri"
 
-# machine-translated
 #. The date of the first entry.
 msgid "First"
 msgstr "Pertama"
 
-# machine-translated
 #. The date of the last (most recent) entry.
 msgid "Last"
 msgstr "Terakhir"
 
-# machine-translated
 #. The total number of entries.
 msgid "Total"
 msgstr "Total"
 
-# machine-translated
 msgid "Daily log"
 msgstr "Catatan harian"
 
-# machine-translated
 msgid "Scroll to the most recent entry"
 msgstr "Gulir ke entri terbaru"
 
-# machine-translated
 msgid "Most recent entry"
 msgstr "Entri terbaru"
 
-# machine-translated
 #. Column headers of the daily log: the day, the weight in kilograms, and a
 #. free-text note.
 msgid "Date"
 msgstr "Tanggal"
 
-# machine-translated
 msgid "Weight (kg)"
 msgstr "Berat (kg)"
 
-# machine-translated
 msgid "Note"
 msgstr "Catatan"
 
-# machine-translated
 #. Heading above the emoji the user picked most recently.
 msgid "Recently used"
 msgstr "Baru digunakan"
 
-# machine-translated
 msgid "Loading more days…"
 msgstr "Memuat hari lainnya…"
 
-# machine-translated
 msgid "Log today's weight?"
 msgstr "Catat berat hari ini?"
 
-# machine-translated
 msgid "You haven't recorded a weight for today yet."
 msgstr "Kamu belum mencatat berat untuk hari ini."
 
-# machine-translated
 msgid "e.g. 82.4"
 msgstr "mis. 82,4"
 
-# machine-translated
 msgid "Skip"
 msgstr "Lewati"
 
-# machine-translated
 msgid "Unusual value"
 msgstr "Nilai tidak biasa"
 
