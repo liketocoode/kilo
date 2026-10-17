@@ -49,8 +49,7 @@ from app.csv_io import (
     ImportResult,
     parse_ddmyy,
 )
-from app.forms import SettingsForm
-from app.utils import NOTE_MAX_LENGTH, parse_decimal
+from app.utils import MAX_HEIGHT_CM, MIN_HEIGHT_CM, NOTE_MAX_LENGTH, parse_decimal
 
 POUND_KG = 0.45359237
 UNIT_FACTORS = {
@@ -137,7 +136,7 @@ def _height_cm(root, metric):
     value = parse_decimal((root.findtext("account/user/height") or "").strip())
     if value is None:
         return None
-    if SettingsForm.MIN_HEIGHT_CM <= value <= SettingsForm.MAX_HEIGHT_CM:
+    if MIN_HEIGHT_CM <= value <= MAX_HEIGHT_CM:
         return value
     return None
 

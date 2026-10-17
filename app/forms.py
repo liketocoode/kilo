@@ -24,7 +24,7 @@ from wtforms.validators import (
 
 from app.email_utils import MxCheckError, check_mx
 from app.models import User
-from app.utils import parse_decimal
+from app.utils import MAX_HEIGHT_CM, MIN_HEIGHT_CM, height_to_cm, parse_decimal
 
 
 class SignupForm(FlaskForm):
@@ -81,8 +81,8 @@ class DecimalFloatField(FloatField):
 
 class SettingsForm(FlaskForm):
     """User settings: height (cm or m, 50-275 cm), dark mode and the moving-average window in days."""
-    MIN_HEIGHT_CM = 50
-    MAX_HEIGHT_CM = 275
+    MIN_HEIGHT_CM = MIN_HEIGHT_CM
+    MAX_HEIGHT_CM = MAX_HEIGHT_CM
 
     # InputRequired, not DataRequired: a typo then gets the "plain number"
     # message from the field instead of also "This field is required".
@@ -104,7 +104,7 @@ class SettingsForm(FlaskForm):
         # means 180 in "cm" but 1.8 in "m".
         if field.data is None or self.height_unit.data not in User.HEIGHT_UNITS:
             return  # the field/unit report their own errors
-        height_cm = field.data * 100 if self.height_unit.data == "m" else field.data
+        height_cm = height_to_cm(field.data, self.height_unit.data)
         if not self.MIN_HEIGHT_CM <= height_cm <= self.MAX_HEIGHT_CM:
             raise ValidationError(
                 _(

@@ -184,6 +184,14 @@ def test_settings_updates_height_in_meters(logged_in_client, app):
         assert user.height_unit == "m"
 
 
+@pytest.mark.parametrize("value, unit, shown", [("1.87", "m", "1.87"), ("187.5", "cm", "187.5")])
+def test_settings_show_the_height_in_the_unit_it_was_saved_in(logged_in_client, value, unit, shown):
+    client, _user_id = logged_in_client
+    client.post("/settings", data={"height_value": value, "height_unit": unit})
+    page = client.get("/settings", headers={"Accept-Language": "en"}).get_data(as_text=True)
+    assert re.search(r'<input[^>]*name="height_value"[^>]*>', page).group(0).count(f'value="{shown}"') == 1
+
+
 def test_set_dark_mode_requires_login(client):
     resp = client.post("/settings/dark-mode", json={"dark_mode": True})
     assert resp.status_code == 302

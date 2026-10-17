@@ -50,7 +50,7 @@ from app.i18n import LANGUAGE_COOKIE, LANGUAGE_COOKIE_DAYS, meters
 from app.importing import parse_import
 from app.models import User, WeightEntry
 from app.security import log_event
-from app.utils import NOTE_MAX_LENGTH, bmi, parse_decimal
+from app.utils import NOTE_MAX_LENGTH, bmi, height_from_cm, height_to_cm, parse_decimal
 
 bp = Blueprint("main", __name__)
 
@@ -604,10 +604,7 @@ def _fill_settings_form(form, user):
     form.moving_avg_days.data = user.moving_avg_days
     if user.height_cm is not None:
         form.height_unit.data = user.height_unit
-        if user.height_unit == "m":
-            form.height_value.data = round(user.height_cm / 100, 2)
-        else:
-            form.height_value.data = round(user.height_cm, 1)
+        form.height_value.data = height_from_cm(user.height_cm, user.height_unit)
 
 
 def propose_public_id(email, now=None):
@@ -663,10 +660,8 @@ def settings():
         _fill_settings_form(form, user)
 
     if form.validate_on_submit():
-        value = form.height_value.data
-        unit = form.height_unit.data
-        user.height_cm = value * 100 if unit == "m" else value
-        user.height_unit = unit
+        user.height_cm = height_to_cm(form.height_value.data, form.height_unit.data)
+        user.height_unit = form.height_unit.data
         user.dark_mode = form.dark_mode.data
         user.moving_avg_days = form.moving_avg_days.data
         db.session.commit()

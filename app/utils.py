@@ -50,6 +50,21 @@ STALE_SIGNUP_DAYS = 7
 # importer cut a note to this length; templates see it as NOTE_MAX_LENGTH.
 NOTE_MAX_LENGTH = 280
 
+# The heights a user can have, in centimetres: the settings form and the Hacker's Diet XML
+# import accept only these. A height is stored in cm whatever unit it was typed in.
+MIN_HEIGHT_CM = 50
+MAX_HEIGHT_CM = 275
+
+
+def height_to_cm(value, unit):
+    """A height typed in `unit` ("cm" or "m") in centimetres."""
+    return value * 100 if unit == "m" else value
+
+
+def height_from_cm(height_cm, unit):
+    """A stored height (cm) as shown in `unit`: metres to 2 decimals, centimetres to 1."""
+    return round(height_cm / 100, 2) if unit == "m" else round(height_cm, 1)
+
 
 def bmi(weight_kg, height_cm):
     """Body-mass index of a weight (kg) at a height (cm)."""
