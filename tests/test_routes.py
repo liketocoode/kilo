@@ -140,6 +140,44 @@ def test_save_field_takes_only_a_plain_number_as_weight(logged_in_client, app, w
         assert WeightEntry.query.filter_by(user_id=user_id).count() == 0
 
 
+@pytest.mark.parametrize("url", ["/entries/field", "/settings/dark-mode", "/chart-range"])
+@pytest.mark.parametrize("body", [["x"], "text", 5, True], ids=["list", "string", "number", "true"])
+def test_a_json_body_that_is_not_an_object_is_refused(logged_in_client, app, url, body):
+    """A list or a number in place of an object was a 500 (it has no .get); nothing changes."""
+    client, user_id = logged_in_client
+    client.post("/settings/dark-mode", json={"dark_mode": True})
+    resp = client.post(url, json=body)
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "Invalid request."}
+    with app.app_context():
+        user = db.session.get(User, user_id)
+        assert (user.dark_mode, user.chart_range, user.entries.count()) == (True, "all", 0)
+
+
+@pytest.mark.parametrize("value", ["nope", "", 5, None, ["2026-01-01"], {"y": 2026}])
+def test_save_field_refuses_a_date_that_is_not_an_iso_date(logged_in_client, value):
+    client, _user_id = logged_in_client
+    resp = client.post("/entries/field", json={"date": value, "weight": "80"})
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "Invalid date."}
+
+
+@pytest.mark.parametrize("before", ["garbage", "", "2026-13-01"])
+def test_entries_window_refuses_a_date_that_is_not_one(logged_in_client, before):
+    client, _user_id = logged_in_client
+    resp = client.get(f"/entries/window?before={before}")
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "Invalid date."}
+
+
+def test_a_request_without_a_json_body_reports_the_missing_field(logged_in_client):
+    """No body (or not JSON) is not "Invalid request.": each endpoint names what it misses."""
+    client, _user_id = logged_in_client
+    assert client.post("/entries/field").get_json() == {"error": "Invalid date."}
+    assert client.post("/chart-range", data="range=1w").get_json() == {"error": "Invalid range."}
+    assert client.post("/settings/dark-mode", json=None).status_code == 200  # as before: off
+
+
 def test_save_field_requires_login(client):
     resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": 80.5})
     assert resp.status_code == 302
@@ -516,6 +554,16 @@ def test_set_chart_range_rejects_invalid_value(logged_in_client, app):
     client, user_id = logged_in_client
     resp = client.post("/chart-range", json={"range": "bogus"})
     assert resp.status_code == 400
+    with app.app_context():
+        assert db.session.get(User, user_id).chart_range == "all"
+
+
+@pytest.mark.parametrize("value", [["1w"], {"key": "1w"}, 7, None])
+def test_set_chart_range_refuses_a_range_that_is_not_text(logged_in_client, app, value):
+    client, user_id = logged_in_client
+    resp = client.post("/chart-range", json={"range": value})
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "Invalid range."}
     with app.app_context():
         assert db.session.get(User, user_id).chart_range == "all"
 

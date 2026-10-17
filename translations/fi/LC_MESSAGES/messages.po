@@ -312,6 +312,10 @@ msgstr[1] "%(num)d päivän muutos"
 msgid "Invalid date."
 msgstr "Virheellinen päivämäärä."
 
+# machine-translated
+msgid "Invalid request."
+msgstr "Virheellinen pyyntö."
+
 #, python-format
 msgid ""
 "%(weight)s is %(percent)s%% different from your entry of %(other)s on "

@@ -381,6 +381,10 @@ msgid "Invalid date."
 msgstr "Ogiltigt datum."
 
 # machine-translated
+msgid "Invalid request."
+msgstr "Ogiltig begäran."
+
+# machine-translated
 #, python-format
 msgid ""
 "%(weight)s is %(percent)s%% different from your entry of %(other)s on "

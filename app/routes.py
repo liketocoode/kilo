@@ -515,6 +515,19 @@ def _outlier_warning(user, entry_date, weight):
     return None
 
 
+def _json_object():
+    """The request's JSON body if it is an object, else None: a list, a string or a number in its
+    place is not a request any endpoint here understands (and has no .get)."""
+    data = request.get_json(silent=True)
+    if data is None:
+        return {}  # no body, or not JSON: each endpoint reports the field it misses
+    return data if isinstance(data, dict) else None
+
+
+def _invalid_request():
+    return jsonify(error=_("Invalid request.")), 400
+
+
 @bp.route("/entries/field", methods=["POST"])
 @login_required
 def save_field():
@@ -524,10 +537,12 @@ def save_field():
     neighbouring entries; the client overrides that by sending `confirm`. Returns
     the refreshed overview.
     """
-    data = request.get_json(silent=True) or {}
+    data = _json_object()
+    if data is None:
+        return _invalid_request()
     try:
         entry_date = date.fromisoformat(data.get("date", ""))
-    except ValueError:
+    except (TypeError, ValueError):  # TypeError: a date that is not text (5, null, a list)
         return jsonify(error=_("Invalid date.")), 400
 
     user = get_current_user()
@@ -572,7 +587,9 @@ def save_field():
 @login_required
 def set_dark_mode():
     """Store the user's dark-mode preference."""
-    data = request.get_json(silent=True) or {}
+    data = _json_object()
+    if data is None:
+        return _invalid_request()  # not silently "off": the page only ever sends an object
     user = get_current_user()
     user.dark_mode = bool(data.get("dark_mode"))
     db.session.commit()
@@ -583,9 +600,11 @@ def set_dark_mode():
 @login_required
 def set_chart_range():
     """Remember the user's selected chart range."""
-    data = request.get_json(silent=True) or {}
+    data = _json_object()
+    if data is None:
+        return _invalid_request()
     range_key = data.get("range")
-    if range_key not in CHART_RANGE_KEYS:
+    if not isinstance(range_key, str) or range_key not in CHART_RANGE_KEYS:  # a list is unhashable
         return jsonify(error=_("Invalid range.")), 400
 
     user = get_current_user()

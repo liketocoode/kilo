@@ -394,6 +394,10 @@ msgid "Invalid date."
 msgstr "Dată nevalidă."
 
 # machine-translated
+msgid "Invalid request."
+msgstr "Cerere nevalidă."
+
+# machine-translated
 #, python-format
 msgid ""
 "%(weight)s is %(percent)s%% different from your entry of %(other)s on "

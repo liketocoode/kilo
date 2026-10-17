@@ -368,6 +368,10 @@ msgid "Invalid date."
 msgstr "Tanggal tidak valid."
 
 # machine-translated
+msgid "Invalid request."
+msgstr "Permintaan tidak valid."
+
+# machine-translated
 #, python-format
 msgid ""
 "%(weight)s is %(percent)s%% different from your entry of %(other)s on "

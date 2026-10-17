@@ -293,6 +293,9 @@ msgstr[1] ""
 msgid "Invalid date."
 msgstr ""
 
+msgid "Invalid request."
+msgstr ""
+
 #, python-format
 msgid ""
 "%(weight)s is %(percent)s%% different from your entry of %(other)s on "

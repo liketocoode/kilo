@@ -379,6 +379,10 @@ msgid "Invalid date."
 msgstr "Data non valida."
 
 # machine-translated
+msgid "Invalid request."
+msgstr "Richiesta non valida."
+
+# machine-translated
 #, python-format
 msgid ""
 "%(weight)s is %(percent)s%% different from your entry of %(other)s on "
