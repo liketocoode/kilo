@@ -231,10 +231,6 @@
    party; see app/static/vendor/README.md. #}
 <script src="{{ url_for('static', filename='vendor/chartjs-4.4.4/chart.umd.js') }}"></script>
 <script nonce="{{ csp_nonce() }}">
-  {% if not public %}
-  const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-  {% endif %}
-
   // Numbers and dates follow the page language (LOCALE, set in base.html).
   // Weights always show one decimal, like the server-rendered ones.
   const weightFormat = new Intl.NumberFormat(LOCALE, {
@@ -1017,11 +1013,7 @@
       applyRange(btn.dataset.range);
       {% if not public %}
       try {
-        await fetch('{{ url_for("main.set_chart_range") }}', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-          body: JSON.stringify({ range: btn.dataset.range }),
-        });
+        await postJson('{{ url_for("main.set_chart_range") }}', { range: btn.dataset.range });
       } catch (err) {
         // best-effort persistence; the chart itself already reflects the choice
       }
@@ -1253,6 +1245,35 @@
   }
   document.getElementById('session-expired-reload').addEventListener('click', () => location.reload());
 
+  // Saves one day (the daily log and the "today" prompt both use it) and handles what is the
+  // same for both: an expired session, the "is this right?" question for an unusual weight and
+  // the new overview. Resolves to the server's answer after a save; null when the caller has
+  // nothing more to do. Callbacks: showError(message) for a refusal (message may be empty),
+  // retry() to save again with confirm (the outlier question's "Save anyway"), refocus() for
+  // "Correct it",
+  // and optional quiet() when the save stopped for the session dialog or the outlier question.
+  // A network error or an unreadable answer is thrown, for the caller's "could not save".
+  async function saveDay(payload, { showError, retry, refocus, quiet }) {
+    const resp = await postJson('{{ url_for("main.save_field") }}', payload);
+    const data = await resp.json();
+    if (!resp.ok) {
+      if (data.code === 'csrf_expired') {
+        if (quiet) quiet();
+        showSessionExpired();
+      } else {
+        showError(data.error);
+      }
+      return null;
+    }
+    if (data.status === 'warning') {
+      if (quiet) quiet();
+      showOutlierPrompt(data.message, retry, refocus);
+      return null;
+    }
+    updateOverview(data);
+    return data;
+  }
+
   outlierConfirmBtn.addEventListener('click', () => {
     const confirmFn = pendingOutlierConfirm;
     hideOutlierPrompt();
@@ -1313,34 +1334,21 @@
       clearTimeout(statusTimer);
       statusEl.textContent = t('saving');
       try {
-        const resp = await fetch('{{ url_for("main.save_field") }}', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-          body: JSON.stringify({
-            date: row.dataset.date,
-            weight: normalizeDecimal(weightInput.value),
-            note: noteValue.value,
-            confirm: !!confirm,
-          }),
+        const payload = {
+          date: row.dataset.date,
+          weight: normalizeDecimal(weightInput.value),
+          note: noteValue.value,
+          confirm: !!confirm,
+        };
+        const data = await saveDay(payload, {
+          showError: (message) => { statusEl.textContent = message || t('errorSaving'); },
+          retry: () => save(true),
+          refocus: () => weightInput.focus(),
+          quiet: () => { statusEl.textContent = ''; },
         });
-        const data = await resp.json();
-        if (!resp.ok) {
-          if (data.code === 'csrf_expired') {
-            statusEl.textContent = '';
-            showSessionExpired();
-            return;
-          }
-          statusEl.textContent = data.error || t('errorSaving');
-          return;
-        }
-        if (data.status === 'warning') {
-          statusEl.textContent = '';
-          showOutlierPrompt(data.message, () => save(true), () => weightInput.focus());
-          return;
-        }
+        if (!data) return;
         statusEl.textContent = t('saved');
         statusTimer = setTimeout(() => { statusEl.textContent = ''; }, 1500);
-        updateOverview(data);
         if (data.status === 'cleared' && data.removed) {
           // The note went with the entry: show the row as it now is (Undo brings both back).
           // A note typed on a day that had no weight is not touched: it is saved together
@@ -1543,28 +1551,17 @@
     todayPromptOkBtn.disabled = true;
     todayPromptError.hidden = true;
     try {
-      const resp = await fetch('{{ url_for("main.save_field") }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-        body: JSON.stringify({ date: todayDate, weight, note: '', confirm: !!confirm }),
+      const data = await saveDay({ date: todayDate, weight, note: '', confirm: !!confirm }, {
+        showError: (message) => {
+          todayPromptError.textContent = message || t('couldNotSavePrompt');
+          todayPromptError.hidden = false;
+        },
+        retry: () => saveTodayPrompt(true),
+        refocus: () => todayPromptWeight.focus(),
       });
-      const data = await resp.json();
-      if (!resp.ok) {
-        if (data.code === 'csrf_expired') {
-          showSessionExpired();
-          return;
-        }
-        todayPromptError.textContent = data.error || t('couldNotSavePrompt');
-        todayPromptError.hidden = false;
-        return;
-      }
-      if (data.status === 'warning') {
-        showOutlierPrompt(data.message, () => saveTodayPrompt(true), () => todayPromptWeight.focus());
-        return;
-      }
+      if (!data) return;
       const todayRow = dayRows.querySelector('.day-row[data-date="' + todayDate + '"]');
       if (todayRow) todayRow.querySelector('.day-weight').value = inputWeightFormat.format(Number(weight));
-      updateOverview(data);
       hideTodayPrompt();
     } catch (err) {
       todayPromptError.textContent = t('couldNotSavePrompt');

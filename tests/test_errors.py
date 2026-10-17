@@ -164,7 +164,11 @@ def test_the_dashboard_has_a_session_expired_dialog_and_uses_it(logged_in_client
     assert "Sitzung abgelaufen" in html and "Seite neu laden" in html
     # title, text and button are all rendered by the page, so they always match its language
     assert "Deine Sitzung ist abgelaufen. Lade die Seite neu und versuche es erneut." in html
-    assert html.count("data.code === 'csrf_expired'") == 2  # the row save and the "today" prompt
+    # Checked once, in saveDay, which both the row save and the "today" prompt go through.
+    assert html.count("data.code === 'csrf_expired'") == 1
+    assert html.count("await saveDay(") == 2
+    # Every JSON POST of the page (saves, range, dark mode) sends the token through postJson.
+    assert html.count("X-CSRFToken") == 1
     assert "location.reload()" in html
 
 
