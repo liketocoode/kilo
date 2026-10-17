@@ -22,7 +22,7 @@ import pytest
 from app.importing import parse_import
 from app.models import WeightEntry
 from app.utils import NOTE_MAX_LENGTH
-from tests.test_import_hackdiet import hd_csv, hd_xml
+from tests.builders import hd_csv, hd_xml
 
 TOO_LONG = "x" * (NOTE_MAX_LENGTH + 20)
 

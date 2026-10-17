@@ -20,7 +20,7 @@ from app.csv_io import parse_csv
 from app.forms import SettingsForm
 from app.importing import parse_import
 from app.utils import MAX_HEIGHT_CM, MIN_HEIGHT_CM, bmi, height_from_cm, height_to_cm, parse_decimal
-from tests.test_import_hackdiet import hd_xml
+from tests.builders import hd_xml
 
 
 @pytest.mark.parametrize(
