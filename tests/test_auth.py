@@ -13,20 +13,13 @@
 
 """Tests for email sign-in: codes, expiry, attempt limits and sign-out."""
 
-import re
 
 import pytest
 
 from app import db, mail
 from app.models import User
 from app.utils import hash_email
-
-
-def _get_code(outbox):
-    body = outbox[-1].body
-    match = re.search(r"\b(\d{6})\b", body)
-    assert match, f"no code found in email body: {body!r}"
-    return match.group(1)
+from tests.conftest import code_from
 
 
 def test_signup_sends_code_and_creates_unverified_user(client, app):
@@ -45,7 +38,7 @@ def test_signup_sends_code_and_creates_unverified_user(client, app):
 def test_verify_with_correct_code_signs_in(client, app):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "a@example.com"})
-    code = _get_code(outbox)
+    code = code_from(outbox)
 
     resp = client.post("/verify", data={"code": code}, follow_redirects=True)
     assert resp.status_code == 200
@@ -62,7 +55,7 @@ def test_verify_with_correct_code_signs_in(client, app):
 def test_a_used_code_cannot_sign_in_again(client, app):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "used@example.com"})
-    code = _get_code(outbox)
+    code = code_from(outbox)
     client.post("/verify", data={"code": code})
 
     with app.app_context():
@@ -93,11 +86,11 @@ def test_verify_with_wrong_code_fails(client, app):
 def test_resend_code_issues_new_code(client, app):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "c@example.com"})
-    first_code = _get_code(outbox)
+    first_code = code_from(outbox)
 
     with mail.record_messages() as outbox2:
         client.post("/verify/resend", follow_redirects=True)
-    second_code = _get_code(outbox2)
+    second_code = code_from(outbox2)
 
     resp = client.post("/verify", data={"code": first_code}, follow_redirects=True)
     assert b"Incorrect code" in resp.data or b"expired" in resp.data
@@ -109,7 +102,7 @@ def test_resend_code_issues_new_code(client, app):
 def test_logout_clears_session(client, app):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "d@example.com"})
-    code = _get_code(outbox)
+    code = code_from(outbox)
     client.post("/verify", data={"code": code})
 
     client.post("/logout", follow_redirects=True)

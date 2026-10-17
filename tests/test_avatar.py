@@ -19,7 +19,6 @@ records the URLs asked for and answers like Gravatar would.
 
 import io
 import os
-import re
 import time
 import urllib.error
 import urllib.request
@@ -31,7 +30,7 @@ from app import avatar, db, mail
 from app.cleanup import cleanup
 from app.models import User
 from app.utils import hash_email, utcnow
-from tests.conftest import signup_and_verify
+from tests.conftest import code_from, signup_and_verify
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 50
@@ -207,7 +206,7 @@ def test_removing_the_account_deletes_its_cached_avatar(app, gravatar, signed_in
     assert signed_in.get("/settings/export").status_code == 200  # "Remove my data" needs a download
     with mail.record_messages() as outbox:
         signed_in.post("/settings/remove/send-code")
-    code = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+    code = code_from(outbox)
     signed_in.post("/settings/remove/confirm", data={"code": code})
     assert User.query.count() == 0
     assert cache_files(app) == []

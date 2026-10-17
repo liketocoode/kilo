@@ -23,8 +23,9 @@ from sqlalchemy.exc import OperationalError
 from app import create_app, db, mail, ratelimit, security
 from app.models import RateEvent, User
 from app.utils import hash_email
+from tests.conftest import VISITOR_IP, code_from, sign_up
 
-IP = "203.0.113.9"
+IP = VISITOR_IP
 
 
 @pytest.fixture
@@ -50,20 +51,6 @@ def clock(monkeypatch):
 def enforcing(app, clock):
     app.config["RATELIMIT_MODE"] = "enforce"
     return app
-
-
-def sign_up(client, email, ip=IP, lang=None):
-    """POST /signup (as a visitor behind the proxy); returns (response, mails sent)."""
-    headers = {"X-Real-IP": ip} if ip else {}
-    if lang:
-        headers["Accept-Language"] = lang
-    with mail.record_messages() as outbox:
-        response = client.post("/signup", data={"email": email}, headers=headers, follow_redirects=True)
-    return response, outbox
-
-
-def code_from(outbox):
-    return re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
 
 
 def counted(kind=None):

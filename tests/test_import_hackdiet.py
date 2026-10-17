@@ -19,7 +19,6 @@ without a weight, and an XML with a DOCTYPE that points at a DTD.
 """
 
 import io
-import re
 import socket
 from datetime import date
 
@@ -29,6 +28,7 @@ from app import db
 from app.csv_io import ImportFileError, parse_csv
 from app.importing import parse_import
 from app.models import User, WeightEntry
+from tests.conftest import flashes
 
 # (date, weight text, comment) per day; months are separated like the real export does it
 DAYS = {
@@ -325,13 +325,6 @@ def upload(client, data, name="export.csv", **kwargs):
         follow_redirects=True,
         **kwargs,
     )
-
-
-def flashes(response):
-    import html
-
-    page = response.get_data(as_text=True)
-    return [html.unescape(m) for m in re.findall(r'class="flash flash-(?:success|error)">([^<]+)<', page)]
 
 
 @pytest.mark.parametrize(

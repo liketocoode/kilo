@@ -13,6 +13,7 @@
 
 """Shared pytest fixtures: an app on an in-memory database, a client and a signed-in client."""
 
+import html
 import os
 import re
 from pathlib import Path
@@ -75,11 +76,40 @@ def client(app):
     return app.test_client()
 
 
+# A visitor's address as the proxy reports it (X-Real-IP), from the documentation range.
+VISITOR_IP = "203.0.113.9"
+
+
+def code_from(outbox):
+    """The 6-digit code in the newest mail."""
+    body = outbox[-1].body
+    match = re.search(r"\b(\d{6})\b", body)
+    assert match, f"no code found in email body: {body!r}"
+    return match.group(1)
+
+
+def sign_up(client, email, ip=VISITOR_IP, lang=None):
+    """POST /signup as a visitor behind the proxy (no address: none known); returns
+    (response after the redirect, mails sent)."""
+    headers = {"X-Real-IP": ip} if ip else {}
+    if lang:
+        headers["Accept-Language"] = lang
+    with mail.record_messages() as outbox:
+        response = client.post("/signup", data={"email": email}, headers=headers, follow_redirects=True)
+    return response, outbox
+
+
+def flashes(page, kind="success|error"):
+    """The flash messages of `kind` on a page (a response or its HTML), as the visitor reads them."""
+    if not isinstance(page, str):
+        page = page.get_data(as_text=True)
+    return [html.unescape(text) for text in re.findall(rf'class="flash flash-(?:{kind})">([^<]+)<', page)]
+
+
 def signup_and_verify(client, email):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": email})
-    match = re.search(r"\b(\d{6})\b", outbox[-1].body)
-    client.post("/verify", data={"code": match.group(1)})
+    client.post("/verify", data={"code": code_from(outbox)})
 
 
 @pytest.fixture

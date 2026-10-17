@@ -22,7 +22,7 @@ import pytest
 
 from app import db, errors
 from app.models import User, WeightEntry
-from tests.conftest import signup_and_verify
+from tests.conftest import flashes, signup_and_verify
 
 BROWSER = {"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}
 EXPIRED = "Your session has expired and nothing was changed. Please try again."
@@ -42,11 +42,6 @@ def csrf_token(client):
     return re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)
 
 
-def flashes(html):
-    """The error flashes on a page, as the visitor reads them (HTML entities decoded)."""
-    return [html_lib.unescape(text) for text in re.findall(r'class="flash flash-error">([^<]+)<', html)]
-
-
 # ---- CSRF: forms ------------------------------------------------------------
 
 
@@ -56,7 +51,7 @@ def test_a_form_without_a_token_goes_back_with_a_message(client, csrf_on):
     )
     assert response.status_code == 302
     assert response.headers["Location"] == "/signup?lang=nl"
-    assert EXPIRED in flashes(client.get("/signup").get_data(as_text=True))
+    assert EXPIRED in flashes(client.get("/signup").get_data(as_text=True), "error")
 
 
 def test_nothing_is_changed_when_the_token_is_refused(client, csrf_on):
@@ -71,7 +66,7 @@ def test_an_expired_token_gets_the_same_friendly_answer(client, csrf_on):
     csrf_on.config["WTF_CSRF_TIME_LIMIT"] = -1  # every token is now too old
     response = client.post("/signup", data={"email": "a@example.com", "csrf_token": token})
     assert response.status_code == 302
-    assert EXPIRED in flashes(client.get("/").get_data(as_text=True))
+    assert EXPIRED in flashes(client.get("/").get_data(as_text=True), "error")
 
 
 def test_a_valid_token_still_works(client, csrf_on):
@@ -110,7 +105,7 @@ def test_the_redirect_never_leaves_the_site(client, csrf_on, referrer):
 def test_the_form_message_is_in_the_visitors_language(client, csrf_on, lang, text):
     client.environ_base["HTTP_ACCEPT_LANGUAGE"] = lang
     client.post("/signup", data={"email": "a@example.com"})
-    assert text in flashes(client.get("/").get_data(as_text=True))
+    assert text in flashes(client.get("/").get_data(as_text=True), "error")
 
 
 # ---- CSRF: the dashboard's background saves ---------------------------------
@@ -180,7 +175,7 @@ def test_a_missing_page_sends_a_browser_to_the_start_page(client, path):
     response = client.get(path, headers=BROWSER)
     assert response.status_code == 302
     assert response.headers["Location"] == "/"
-    assert NOT_AVAILABLE in flashes(client.get("/").get_data(as_text=True))
+    assert NOT_AVAILABLE in flashes(client.get("/").get_data(as_text=True), "error")
 
 
 def test_typing_a_post_only_address_gets_the_same_treatment(client):
@@ -192,21 +187,21 @@ def test_typing_a_post_only_address_gets_the_same_treatment(client):
 
 def test_signed_out_visitors_land_on_the_sign_in_form(client):
     html = client.get("/nope", headers=BROWSER, follow_redirects=True).get_data(as_text=True)
-    assert NOT_AVAILABLE in flashes(html)
+    assert NOT_AVAILABLE in flashes(html, "error")
     assert 'action="/signup"' in html
 
 
 def test_signed_in_visitors_land_on_their_dashboard(logged_in_client):
     client, _user_id = logged_in_client
     html = client.get("/nope", headers=BROWSER, follow_redirects=True).get_data(as_text=True)
-    assert NOT_AVAILABLE in flashes(html)
+    assert NOT_AVAILABLE in flashes(html, "error")
     assert 'id="weight-chart"' in html
 
 
 def test_the_missing_page_message_is_translated(client):
     client.environ_base["HTTP_ACCEPT_LANGUAGE"] = "nl"
     html = client.get("/nope", headers=BROWSER, follow_redirects=True).get_data(as_text=True)
-    assert "Die pagina is niet beschikbaar, daarom ben je naar de startpagina gebracht." in flashes(html)
+    assert "Die pagina is niet beschikbaar, daarom ben je naar de startpagina gebracht." in flashes(html, "error")
 
 
 @pytest.mark.parametrize(

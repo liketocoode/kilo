@@ -13,20 +13,16 @@
 
 """Tests for the "Remove my data" flow."""
 
-import re
 
 from app import db, mail
 from app.models import User, WeightEntry
+from tests.conftest import code_from
 
 
 def _request_code(client):
     with mail.record_messages() as outbox:
         client.post("/settings/remove/send-code")
     return outbox
-
-
-def _code_from(outbox):
-    return re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
 
 
 def _add_entry(client):
@@ -44,7 +40,7 @@ def test_removal_flow_deletes_account_and_entries(logged_in_client, app):
     _add_entry(client)
     assert client.get("/settings/export").status_code == 200
 
-    code = _code_from(_request_code(client))
+    code = code_from(_request_code(client))
     resp = client.post("/settings/remove/confirm", data={"code": code})
 
     assert resp.status_code == 302
@@ -57,7 +53,7 @@ def test_removal_flow_deletes_account_and_entries(logged_in_client, app):
 def test_wrong_code_does_not_delete_and_attempts_are_limited(logged_in_client):
     client, user_id = logged_in_client
     client.get("/settings/export")
-    code = _code_from(_request_code(client))
+    code = code_from(_request_code(client))
     wrong = "000000" if code != "000000" else "111111"
 
     for _ in range(User.MAX_CODE_ATTEMPTS):
@@ -70,7 +66,7 @@ def test_wrong_code_does_not_delete_and_attempts_are_limited(logged_in_client):
 def test_removal_needs_export_in_this_session(logged_in_client, app):
     client, user_id = logged_in_client
     client.get("/settings/export")
-    code = _code_from(_request_code(client))
+    code = code_from(_request_code(client))
     with client.session_transaction() as s:
         s.pop("data_exported")
     client.post("/settings/remove/confirm", data={"code": code})

@@ -27,11 +27,11 @@ import subprocess
 import pytest
 
 from app import create_app, mail, security
-from tests.conftest import ROOT
+from tests.conftest import ROOT, VISITOR_IP, code_from, sign_up
 
 DEPLOY = ROOT / "deploy" / "fail2ban"
 LOGPATH = "/var/log/gunicorn/kilo-security.log"
-REAL = "203.0.113.9"
+REAL = VISITOR_IP
 
 # fail2ban's <ADDR>: an IPv4 or IPv6 address (and nothing else, so "-" never matches)
 ADDR = r"(?P<ip>(?:\d{1,3}\.){3}\d{1,3}|[0-9a-fA-F:]*:[0-9a-fA-F:]+)"
@@ -83,11 +83,6 @@ def security_app(app, tmp_path):
 
 def lines_of(log):
     return log.read_text().splitlines() if log.exists() else []
-
-
-def sign_up(client, email, ip=REAL):
-    with mail.record_messages():
-        return client.post("/signup", data={"email": email}, headers={"X-Real-IP": ip})
 
 
 # --- unknown pages ------------------------------------------------------------------------------
@@ -170,7 +165,7 @@ def test_a_double_click_and_the_site_wide_cap_are_never_banned(security_app, sco
 def _sign_in(client, email="me@example.com"):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": email})
-        code = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+        code = code_from(outbox)
         client.post("/verify", data={"code": code})
 
 
@@ -181,7 +176,7 @@ def test_a_wrong_removal_code_is_banned(security_app):
     client.get("/settings/export")
     with mail.record_messages() as outbox:
         client.post("/settings/remove/send-code")
-        real = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+        real = code_from(outbox)
     wrong = "000000" if real != "000000" else "111111"
     client.post("/settings/remove/confirm", data={"code": wrong}, headers={"X-Real-IP": REAL})
     (line,) = lines_of(log)
