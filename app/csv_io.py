@@ -32,7 +32,7 @@ from datetime import date
 
 from flask_babel import gettext as _
 
-from app.utils import parse_decimal
+from app.utils import NOTE_MAX_LENGTH, parse_decimal
 
 MIN_WEIGHT_KG = 1
 MAX_WEIGHT_KG = 500
@@ -146,7 +146,7 @@ def parse_generic_csv(text):
             continue
 
         date_str, weight_str = row[0].strip(), row[1].strip()
-        note = unprotect_cell(",".join(row[2:]).strip())[:280] or None
+        note = unprotect_cell(",".join(row[2:]).strip())[:NOTE_MAX_LENGTH] or None
 
         try:
             entry_date = parse_ddmyy(date_str)

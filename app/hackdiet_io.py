@@ -50,7 +50,7 @@ from app.csv_io import (
     parse_ddmyy,
 )
 from app.forms import SettingsForm
-from app.utils import parse_decimal
+from app.utils import NOTE_MAX_LENGTH, parse_decimal
 
 POUND_KG = 0.45359237
 UNIT_FACTORS = {
@@ -62,7 +62,6 @@ METRIC_UNITS = ("kilogram", "kilograms", "kg")
 # CSV lines that are not days: the metadata at the top and the per-month header/trend lines.
 CSV_SKIPPED_LINES = {"epoch", "user", "preferences", "diet-plan", "date", "starttrend"}
 ISO_DATE = re.compile(r"^\d{4}-\d{1,2}-\d{1,2}$")
-NOTE_MAX = 280
 
 
 def looks_like_hackdiet_csv(text):
@@ -108,7 +107,7 @@ def parse_hackdiet_csv(text):
             continue
 
         weight_text = row[1].strip() if len(row) > 1 else ""
-        note = ",".join(row[4:]).strip()[:NOTE_MAX] if len(row) > 4 else ""
+        note = ",".join(row[4:]).strip()[:NOTE_MAX_LENGTH] if len(row) > 4 else ""
         try:
             if not ISO_DATE.match(key):
                 raise CsvRowError()
@@ -172,7 +171,7 @@ def parse_hackdiet_xml(data):
 
         for day in monthlog.iterfind("days/day"):
             weight_text = (day.findtext("weight") or "").strip()
-            note = (day.findtext("comment") or "").strip()[:NOTE_MAX]
+            note = (day.findtext("comment") or "").strip()[:NOTE_MAX_LENGTH]
             if not weight_text and not note:
                 continue
             day_value = parse_decimal((day.findtext("date") or "").strip())

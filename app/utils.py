@@ -46,6 +46,10 @@ DELETE_CODE_TTL_MINUTES = 10
 # the daily cleanup (see app/cleanup.py).
 STALE_SIGNUP_DAYS = 7
 
+# The longest note a day can have, in characters. The note editor, the JSON API and every
+# importer cut a note to this length; templates see it as NOTE_MAX_LENGTH.
+NOTE_MAX_LENGTH = 280
+
 
 def normalize_email(email):
     """Trim and lowercase an email so equivalent addresses hash the same."""

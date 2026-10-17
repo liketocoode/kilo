@@ -16,7 +16,7 @@
 from datetime import date
 
 from app import db
-from app.utils import utcnow
+from app.utils import NOTE_MAX_LENGTH, utcnow
 
 
 class WeightEntry(db.Model):
@@ -27,7 +27,7 @@ class WeightEntry(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     entry_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
     weight = db.Column(db.Float, nullable=False)
-    note = db.Column(db.String(280), nullable=True)
+    note = db.Column(db.String(NOTE_MAX_LENGTH), nullable=True)
 
     def __repr__(self):
         return f"<WeightEntry user={self.user_id} {self.entry_date} {self.weight}>"

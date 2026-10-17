@@ -15,7 +15,7 @@
       <button type="button" class="note-btn{{ ' has-note' if day and day.note }}" aria-label="{{ _('View or edit note') }}">📝</button>
       <span class="note-preview">{{ (day.note if day) or _('No note') }}</span>
       <div class="note-popover" hidden>
-        <textarea class="note-textarea" maxlength="280" placeholder="{{ _('Add a note…') }}"></textarea>
+        <textarea class="note-textarea" maxlength="{{ NOTE_MAX_LENGTH }}" placeholder="{{ _('Add a note…') }}"></textarea>
         <div class="note-popover-actions">
           {# NOTE: Tooltip and screen-reader label of the button that opens a panel of emoji to put in a note. #}
           <button type="button" class="note-emoji-btn" aria-expanded="false" aria-label="{{ _('Insert an emoji') }}" title="{{ _('Insert an emoji') }}">😊</button>
@@ -642,9 +642,10 @@
     chart.update();
   });
 
-  // A note as tooltip lines. Chart.js does not wrap text, and a note can be 280
-  // characters, so break it at word boundaries (and split a very long word, such
-  // as a link) into lines of about NOTE_LINE_WIDTH characters.
+  // A note as tooltip lines. Chart.js does not wrap text, and a note can be
+  // NOTE_MAX_LENGTH characters (app/utils.py), so break it at word boundaries
+  // (and split a very long word, such as a link) into lines of about
+  // NOTE_LINE_WIDTH characters.
   const NOTE_LINE_WIDTH = 36;
   function wrapNote(note) {
     if (!note) return [];
@@ -1389,7 +1390,7 @@
 
     popover.querySelector('.note-save').addEventListener('click', (e) => {
       e.stopPropagation();
-      noteValue.value = textarea.value.trim().slice(0, 280);
+      noteValue.value = textarea.value.trim().slice(0, {{ NOTE_MAX_LENGTH }});
       refreshNoteDisplay();
       popover.hidden = true;
       save();

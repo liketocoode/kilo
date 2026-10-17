@@ -50,7 +50,7 @@ from app.i18n import LANGUAGE_COOKIE, LANGUAGE_COOKIE_DAYS, meters
 from app.importing import parse_import
 from app.models import User, WeightEntry
 from app.security import log_event
-from app.utils import parse_decimal
+from app.utils import NOTE_MAX_LENGTH, parse_decimal
 
 bp = Blueprint("main", __name__)
 
@@ -552,7 +552,7 @@ def save_field():
         if warning:
             return jsonify(status="warning", message=warning)
 
-    note = (data.get("note") or "").strip()[:280] or None
+    note = (data.get("note") or "").strip()[:NOTE_MAX_LENGTH] or None
 
     if entry is not None:
         entry.weight = weight

@@ -38,6 +38,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from . import csp, i18n, security
+from .utils import NOTE_MAX_LENGTH
 
 db = SQLAlchemy()
 # Alembic through Flask-Migrate; the migrations are in migrations/versions (see _migrate_database).
@@ -154,6 +155,9 @@ def create_app(test_config=None):
         # already enforces the limit.
         if request.endpoint == "main.import_entries":
             request.max_content_length = app.config["IMPORT_MAX_CONTENT_LENGTH"]
+
+    # The note length limit, for the note editor's maxlength (see app/utils.py).
+    app.jinja_env.globals["NOTE_MAX_LENGTH"] = NOTE_MAX_LENGTH
 
     # Content-Security-Policy and X-Frame-Options on every response (see app/csp.py).
     csp.init_app(app)
