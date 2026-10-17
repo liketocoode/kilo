@@ -1033,6 +1033,10 @@ body.dashboard-body.public-body {
   overflow-wrap: anywhere;
 }
 
+/* The public chart's address in the settings: the page ID is one long word, which would run
+   past the card's edge, so it may break anywhere. */
+.public-link { overflow-wrap: anywhere; }
+
 /* The "Undo" notice after a weight is cleared in the daily log: at the bottom, centred, over
    everything, in both themes. */
 .undo-toast {

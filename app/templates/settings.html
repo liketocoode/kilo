@@ -119,7 +119,7 @@
             </select>
           </div>
           <p>{{ _("Your public chart:") }}
-            <a href="{{ public_path }}" target="_blank" rel="noopener" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">{{ public_url }}</a></p>
+            <a class="public-link" href="{{ public_path }}" target="_blank" rel="noopener" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">{{ public_url }}</a></p>
           <p>{{ _("To show it in another website, put this code in that page's HTML:") }}</p>
           <pre class="csv-example embed-code" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">&lt;iframe src="{{ public_url }}" title="Kilo Tracker" width="100%" height="600" style="border: 0;" loading="lazy"&gt;&lt;/iframe&gt;</pre>
         </div>
