@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 18:48+0200\n"
+"POT-Creation-Date: 2026-10-17 17:04+0200\n"
 "PO-Revision-Date: 2026-10-02 20:46+0200\n"
 "Last-Translator: Claude (machine translation)\n"
 "Language: hu\n"
@@ -239,14 +239,14 @@ msgid "Share my chart on a public page"
 msgstr "A diagramom megosztása egy nyilvános oldalon"
 
 # machine-translated
-#. NOTE: Switch in the settings: show the boxes with the current average, BMI
-#. and changes under the public chart.
 #. NOTE: Switch in the settings: show the kilograms on the public chart, or
 #. only the shape of the line.
 msgid "Show my weight"
 msgstr "A testsúlyom megjelenítése"
 
 # machine-translated
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
 msgid "Show the stat boxes on the public page"
 msgstr "A statisztikai mezők megjelenítése a nyilvános oldalon"
 

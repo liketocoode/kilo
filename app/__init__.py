@@ -14,9 +14,8 @@
 """Application factory and shared extensions for Kilo Tracker.
 
 Creates the Flask app (`create_app`), wires up SQLAlchemy, CSRF protection and
-Flask-Mail, configures SQLite for use by several processes (WAL mode), and adds
-columns that newer versions of the app expect to databases created by older
-ones.
+Flask-Mail, configures SQLite for use by several processes (WAL mode), and brings
+the database to the newest migration (Alembic, migrations/versions) at every start.
 """
 
 import os
