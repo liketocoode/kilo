@@ -39,6 +39,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from datetime import timedelta
 
 from flask import current_app
 
@@ -47,11 +48,13 @@ GRAVATAR_URL = "https://www.gravatar.com/avatar/{hash}?s={size}&d=404"
 SIZE = 40
 TIMEOUT_SECONDS = 3
 MAX_BYTES = 100 * 1024
-CACHE_SECONDS = 24 * 60 * 60
-RETRY_SECONDS = 15 * 60
+CACHE_SECONDS = int(timedelta(days=1).total_seconds())
+RETRY_SECONDS = int(timedelta(minutes=15).total_seconds())
 # Cache files of accounts that no longer exist are removed by the daily cleanup; any other
 # file this old is too (its owner has not visited for a month).
-KEEP_SECONDS = 30 * 24 * 60 * 60
+KEEP_SECONDS = int(timedelta(days=30).total_seconds())
+# A temporary file this old was left behind by a write that was interrupted.
+TMP_KEEP_SECONDS = int(timedelta(hours=1).total_seconds())
 
 _HASH = re.compile(r"[0-9a-f]{64}")
 # Extension -> (content type, test on the first bytes).
@@ -223,7 +226,7 @@ def prune(known_hashes, now=None, dry_run=False):
         except OSError:
             continue
         if name.startswith(".tmp-"):
-            old = age > 60 * 60  # left behind by a write that was interrupted
+            old = age > TMP_KEEP_SECONDS
         elif _HASH.fullmatch(stem) and ext in [*_FORMATS, _MISSING]:
             old = age > KEEP_SECONDS
         else:

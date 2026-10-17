@@ -60,7 +60,7 @@ from app.security import client_ip, log_event
 from app.utils import utcnow
 
 MODES = ("off", "log", "enforce")
-HOUR = 3600
+HOUR = int(timedelta(hours=1).total_seconds())
 
 _warned_no_address = False
 

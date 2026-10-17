@@ -313,7 +313,7 @@ def set_language():
         response.set_cookie(
             LANGUAGE_COOKIE,
             language,
-            max_age=LANGUAGE_COOKIE_DAYS * 24 * 60 * 60,
+            max_age=int(timedelta(days=LANGUAGE_COOKIE_DAYS).total_seconds()),
             secure=current_app.config["SESSION_COOKIE_SECURE"],
             httponly=True,
             samesite="Lax",
@@ -331,7 +331,7 @@ def user_avatar():
     found = avatar.get(user.email_hash) if user else None
     if found is None:
         response = current_app.send_static_file("avatar-placeholder.svg")
-        max_age = 60 * 60
+        max_age = int(timedelta(hours=1).total_seconds())
     else:
         content_type, data = found
         response = Response(data, mimetype=content_type)

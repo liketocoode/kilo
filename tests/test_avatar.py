@@ -233,6 +233,21 @@ def test_the_cleanup_removes_avatars_of_removed_and_long_inactive_accounts(app):
     assert cache_files(app) == sorted([".tmp-x", "README", f"{kept.email_hash}.png"])
 
 
+def test_the_cleanup_removes_a_temporary_file_left_for_an_hour(app):
+    """A write that was interrupted leaves a .tmp- file; one still being written must stay."""
+    folder = app.config["AVATAR_CACHE_DIR"]
+    os.makedirs(folder)
+    now = time.time()
+    for name, age in ((".tmp-recent", avatar.TMP_KEEP_SECONDS - 60), (".tmp-left", avatar.TMP_KEEP_SECONDS + 60)):
+        path = os.path.join(folder, name)
+        with open(path, "wb") as f:
+            f.write(b"x")
+        os.utime(path, (now - age, now - age))
+    assert avatar.TMP_KEEP_SECONDS == 3600
+    assert avatar.prune(set(), now=now) == 1
+    assert cache_files(app) == [".tmp-recent"]
+
+
 @pytest.mark.skipif(os.geteuid() == 0, reason="root may delete in a read-only folder")
 def test_the_cleanup_counts_only_the_files_it_could_delete(app):
     folder = app.config["AVATAR_CACHE_DIR"]
