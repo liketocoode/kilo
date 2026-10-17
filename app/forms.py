@@ -133,6 +133,7 @@ class PublicChartForm(FlaskForm):
     # NOTE: Switch in the settings: show the kilograms on the public chart, or only the shape of the line.
     public_show_weight = BooleanField(_l("Show my weight"))
     public_show_stats = BooleanField(_l("Show the stat boxes on the public page"))
+    public_dark_mode = BooleanField(_l("Dark mode"))
     public_id = StringField(
         # NOTE: Label of the field with the last part of the public page's address (the "ramon" in .../public/ramon).
         _l("Page ID"),

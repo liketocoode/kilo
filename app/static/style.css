@@ -569,9 +569,6 @@ button.back-link {
   justify-self: end;
 }
 
-/* The embed options in the public chart section: the same spacing as the fields above. */
-.embed-options > .field + .field { margin-top: 0.9rem; }
-
 .section-actions {
   display: flex;
   justify-content: flex-end;

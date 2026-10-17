@@ -47,8 +47,10 @@ def owner(client):
     return user
 
 
-def share(client, public_id="", enabled=True, show_stats=True, show_weight=True):
-    data = {"public_id": public_id}
+def share(client, public_id="", enabled=True, show_stats=True, show_weight=True, dark=False, range_key=""):
+    data = {"public_id": public_id, "public_range": range_key}
+    if dark:
+        data["public_dark_mode"] = "y"
     if enabled:
         data["public_enabled"] = "y"
     if show_stats:
@@ -240,14 +242,27 @@ def test_a_public_address_without_a_chart_may_be_framed_too(client, owner):
     assert "frame-ancestors" not in response.headers["Content-Security-Policy"]
 
 
-def test_the_theme_follows_the_owner_or_the_address(client, owner):
+def test_the_theme_is_the_public_pages_own_not_the_owners(client, owner):
     share(client, "mine")
     assert 'data-theme="light"' in client.get("/public/mine").data.decode()
-    owner.dark_mode = True
+    owner.dark_mode = True  # the owner's own theme does not reach the public page
+    db.session.commit()
+    assert 'data-theme="light"' in client.get("/public/mine").data.decode()
+    share(client, "mine", dark=True)
+    assert owner.public_dark_mode is True
+    assert 'data-theme="dark"' in client.get("/public/mine").data.decode()
+    owner.dark_mode = False
     db.session.commit()
     assert 'data-theme="dark"' in client.get("/public/mine").data.decode()
+
+
+def test_the_address_can_still_choose_the_theme(client, owner):
+    """Embed codes made before the theme was saved carry ?theme=; it still wins."""
+    share(client, "mine", dark=True)
     assert 'data-theme="light"' in client.get("/public/mine?theme=light").data.decode()
     assert 'data-theme="dark"' in client.get("/public/mine?theme=evil").data.decode()
+    share(client, "mine")
+    assert 'data-theme="dark"' in client.get("/public/mine?theme=dark").data.decode()
 
 
 def test_a_page_without_a_chart_is_a_404_page_not_a_redirect_and_is_logged(client, owner, monkeypatch):
@@ -384,7 +399,7 @@ def test_the_dashboard_always_shows_the_weights(client, owner):
     assert script_value(html, "fullValues")[-1] == 80.0
 
 
-# --- a fixed range: ?range=3m ----------------------------------------------------------------------
+# --- a fixed range: ?range=3m, or the saved one -------------------------------------------------------
 
 
 def test_a_range_in_the_address_fixes_the_chart(client, owner):
@@ -417,28 +432,82 @@ def test_without_a_known_range_the_buttons_stay(client, owner, query):
     assert script_value(html, "currentRange") == owner.chart_range
 
 
+def test_the_saved_range_fixes_the_chart_when_the_address_has_none(client, owner):
+    share(client, "mine", range_key="3m")
+    assert owner.public_range == "3m"
+    for query in ("", "?range=", "?range=3x", "?theme=dark"):
+        html = client.get("/public/mine" + query).data.decode()
+        assert script_value(html, "currentRange") == "3m" and 'id="range-buttons"' not in html
+
+
+def test_a_range_in_the_address_wins_over_the_saved_one(client, owner):
+    share(client, "mine", range_key="3m")
+    html = client.get("/public/mine?range=1W").data.decode()
+    assert script_value(html, "currentRange") == "1w" and 'id="range-buttons"' not in html
+
+
+@pytest.mark.parametrize("sent, saved", [("1y", "1y"), ("", None), ("1Y", None), ("3x", None), ("<b>", None)])
+def test_only_a_known_range_is_saved(client, owner, sent, saved):
+    share(client, "mine", range_key="3m")
+    share(client, "mine", range_key=sent)
+    assert owner.public_range == saved
+
+
 def test_the_dashboard_ignores_it(client, owner):
     html = client.get("/?range=1w").data.decode()
     assert 'id="range-buttons"' in html
     assert script_value(html, "currentRange") == owner.chart_range
 
 
-def test_the_settings_offer_the_ranges_for_the_embed_code(client, owner):
+def range_menu(page):
+    return page.split('<select id="embed-range" name="public_range">')[1].split("</select>")[0]
+
+
+def test_the_settings_offer_the_ranges_for_the_public_page(client, owner):
     share(client, "mine")
-    page = client.get("/settings").data.decode()
-    menu = page.split('<select id="embed-range">')[1].split("</select>")[0]
+    menu = range_menu(client.get("/settings").data.decode())
     assert re.findall(r'<option value="([^"]*)"', menu) == ["", *[key for key, _label, _days in routes.CHART_RANGES]]
     assert "Visitor chooses (range buttons)" in menu
+    assert "selected" not in menu  # nothing saved: the first choice
 
 
-def test_the_settings_offer_a_theme_for_the_embed_code_starting_as_the_owners(client, owner):
-    share(client, "mine")
-    page = client.get("/settings").data.decode()
-    assert '<input type="checkbox" id="embed-dark">' in page  # light owner: off
-    assert 'name="embed' not in page  # nothing in it is saved
-    owner.dark_mode = True
+def test_the_settings_show_the_saved_range_also_while_not_shared(client, owner):
+    share(client, "mine", range_key="6m")
+    assert re.findall(r'<option value="([^"]*)" selected>', range_menu(client.get("/settings").data.decode())) == ["6m"]
+    share(client, "mine", enabled=False, range_key="6m")
+    assert re.findall(r'<option value="([^"]*)" selected>', range_menu(client.get("/settings").data.decode())) == ["6m"]
+    assert owner.public_range == "6m"
+
+
+def test_a_refused_save_keeps_the_picked_range(client, owner, app):
+    with app.app_context():
+        db.session.add(User(email_hash="other", public_id="taken"))
+        db.session.commit()
+    page = share(client, "taken", range_key="1m").data.decode()
+    assert "That ID is already taken" in page
+    assert re.findall(r'<option value="([^"]*)" selected>', range_menu(page)) == ["1m"]
+
+
+def test_the_settings_show_the_saved_theme_of_the_public_page(client, owner):
+    owner.dark_mode = True  # the owner's own theme is not the public page's
     db.session.commit()
-    assert '<input type="checkbox" id="embed-dark" checked>' in client.get("/settings").data.decode()
+    page = client.get("/settings").data.decode()
+    assert '<input id="public_dark_mode" name="public_dark_mode" type="checkbox" value="y">' in page
+    share(client, "mine", dark=True)
+    page = client.get("/settings").data.decode()
+    assert '<input checked id="public_dark_mode" name="public_dark_mode" type="checkbox" value="y">' in page
+    # Not only while shared: turning sharing off keeps the theme for the next time.
+    share(client, "mine", enabled=False, dark=True)
+    assert 'id="public_dark_mode"' in client.get("/settings").data.decode()
+    assert owner.public_dark_mode is True
+
+
+def test_the_link_and_embed_code_say_the_theme_and_the_range(client, owner):
+    """The script puts ?theme= and &range= in both, from the switch and the menu."""
+    share(client, "mine", dark=True)
+    script = client.get("/settings").data.decode().split("</select>")[-1]
+    assert "params.set('theme', document.getElementById('public_dark_mode').checked ? 'dark' : 'light')" in script
+    assert "if (range) params.set('range', range)" in script
 
 
 @pytest.mark.parametrize(

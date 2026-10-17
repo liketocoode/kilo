@@ -79,6 +79,12 @@ class User(db.Model):
     # Whether the public chart shows the weights. Off: only the shape of the line (see
     # routes._without_weights), and never the stat boxes, whatever public_show_stats says.
     public_show_weight = db.Column(db.Boolean, nullable=False, default=True)
+    # The public chart's own theme, apart from the owner's dark_mode, and its fixed range (a
+    # CHART_RANGES key; None: the visitor chooses with the range buttons). ?theme= and ?range=
+    # in the address override them. Migration 0002 gave existing users their own dark_mode; 0003
+    # added the range.
+    public_dark_mode = db.Column(db.Boolean, nullable=False, default=False)
+    public_range = db.Column(db.String(4), nullable=True)
 
     entries = db.relationship(
         "WeightEntry", backref="user", cascade="all, delete-orphan", lazy="dynamic"

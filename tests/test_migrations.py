@@ -118,11 +118,21 @@ def test_a_database_from_before_alembic_is_completed_and_keeps_its_data(tmp_path
         assert "rate_event" in sa.inspect(db.engine).get_table_names()
 
 
+def _database_before_alembic(path):
+    """A database as the last version before Alembic left it: today's tables without the
+    columns that later migrations added."""
+    engine = sa.create_engine(f"sqlite:///{path}")
+    db.metadata.create_all(engine)
+    with engine.begin() as conn:
+        conn.execute(sa.text("ALTER TABLE user DROP COLUMN public_dark_mode"))  # 0002
+        conn.execute(sa.text("ALTER TABLE user DROP COLUMN public_range"))  # 0003
+    return engine
+
+
 def test_a_database_from_the_last_version_before_alembic_only_gets_its_version(tmp_path):
     """Production's case: every column already there; the baseline must change nothing."""
     path = tmp_path / "recent.db"
-    engine = sa.create_engine(f"sqlite:///{path}")
-    db.metadata.create_all(engine)  # what create_all() made, completed up to the latest columns
+    engine = _database_before_alembic(path)
     with engine.begin() as conn:
         conn.execute(sa.text("INSERT INTO user (email_hash, created_at, code_attempts, delete_code_attempts,"
                              " height_unit, dark_mode, chart_range, moving_avg_days, session_version,"
@@ -134,9 +144,68 @@ def test_a_database_from_the_last_version_before_alembic_only_gets_its_version(t
     assert version_of(path) == [head()]
     assert schema_differences(app) == []
     with app.app_context():
-        assert columns(db.engine, "user") == before
+        # Unchanged, apart from the columns of the later migrations.
+        assert [c for c in columns(db.engine, "user") if c[0] not in ("public_dark_mode", "public_range")] == before
         user = User.query.one()
         assert (user.moving_avg_days, user.session_version, user.public_show_weight) == (7, 3, False)
+
+
+def test_the_public_chart_keeps_the_theme_it_had(tmp_path):
+    """0002: the public page followed the owner's dark_mode; it gets that as its own theme, and
+    keeps its range buttons (no fixed range)."""
+    path = tmp_path / "themes.db"
+    engine = _database_before_alembic(path)
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text("INSERT INTO user (email_hash, created_at, code_attempts, delete_code_attempts,"
+                    " height_unit, dark_mode, chart_range, moving_avg_days, session_version,"
+                    " public_enabled, public_show_stats, public_show_weight)"
+                    " VALUES (:email_hash, '2026-01-01', 0, 0, 'cm', :dark_mode, 'all', 10, 0, 1, 0, 1)"),
+            [{"email_hash": "dark", "dark_mode": 1}, {"email_hash": "light", "dark_mode": 0}],
+        )
+    engine.dispose()
+    app = make_app(path)
+    assert schema_differences(app) == []
+    with app.app_context():
+        themes = {user.email_hash: (user.public_dark_mode, user.public_range) for user in User.query}
+        assert themes == {"dark": (True, None), "light": (False, None)}
+        # A new account starts with a light public page.
+        user = User(email_hash="new")
+        db.session.add(user)
+        db.session.commit()
+        assert user.public_dark_mode is False
+
+
+def test_the_public_chart_settings_can_be_undone(tmp_path):
+    app = make_app(tmp_path / "kilo.db")
+    with app.app_context():
+        config = migrate.get_config(MIGRATIONS_DIR)
+        command.downgrade(config, "0002")
+        names = [c["name"] for c in sa.inspect(db.engine).get_columns("user")]
+        assert "public_dark_mode" in names and "public_range" not in names
+        command.downgrade(config, "0001")
+        names = [c["name"] for c in sa.inspect(db.engine).get_columns("user")]
+        assert "public_dark_mode" not in names
+
+
+def test_a_database_with_the_public_theme_gets_the_range(tmp_path):
+    """A database already at 0002 (the theme) gets 0003 (the range) and keeps its theme."""
+    path = tmp_path / "at0002.db"
+    app = make_app(path)
+    with app.app_context():
+        command.downgrade(migrate.get_config(MIGRATIONS_DIR), "0002")
+        db.session.execute(sa.text("INSERT INTO user (email_hash, created_at, code_attempts, delete_code_attempts,"
+                                   " height_unit, dark_mode, chart_range, moving_avg_days, session_version,"
+                                   " public_enabled, public_show_stats, public_show_weight, public_dark_mode)"
+                                   " VALUES ('x', '2026-01-01', 0, 0, 'cm', 0, 'all', 10, 0, 1, 0, 1, 1)"))
+        db.session.commit()
+        db.engine.dispose()
+    app = make_app(path)
+    assert version_of(path) == ["0003"]
+    assert schema_differences(app) == []
+    with app.app_context():
+        user = User.query.one()
+        assert (user.public_dark_mode, user.public_range) == (True, None)
 
 
 def test_the_baseline_cannot_be_undone(tmp_path):

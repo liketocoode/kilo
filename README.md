@@ -71,12 +71,12 @@ of the user's email address and the time in seconds (not the email hash, which i
 also the Gravatar id); the user can choose their own instead: 3 to 64 letters
 (a-z), digits, hyphens or underscores, unique among all users and not
 case-sensitive. Turning sharing off keeps the ID, so turning it on again brings
-back the same address. Add `?theme=dark` or `?theme=light` to the address to
-override the owner's theme, and `?range=3m` (or any range key: `1w`, `2w`, `1m`,
-`3m`, `6m`, `1y`, `5y`, `10y`, `15y`, `20y`, `all`, in any case) to fix the chart to that range
-without range buttons; the settings' "Dark mode" switch and "Chart range" menu put both
-in the link and the `<iframe>` code (always with an explicit `?theme=`, so an embed keeps
-its look when the owner changes their own theme). The page sets no framing restriction, so any site can show it; every
+back the same address. The public page has its own light or dark theme (separate from
+the owner's own) and, if chosen, a fixed range shown without range buttons; both are saved
+with its other settings and put in the link and the `<iframe>` code as `?theme=dark` or
+`?theme=light` and `&range=3m` (any range key: `1w`, `2w`, `1m`, `3m`, `6m`, `1y`, `5y`,
+`10y`, `15y`, `20y`, `all`, in any case). An address with `?theme=` or `?range=` shows
+those; without them the page uses the saved ones. The page sets no framing restriction, so any site can show it; every
 other page refuses to be shown in a frame
 (`frame-ancestors 'none'` in its Content-Security-Policy and `X-Frame-Options: DENY`,
 against clickjacking). `robots.txt` asks search engines to leave public charts

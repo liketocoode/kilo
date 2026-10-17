@@ -411,8 +411,9 @@ def public_chart(public_id):
     site's iframe.
 
     Only when the user turned it on in the settings. Never the notes, the address or the
-    daily log. `?theme=dark` or `?theme=light` overrides the owner's own theme, so the page
-    can match the site it is embedded in.
+    daily log. Its theme and range are the ones saved for it (public_dark_mode, not the owner's
+    own theme, and public_range); `?theme=dark|light` and `?range=<key>` in the address override
+    them (the settings put both in the link and the embed code).
     """
     user = User.query.filter_by(public_id=public_id.lower(), public_enabled=True).first()
     if user is None:
@@ -422,13 +423,15 @@ def public_chart(public_id):
         return render_template("public_missing.html"), 404
     theme = request.args.get("theme")
     if theme not in ("light", "dark"):
-        theme = "dark" if user.dark_mode else "light"
+        theme = "dark" if user.public_dark_mode else "light"
     overview = _overview(user, notes=False)
     context = _chart_context(user, overview)
-    # ?range=3m (from the embed code) fixes the chart to that range, buttons and all; any range
-    # key is allowed, also one the data does not span yet, in any case (3M, All). Anything else
-    # is ignored.
+    # A fixed range (?range=3m, else the saved one) shows the chart in that range without the
+    # range buttons; any range key is allowed, also one the data does not span yet, in any case
+    # (3M, All). Anything else in the address counts as not given.
     range_key = request.args.get("range", "").lower()
+    if range_key not in CHART_RANGE_KEYS:
+        range_key = user.public_range
     fixed_range = range_key in CHART_RANGE_KEYS
     if fixed_range:
         context["chart_range"] = range_key
@@ -635,6 +638,7 @@ def _render_settings(user, form=None, public_form=None):
         public_form.public_enabled.data = user.public_enabled
         public_form.public_show_weight.data = user.public_show_weight
         public_form.public_show_stats.data = user.public_stats_shown
+        public_form.public_dark_mode.data = user.public_dark_mode
         public_form.public_id.data = user.public_id or propose_public_id(session.get("email"))
     if not public_form.public_show_weight.data:
         public_form.public_show_stats.data = False  # shown switched off and greyed out
@@ -686,6 +690,11 @@ def set_public_chart():
     user.public_show_weight = form.public_show_weight.data
     # The stat boxes show kilograms, so they go when the weight does.
     user.public_show_stats = form.public_show_weight.data and form.public_show_stats.data
+    user.public_dark_mode = form.public_dark_mode.data
+    # The range menu is not a form field (its choices are CHART_RANGES, defined here); "" or
+    # anything unknown: the visitor chooses.
+    range_key = request.form.get("public_range", "")
+    user.public_range = range_key if range_key in CHART_RANGE_KEYS else None
     user.public_id = form.public_id.data or propose_public_id(session.get("email"))
     try:
         db.session.commit()
