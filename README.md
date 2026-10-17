@@ -503,6 +503,21 @@ coverage run -m pytest && coverage report
 
 The settings are in `.coveragerc`; the report fails below 95 %, and CI runs it the same way.
 
+The browser tests in `tests/e2e/` drive the dashboard and the public chart in a real Chromium
+through [Playwright](https://playwright.dev/python/): saving a day, the outlier question, Undo,
+the note editor, the "today" prompt, the range buttons, dark mode and the session-expired
+dialog. They fail on any JavaScript error or Content-Security-Policy violation, and the normal
+`pytest` run leaves them out. To run them (the browser download is a few hundred MB, kept in
+`~/.cache/ms-playwright`):
+
+```bash
+pip install -r requirements-e2e.txt
+playwright install chromium
+pytest -m e2e
+```
+
+CI runs them in a job of their own.
+
 The tests also check that the translations are complete and up to date; you can
 run that check on its own with `python scripts/check_i18n.py` (see
 [TRANSLATING.md](TRANSLATING.md)).

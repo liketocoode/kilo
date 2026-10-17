@@ -1,6 +1,6 @@
 # Continuous integration: the tests (which include the translation check) on every push and pull
-# request, on the Python that production runs and on the newest one, plus ruff with the committed
-# ruff.toml.
+# request, on the Python that production runs and on the newest one, the browser tests in
+# Chromium, plus ruff with the committed ruff.toml.
 name: CI
 
 on:
@@ -40,6 +40,25 @@ jobs:
       # report fails the step when coverage drops below fail_under in .coveragerc.
       - name: Test
         run: coverage run -m pytest -q && coverage report
+
+  # The page script's flows in a real browser (tests/e2e/, Playwright). A job of its own: the
+  # normal tests do not install Playwright or a browser, and leave these out (pytest.ini).
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: Install
+        run: |
+          pip install -r requirements-e2e.txt
+          playwright install --with-deps chromium
+      - name: Browser tests
+        run: pytest -m e2e -q
 
   lint:
     name: Ruff
