@@ -18,6 +18,7 @@ import re
 from datetime import date, timedelta
 
 import pytest
+from sqlalchemy import event
 
 from app import db
 from app.models import User, WeightEntry
@@ -320,6 +321,36 @@ def test_import_overwrites_existing_entry_for_same_date(logged_in_client, app):
         assert len(entries) == 1
         assert entries[0].weight == 79.7
         assert entries[0].note == "new note"
+
+
+def test_import_of_a_date_that_comes_twice_keeps_the_last_line(logged_in_client, app):
+    client, user_id = logged_in_client
+    resp = _upload(client, "23-9-26,79.7,first\n23-9-26,80.1,second\n")
+    assert resp.status_code == 200
+    with app.app_context():
+        entry = WeightEntry.query.filter_by(user_id=user_id).one()
+        assert (entry.weight, entry.note) == (80.1, "second")
+
+
+def test_import_does_not_query_the_entries_once_per_line(logged_in_client, app):
+    client, _ = logged_in_client
+    lines = "".join(f"{day}-9-26,80,\n" for day in range(1, 31))
+    statements = []
+
+    def record(_conn, _cursor, statement, *_args):
+        if statement.lstrip().upper().startswith("SELECT") and "weight_entry" in statement:
+            statements.append(statement)
+
+    with app.app_context():
+        engine = db.engine
+    event.listen(engine, "before_cursor_execute", record)
+    try:
+        resp = _upload(client, lines)
+    finally:
+        event.remove(engine, "before_cursor_execute", record)
+    assert b"Imported 30" in resp.data
+    # The import itself reads the entries once; the settings page shown afterwards reads none.
+    assert len(statements) < 5
 
 
 def test_import_reports_skipped_invalid_lines(logged_in_client, app):

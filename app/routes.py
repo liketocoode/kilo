@@ -463,6 +463,20 @@ def entries_window():
 OUTLIER_THRESHOLD = 0.10
 
 
+def _put_entry(user, existing, entry_date, weight, note):
+    """Create the entry for `entry_date` or overwrite its weight and note; the caller commits.
+
+    `existing` maps dates to the user's entries and gets the new one too, so a date that comes
+    twice (an import file can have that) updates the first instead of adding a second row.
+    """
+    entry = existing.get(entry_date)
+    if entry is None:
+        entry = existing[entry_date] = WeightEntry(user_id=user.id, entry_date=entry_date)
+        db.session.add(entry)
+    entry.weight = weight
+    entry.note = note
+
+
 def _outlier_warning(user, entry_date, weight):
     """A human-readable warning if `weight` differs from the nearest real
     entry before or after entry_date by more than OUTLIER_THRESHOLD, else
@@ -551,13 +565,7 @@ def save_field():
 
     note = (data.get("note") or "").strip()[:NOTE_MAX_LENGTH] or None
 
-    if entry is not None:
-        entry.weight = weight
-        entry.note = note
-    else:
-        entry = WeightEntry(user_id=user.id, entry_date=entry_date, weight=weight, note=note)
-        db.session.add(entry)
-
+    _put_entry(user, {entry_date: entry} if entry else {}, entry_date, weight, note)
     db.session.commit()
     return jsonify(status="saved", **_overview(user))
 
@@ -735,15 +743,11 @@ def import_entries():
         return redirect(url_for("main.settings"))
     errors = result.errors
 
-    imported = 0
+    # All the user's entries in one query, not one per imported line.
+    existing = {entry.entry_date: entry for entry in user.entries}
     for entry_date, weight, note in result.rows:
-        entry = WeightEntry.query.filter_by(user_id=user.id, entry_date=entry_date).first()
-        if entry is not None:
-            entry.weight = weight
-            entry.note = note
-        else:
-            db.session.add(WeightEntry(user_id=user.id, entry_date=entry_date, weight=weight, note=note))
-        imported += 1
+        _put_entry(user, existing, entry_date, weight, note)
+    imported = len(result.rows)
     height_set = result.height_cm is not None and user.height_cm is None
     if height_set:
         user.height_cm = result.height_cm
