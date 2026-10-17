@@ -543,16 +543,11 @@ def save_field():
             db.session.commit()
         return jsonify(status="cleared", removed=removed, **_overview(user))
 
-    # Plain decimals only, "80.5" or "80,5": float() would also take "1e2", "1_0", "nan"...
-    if isinstance(weight_raw, str):
-        weight = parse_decimal(weight_raw)
-        if weight is None:
-            return jsonify(error=_("Enter a valid weight, like 72.5.")), 400
-    else:
-        try:
-            weight = float(weight_raw)
-        except (TypeError, ValueError):
-            return jsonify(error=_("Enter a valid weight, like 72.5.")), 400
+    # Plain decimals only, "80.5" or "80,5": float() would also take "1e2", "1_0", "nan"... A JSON
+    # number goes through the same check as text (80.5 -> "80.5"), so true, NaN and the like do not.
+    weight = parse_decimal(str(weight_raw))
+    if weight is None:
+        return jsonify(error=_("Enter a valid weight, like 72.5.")), 400
     if not (MIN_WEIGHT_KG <= weight <= MAX_WEIGHT_KG):
         message = _(
             "Weight must be between %(min)s and %(max)s kg.",

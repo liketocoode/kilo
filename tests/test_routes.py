@@ -117,6 +117,29 @@ def test_save_field_rejects_invalid_weight(logged_in_client, app):
         assert WeightEntry.query.filter_by(user_id=user_id).count() == 0
 
 
+@pytest.mark.parametrize("weight, saved", [(80.5, 80.5), (70, 70.0), ("80,5", 80.5), ("80.5", 80.5)])
+def test_save_field_takes_a_json_number_or_text(logged_in_client, app, weight, saved):
+    client, user_id = logged_in_client
+    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": weight, "confirm": True})
+    assert resp.status_code == 200
+    with app.app_context():
+        assert WeightEntry.query.filter_by(user_id=user_id).one().weight == saved
+
+
+@pytest.mark.parametrize(
+    "weight", [True, float("nan"), float("inf"), -5, [80], {"kg": 80}, "1e2", "nan"],
+    ids=["true", "nan", "inf", "negative", "list", "object", "exponent", "nan-text"],
+)
+def test_save_field_takes_only_a_plain_number_as_weight(logged_in_client, app, weight):
+    """A JSON number goes through the same check as typed text: true is not 1 kg, NaN not a weight."""
+    client, user_id = logged_in_client
+    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": weight, "confirm": True})
+    assert resp.status_code == 400
+    assert resp.get_json()["error"] == "Enter a valid weight, like 72.5."
+    with app.app_context():
+        assert WeightEntry.query.filter_by(user_id=user_id).count() == 0
+
+
 def test_save_field_requires_login(client):
     resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": 80.5})
     assert resp.status_code == 302
