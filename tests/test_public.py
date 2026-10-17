@@ -14,7 +14,6 @@
 """The public chart: /public/<id>, turned on and named in the settings."""
 
 import hashlib
-import json
 import re
 import sqlite3
 from datetime import date, timedelta
@@ -27,7 +26,7 @@ from app import create_app, db, routes
 from app.forms import PublicChartForm
 from app.models import User, WeightEntry
 from app.utils import hash_email
-from tests.conftest import signup_and_verify
+from tests.conftest import input_attrs, script_value, signup_and_verify
 
 EMAIL = "owner@example.com"
 NOTE = "secret-note-text"
@@ -58,11 +57,6 @@ def share(client, public_id="", enabled=True, show_stats=True, show_weight=True,
     if show_weight:
         data["public_show_weight"] = "y"
     return client.post("/settings/public", data=data)
-
-
-def script_value(html, name):
-    """The JSON a `let name = ...;` line of the page script holds."""
-    return json.loads(re.search(rf"let {name} = (.*);\n", html).group(1))
 
 
 # --- turning it on and choosing the id -----------------------------------------------------
@@ -172,7 +166,7 @@ def test_the_public_page_shows_the_chart_and_the_stat_boxes(client, owner):
 
 def test_the_stat_boxes_are_off_until_turned_on(client, owner):
     assert owner.public_show_stats is False
-    assert '<input id="public_show_stats"' in client.get("/settings").data.decode()
+    assert "checked" not in input_attrs(client.get("/settings"), "public_show_stats")
     share(client, "mine", show_stats=False)
     html = client.get("/public/mine").data.decode()
     assert 'id="weight-chart"' in html and 'id="range-buttons"' in html
@@ -180,7 +174,7 @@ def test_the_stat_boxes_are_off_until_turned_on(client, owner):
 
     share(client, "mine")
     assert owner.public_show_stats is True
-    assert '<input checked id="public_show_stats"' in client.get("/settings").data.decode()
+    assert "checked" in input_attrs(client.get("/settings"), "public_show_stats")
     assert 'id="stat-current"' in client.get("/public/mine").data.decode()
 
 
@@ -319,11 +313,11 @@ def test_an_older_database_gets_the_columns_and_the_unique_index(tmp_path):
 
 def test_the_weight_is_shown_until_turned_off(client, owner):
     assert owner.public_show_weight is True
-    assert '<input checked id="public_show_weight"' in client.get("/settings").data.decode()
+    assert "checked" in input_attrs(client.get("/settings"), "public_show_weight")
     share(client, "mine")
     html = client.get("/public/mine").data.decode()
     assert script_value(html, "fullValues")[-1] == 80.0
-    assert "const hideWeights = false;" in html
+    assert script_value(html, "hideWeights") is False
 
 
 def test_without_the_weight_no_kilogram_reaches_the_page(client, owner):
@@ -333,8 +327,8 @@ def test_without_the_weight_no_kilogram_reaches_the_page(client, owner):
     share(client, "mine", show_weight=False, show_stats=False)
     assert owner.public_show_weight is False
     html = client.get("/public/mine").data.decode()
-    assert "const hideWeights = true;" in html
-    assert "const heightCm = null;" in html
+    assert script_value(html, "hideWeights") is True
+    assert script_value(html, "heightCm") is None
     assert script_value(html, "fullBmis") is None
     values = [v for v in script_value(html, "fullValues") if v is not None]
     moving = [v for v in script_value(html, "fullMovingAvg") if v is not None]
@@ -384,18 +378,18 @@ def test_an_older_stats_setting_is_ignored_while_the_weight_is_hidden(client, ow
 def test_the_settings_grey_the_stat_boxes_out_without_the_weight(client, owner):
     share(client, "mine", show_weight=False, show_stats=False)
     page = client.get("/settings").data.decode()
-    assert '<input disabled id="public_show_stats"' in page
+    assert "disabled" in input_attrs(page, "public_show_stats")
     assert 'class="toggle-row is-disabled" id="public-stats-row"' in page
     share(client, "mine")
     page = client.get("/settings").data.decode()
-    assert '<input checked id="public_show_stats"' in page
+    assert "checked" in input_attrs(page, "public_show_stats")
     assert 'class="toggle-row" id="public-stats-row"' in page
 
 
 def test_the_dashboard_always_shows_the_weights(client, owner):
     share(client, "mine", show_weight=False, show_stats=False)
     html = client.get("/").data.decode()
-    assert "const hideWeights = false;" in html
+    assert script_value(html, "hideWeights") is False
     assert script_value(html, "fullValues")[-1] == 80.0
 
 
@@ -492,10 +486,10 @@ def test_the_settings_show_the_saved_theme_of_the_public_page(client, owner):
     owner.dark_mode = True  # the owner's own theme is not the public page's
     db.session.commit()
     page = client.get("/settings").data.decode()
-    assert '<input id="public_dark_mode" name="public_dark_mode" type="checkbox" value="y">' in page
+    assert "checked" not in input_attrs(page, "public_dark_mode")
     share(client, "mine", dark=True)
     page = client.get("/settings").data.decode()
-    assert '<input checked id="public_dark_mode" name="public_dark_mode" type="checkbox" value="y">' in page
+    assert "checked" in input_attrs(page, "public_dark_mode")
     # Not only while shared: turning sharing off keeps the theme for the next time.
     share(client, "mine", enabled=False, dark=True)
     assert 'id="public_dark_mode"' in client.get("/settings").data.decode()

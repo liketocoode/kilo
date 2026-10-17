@@ -15,8 +15,10 @@
 
 import functools
 import html
+import json
 import os
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
@@ -118,6 +120,32 @@ def flashes(page, kind="success|error"):
     if not isinstance(page, str):
         page = page.get_data(as_text=True)
     return [html.unescape(text) for text in re.findall(rf'class="flash flash-(?:{kind})">([^<]+)<', page)]
+
+
+def script_value(html, name):
+    """The JSON value a `let name = ...;` or `const name = ...;` line of the page script holds.
+
+    Reads the value, not how the script is written: a renamed helper or a reformatted line does
+    not break the tests that use it.
+    """
+    return json.loads(re.search(rf"(?:let|const) {name} = (.*);\n", html).group(1))
+
+
+def input_attrs(page, name):
+    """The attributes of the <input name="..."> on a page, as a dict; a valueless attribute such
+    as `checked` maps to None. Does not depend on the order WTForms writes them in."""
+
+    class Finder(HTMLParser):
+        found = None
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "input" and dict(attrs).get("name") == name and self.found is None:
+                self.found = dict(attrs)
+
+    finder = Finder()
+    finder.feed(page if isinstance(page, str) else page.get_data(as_text=True))
+    assert finder.found is not None, f'no <input name="{name}"> on the page'
+    return finder.found
 
 
 def signup_and_verify(client, email):

@@ -22,7 +22,7 @@ from sqlalchemy import event
 
 from app import db
 from app.models import User, WeightEntry
-from tests.conftest import signup_and_verify
+from tests.conftest import script_value, signup_and_verify
 
 
 def test_index_shows_login_prompt_when_logged_out(client):
@@ -745,8 +745,8 @@ def test_stats_unaffected_by_interpolation(logged_in_client):
 def test_today_prompt_shows_when_todays_entry_missing(logged_in_client):
     client, _ = logged_in_client
     html = client.get("/").data.decode()
-    assert "const todayEntryMissing = true;" in html
-    assert f'const todayDate = "{date.today().isoformat()}";' in html
+    assert script_value(html, "todayEntryMissing") is True
+    assert script_value(html, "todayDate") == date.today().isoformat()
     assert 'id="today-prompt"' in html
 
 
@@ -754,7 +754,7 @@ def test_today_prompt_hidden_flag_when_todays_entry_exists(logged_in_client):
     client, _ = logged_in_client
     client.post("/entries/field", json={"date": date.today().isoformat(), "weight": 80.0})
     html = client.get("/").data.decode()
-    assert "const todayEntryMissing = false;" in html
+    assert script_value(html, "todayEntryMissing") is False
 
 
 def test_today_prompt_missing_when_only_older_entries_exist(logged_in_client):
@@ -763,7 +763,7 @@ def test_today_prompt_missing_when_only_older_entries_exist(logged_in_client):
         "/entries/field", json={"date": (date.today() - timedelta(days=1)).isoformat(), "weight": 80.0}
     )
     html = client.get("/").data.decode()
-    assert "const todayEntryMissing = true;" in html
+    assert script_value(html, "todayEntryMissing") is True
 
 
 def test_save_field_warns_on_outlier_before_neighbor(logged_in_client, app):
@@ -1314,7 +1314,7 @@ def test_page_embeds_the_notes_without_breaking_out_of_the_script(logged_in_clie
     client, _ = logged_in_client
     client.post("/entries/field", json={"date": "2026-01-02", "weight": 80.0, "note": "</script><b>hi</b> & more"})
     html = client.get("/").data.decode()
-    assert "let fullNotes = " in html
+    assert script_value(html, "fullNotes") == {"2026-01-02": "</script><b>hi</b> & more"}  # intact
     assert "</script><b>hi" not in html  # tojson escapes < > &, so a note cannot close the script
     assert "\\u003c/script\\u003e" in html
 
