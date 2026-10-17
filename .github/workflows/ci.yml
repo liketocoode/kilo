@@ -36,9 +36,10 @@ jobs:
       - name: Install
         run: pip install -r requirements-dev.txt
       # tests/conftest.py compiles the catalogs itself, and tests/test_i18n_catalogs.py runs
-      # scripts/check_i18n.py, so this one step also checks the translations.
+      # scripts/check_i18n.py, so this one step also checks the translations. The coverage
+      # report fails the step when coverage drops below fail_under in .coveragerc.
       - name: Test
-        run: pytest -q
+        run: coverage run -m pytest -q && coverage report
 
   lint:
     name: Ruff

@@ -494,6 +494,15 @@ fails `pytest` (and CI).
 pytest
 ```
 
+To see which code the tests leave out (`pip install -r requirements-dev.txt` installs
+coverage):
+
+```bash
+coverage run -m pytest && coverage report
+```
+
+The settings are in `.coveragerc`; the report fails below 95 %, and CI runs it the same way.
+
 The tests also check that the translations are complete and up to date; you can
 run that check on its own with `python scripts/check_i18n.py` (see
 [TRANSLATING.md](TRANSLATING.md)).

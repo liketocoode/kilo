@@ -1,0 +1,14 @@
+# Test coverage (https://coverage.readthedocs.io/): `coverage run -m pytest && coverage report`.
+# CI runs exactly that, so the report fails when coverage drops below fail_under.
+[run]
+branch = true
+source =
+    app
+    scripts
+
+[report]
+# 96 % (branches included) when this was added; the margin is for small changes, not for
+# leaving new code untested.
+fail_under = 95
+show_missing = true
+skip_covered = true
