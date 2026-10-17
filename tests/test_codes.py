@@ -80,6 +80,22 @@ def test_a_code_is_six_digits_stored_only_as_a_hash_for_its_lifetime(user, clock
     assert codes.is_pending(user, kind)
 
 
+@pytest.mark.real_hash
+@pytest.mark.parametrize("kind", KINDS)
+def test_a_code_is_hashed_with_scrypt(user, clock, kind):
+    """What production stores (the tests use a cheap hash, see conftest.fast_code_hashes)."""
+    code = issue(user, kind)
+    stored = getattr(user, codes.SLOTS[kind].hash)
+    assert stored.startswith("scrypt:")
+    assert codes.check(user, kind, code) == codes.OK
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_the_tests_use_a_cheap_hash(user, clock, kind):
+    issue(user, kind)
+    assert getattr(user, codes.SLOTS[kind].hash).startswith("pbkdf2:sha256:1$")
+
+
 @pytest.mark.parametrize("kind", KINDS)
 def test_the_code_is_valid_up_to_and_including_its_expiry(user, clock, kind):
     code = issue(user, kind)
