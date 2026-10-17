@@ -233,6 +233,21 @@ def test_the_cleanup_removes_avatars_of_removed_and_long_inactive_accounts(app):
     assert cache_files(app) == sorted([".tmp-x", "README", f"{kept.email_hash}.png"])
 
 
+@pytest.mark.skipif(os.geteuid() == 0, reason="root may delete in a read-only folder")
+def test_the_cleanup_counts_only_the_files_it_could_delete(app):
+    folder = app.config["AVATAR_CACHE_DIR"]
+    os.makedirs(folder)
+    with open(os.path.join(folder, f"{hash_email('gone@example.com')}.png"), "wb") as f:
+        f.write(b"x")
+    os.chmod(folder, 0o500)  # no deleting in it
+    try:
+        assert avatar.prune(set(), dry_run=True) == 1
+        assert avatar.prune(set()) == 0
+    finally:
+        os.chmod(folder, 0o700)
+    assert len(cache_files(app)) == 1
+
+
 def test_the_real_opener_does_not_follow_a_redirect():
     """A redirect could point anywhere; the opener must stop at it (the stub above skips this)."""
     import http.server

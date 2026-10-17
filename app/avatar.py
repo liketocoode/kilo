@@ -123,6 +123,20 @@ def _write(path, data, mtime=None):
         raise
 
 
+def _retry_mtime(now):
+    """A modification time that makes a cache file stale RETRY_SECONDS from `now`."""
+    return now - CACHE_SECONDS + RETRY_SECONDS
+
+
+def _unlink_quietly(path):
+    """Delete `path`; True if it was deleted, False if it could not be (or was not there)."""
+    try:
+        os.unlink(path)
+    except OSError:
+        return False
+    return True
+
+
 def _remove_others(paths, keep):
     for ext, path in paths.items():
         if ext != keep and os.path.exists(path):
@@ -154,13 +168,13 @@ def get(email_hash, now=None):
         if cached and cached[0] != _MISSING:
             # An old avatar is better than none; ask Gravatar again in RETRY_SECONDS.
             try:
-                os.utime(cached[1], (now - CACHE_SECONDS + RETRY_SECONDS,) * 2)
+                os.utime(cached[1], (_retry_mtime(now),) * 2)
             except OSError:
                 pass
             return _read(*cached[:2])
         try:
             # Try again in RETRY_SECONDS rather than on every page load.
-            _write(paths[_MISSING], b"", mtime=now - CACHE_SECONDS + RETRY_SECONDS)
+            _write(paths[_MISSING], b"", mtime=_retry_mtime(now))
             _remove_others(paths, _MISSING)
         except OSError:
             pass
@@ -190,10 +204,7 @@ def forget(email_hash):
     if not _HASH.fullmatch(email_hash or ""):
         return
     for path in _paths(email_hash).values():
-        try:
-            os.unlink(path)
-        except OSError:
-            pass
+        _unlink_quietly(path)
 
 
 def prune(known_hashes, now=None, dry_run=False):
@@ -219,10 +230,6 @@ def prune(known_hashes, now=None, dry_run=False):
             continue  # not ours
         if not old and (name.startswith(".tmp-") or stem in known_hashes):
             continue
-        count += 1
-        if not dry_run:
-            try:
-                os.unlink(path)
-            except OSError:
-                count -= 1
+        if dry_run or _unlink_quietly(path):
+            count += 1
     return count
