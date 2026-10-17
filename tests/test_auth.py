@@ -21,7 +21,7 @@ import pytest
 from app import db, mail
 from app.models import User
 from app.utils import hash_email
-from tests.conftest import code_from
+from tests.conftest import code_from, flashes
 
 
 def test_signup_sends_code_and_creates_unverified_user(client, app):
@@ -199,3 +199,16 @@ def test_the_code_field_takes_six_digits_with_a_number_keyboard(app, logged_in_c
     for page in (visitor.get("/verify"), signed_in.get("/settings/remove")):
         field = re.search(r'<input[^>]*name="code"[^>]*>', page.get_data(as_text=True)).group(0)
         assert 'maxlength="6"' in field and 'inputmode="numeric"' in field and 'placeholder="123456"' in field
+
+
+def test_the_code_page_says_when_there_were_too_many_attempts(client, app):
+    with mail.record_messages() as outbox:
+        client.post("/signup", data={"email": "lock@example.com"})
+    code = code_from(outbox)
+    wrong = f"{(int(code) + 1) % 1_000_000:06d}"
+    for _ in range(User.MAX_CODE_ATTEMPTS):
+        client.post("/verify", data={"code": wrong})
+    resp = client.post("/verify", data={"code": code})  # the right code, too late
+    assert "Too many attempts. Request a new code." in flashes(resp.get_data(as_text=True), "error")
+    with client.session_transaction() as sess:
+        assert "user_id" not in sess

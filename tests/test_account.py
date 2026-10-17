@@ -14,9 +14,12 @@
 """Tests for the "Remove my data" flow."""
 
 
-from app import db, mail
+from datetime import timedelta
+
+from app import codes, db, mail
 from app.models import User, WeightEntry
-from tests.conftest import code_from
+from app.utils import DELETE_CODE_TTL_MINUTES, utcnow
+from tests.conftest import code_from, flashes
 
 
 def _request_code(client):
@@ -84,3 +87,35 @@ def test_settings_page_links_to_remove_data(logged_in_client):
     html = client.get("/settings").data.decode()
     assert "<title>Settings — Kilo Tracker</title>" in html
     assert 'href="/settings/remove"' in html
+
+
+def test_without_the_address_in_the_session_no_code_is_sent(logged_in_client):
+    """The address lives only in the session: without it there is nowhere to send the code."""
+    client, _ = logged_in_client
+    client.get("/settings/export")
+    with client.session_transaction() as sess:
+        del sess["email"]
+    outbox = _request_code(client)
+    assert outbox == []
+    assert "Sign in again to confirm this request." in flashes(client.get("/settings/remove"), "error")
+
+
+def test_a_malformed_code_is_refused_and_deletes_nothing(logged_in_client, app):
+    client, user_id = logged_in_client
+    client.get("/settings/export")
+    _request_code(client)
+    resp = client.post("/settings/remove/confirm", data={"code": "12"}, follow_redirects=True)
+    assert "Enter the 6-digit code." in flashes(resp, "error")
+    assert db.session.get(User, user_id) is not None
+    assert db.session.get(User, user_id).delete_code_attempts == 0  # not even counted as a try
+
+
+def test_an_expired_code_deletes_nothing(logged_in_client, app, monkeypatch):
+    client, user_id = logged_in_client
+    client.get("/settings/export")
+    code = code_from(_request_code(client))
+    later = utcnow() + timedelta(minutes=DELETE_CODE_TTL_MINUTES, seconds=1)
+    monkeypatch.setattr(codes, "utcnow", lambda: later)
+    resp = client.post("/settings/remove/confirm", data={"code": code}, follow_redirects=True)
+    assert "That code has expired. Request a new one." in flashes(resp, "error")
+    assert db.session.get(User, user_id) is not None
