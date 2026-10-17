@@ -446,6 +446,50 @@ def test_import_does_not_query_the_entries_once_per_line(logged_in_client, app):
     assert len(statements) < 5
 
 
+def _queries(app, request):
+    """The SQL statements one request runs."""
+    statements = []
+
+    def record(_conn, _cursor, statement, *_args):
+        statements.append(statement)
+
+    engine = db.engine
+    event.listen(engine, "before_cursor_execute", record)
+    try:
+        response = request()
+    finally:
+        event.remove(engine, "before_cursor_execute", record)
+    assert response.status_code == 200
+    return statements
+
+
+def test_the_number_of_queries_does_not_grow_with_the_data(logged_in_client, app):
+    """No query per entry or per day: 10 entries and 2,000 (over five years) take the same
+    number of queries for the dashboard, a page of the daily log and a save. Counted rather
+    than timed, so a slow machine cannot make it fail."""
+    client, user_id = logged_in_client
+    today = date.today()
+    counts = {}
+    added = 0
+    for size, weight in ((10, "80.5"), (2000, "81.5")):
+        db.session.add_all(
+            WeightEntry(user_id=user_id, entry_date=today - timedelta(days=d), weight=80 + (d % 7) / 10,
+                        note="a note" if d % 3 == 0 else None)  # notes go into the chart tooltip
+            for d in range(added, size)  # today included, with a note: each save below updates it
+        )
+        db.session.commit()
+        added = size
+        # Each round's save changes today's weight (an UPDATE both times) and sends its note back.
+        save = {"date": str(today), "weight": weight, "note": "a note", "confirm": True}
+        counts[size] = {
+            "dashboard": len(_queries(app, lambda: client.get("/"))),
+            "log page": len(_queries(app, lambda: client.get(f"/entries/window?before={today}"))),
+            "save": len(_queries(app, lambda save=save: client.post("/entries/field", json=save))),
+        }
+    assert counts[10] == counts[2000]
+    assert counts[2000]["dashboard"] <= 4 and counts[2000]["log page"] <= 2 and counts[2000]["save"] <= 5
+
+
 def test_import_reports_skipped_invalid_lines(logged_in_client, app):
     client, user_id = logged_in_client
     text = "23-9-26,79.7,\nnot-a-date,80,\n24-9-26,not-a-number,\n"
