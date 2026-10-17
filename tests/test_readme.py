@@ -21,11 +21,11 @@ README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
 def variables_the_app_reads():
-    """Every name read with os.environ.get("NAME", ...) or _env_int("NAME", ...) in app/."""
+    """Every name read with os.environ.get("NAME", ...) , _env_int("NAME", ...) or _env_flag("NAME", ...) in app/."""
     names = set()
     for source in (ROOT / "app").glob("*.py"):
         text = source.read_text(encoding="utf-8")
-        names |= set(re.findall(r'(?:os\.environ\.get|_env_int)\("([A-Z][A-Z0-9_]+)"', text))
+        names |= set(re.findall(r'(?:os\.environ\.get|_env_int|_env_flag)\("([A-Z][A-Z0-9_]+)"', text))
     return names
 
 

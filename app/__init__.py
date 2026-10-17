@@ -59,6 +59,11 @@ def _env_int(name, default):
         return default
 
 
+def _env_flag(name, default):
+    """An on/off setting from the environment: on only when it is "1"; unset gives the default."""
+    return os.environ.get(name, "1" if default else "0") == "1"
+
+
 @event.listens_for(Engine, "connect")
 def _configure_sqlite(dbapi_connection, connection_record):
     """Make SQLite behave with several app processes (e.g. gunicorn workers)
@@ -90,18 +95,18 @@ def create_app(test_config=None):
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAIL_SERVER=os.environ.get("MAIL_SERVER", "localhost"),
         MAIL_PORT=int(os.environ.get("MAIL_PORT", "25")),
-        MAIL_USE_TLS=os.environ.get("MAIL_USE_TLS", "0") == "1",
+        MAIL_USE_TLS=_env_flag("MAIL_USE_TLS", False),
         MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
         MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
         MAIL_DEFAULT_SENDER=os.environ.get("MAIL_DEFAULT_SENDER", "no-reply@weight-tracker.local"),
-        MAIL_SUPPRESS_SEND=os.environ.get("MAIL_SUPPRESS_SEND", "1") == "1",
-        CHECK_EMAIL_MX=os.environ.get("CHECK_EMAIL_MX", "1") == "1",
+        MAIL_SUPPRESS_SEND=_env_flag("MAIL_SUPPRESS_SEND", True),
+        CHECK_EMAIL_MX=_env_flag("CHECK_EMAIL_MX", True),
         # A log of suspicious requests (unknown pages, wrong sign-in codes) in a fixed format
         # for fail2ban, see app/security.py. Unset: nothing is written.
         SECURITY_LOG_FILE=os.environ.get("SECURITY_LOG_FILE"),
         # The header's avatar is fetched from Gravatar by the server and cached on disk, see
         # app/avatar.py. 0 shows a local placeholder for everyone and never contacts Gravatar.
-        GRAVATAR_ENABLED=os.environ.get("GRAVATAR_ENABLED", "1") == "1",
+        GRAVATAR_ENABLED=_env_flag("GRAVATAR_ENABLED", True),
         AVATAR_CACHE_DIR=os.path.join(app.instance_path, "avatars"),
         # Limits on emailed codes, see app/ratelimit.py. The mode is "log" until the numbers have
         # been checked against real traffic; 0 turns a single limit off.
@@ -130,7 +135,7 @@ def create_app(test_config=None):
         SESSION_COOKIE_SAMESITE="Lax",
         # In production set SESSION_COOKIE_SECURE=1, so the cookie is only ever sent over HTTPS.
         # Off by default: it would stop the plain-http development server from signing in.
-        SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "0") == "1",
+        SESSION_COOKIE_SECURE=_env_flag("SESSION_COOKIE_SECURE", False),
     )
 
     if test_config:
