@@ -19,20 +19,15 @@ by email, and finally enters that code to permanently delete their account and
 all their weight entries.
 """
 
-import secrets
-from datetime import timedelta
-
 from flask import Blueprint, flash, redirect, render_template, session, url_for
 from flask_babel import gettext as _
-from werkzeug.security import check_password_hash, generate_password_hash
 
-from app import avatar, db, ratelimit
+from app import avatar, codes, db, ratelimit
 from app.auth import get_current_user, login_required
 from app.email_utils import send_deletion_email
 from app.forms import VerifyCodeForm
-from app.models import User
 from app.security import log_event
-from app.utils import DELETE_CODE_TTL_MINUTES, utcnow
+from app.utils import DELETE_CODE_TTL_MINUTES
 
 bp = Blueprint("account", __name__)
 
@@ -54,15 +49,6 @@ def sign_out_everywhere():
     return redirect(url_for("main.settings"))
 
 
-def _code_pending(user):
-    """True if the user has an unexpired removal code waiting to be entered."""
-    return bool(
-        user.delete_code_hash
-        and user.delete_code_expires_at
-        and user.delete_code_expires_at >= utcnow()
-    )
-
-
 @bp.route("/settings/remove", methods=["GET"])
 @login_required
 def remove_data():
@@ -72,7 +58,7 @@ def remove_data():
         "remove_data.html",
         form=VerifyCodeForm(),
         exported=bool(session.get("data_exported")),
-        code_pending=_code_pending(user),
+        code_pending=codes.is_pending(user, "removal"),
         email=session.get("email"),
         ttl_minutes=DELETE_CODE_TTL_MINUTES,
     )
@@ -96,16 +82,7 @@ def send_removal_code():
         flash(ratelimit.refused_message(reservation), "error")
         return redirect(url_for("account.remove_data"))
 
-    code = f"{secrets.randbelow(1_000_000):06d}"
-    user.delete_code_hash = generate_password_hash(code)
-    user.delete_code_expires_at = utcnow() + timedelta(minutes=DELETE_CODE_TTL_MINUTES)
-    user.delete_code_attempts = 0
-    db.session.commit()
-    try:
-        send_deletion_email(email, code)
-    except Exception:
-        reservation.release()  # a failed send does not use up the allowance
-        raise
+    codes.issue(user, "removal", email, send_deletion_email, reservation)
     flash(_("We sent a confirmation code to %(email)s.", email=email), "success")
     return redirect(url_for("account.remove_data"))
 
@@ -124,13 +101,11 @@ def confirm_removal():
         flash(_("Download your data first."), "error")
     elif not form.validate_on_submit():
         flash(_("Enter the 6-digit code."), "error")
-    elif not _code_pending(user):
+    elif (result := codes.check(user, "removal", form.code.data)) == codes.EXPIRED:
         flash(_("That code has expired. Request a new one."), "error")
-    elif user.delete_code_attempts >= User.MAX_CODE_ATTEMPTS:
+    elif result == codes.LOCKED:
         flash(_("Too many attempts. Request a new code."), "error")
-    elif not check_password_hash(user.delete_code_hash, form.code.data):
-        user.delete_code_attempts += 1
-        db.session.commit()
+    elif result == codes.WRONG:
         log_event("auth", event="removal-code-wrong")
         flash(_("Incorrect code."), "error")
     else:

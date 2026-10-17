@@ -20,16 +20,13 @@ signed-in user. Also holds the `login_required` decorator and the template
 context shared by all pages.
 """
 
-import secrets
 import time
-from datetime import timedelta
 from functools import wraps
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from flask_babel import get_locale, gettext as _
-from werkzeug.security import check_password_hash, generate_password_hash
 
-from app import db, ratelimit
+from app import codes, db, ratelimit
 from app.email_utils import send_verification_email
 from app.errors import back_url
 from app.forms import SignupForm, VerifyCodeForm
@@ -105,24 +102,6 @@ def inject_current_user():
     }
 
 
-def _issue_code(user, email, reservation):
-    """Create a new sign-in code for `user`: store its hash and expiry, then email it.
-
-    `reservation` is what the rate limit counted for this send; it is given back when the mail
-    cannot be sent, so a failed send does not use up the visitor's allowance.
-    """
-    code = f"{secrets.randbelow(1_000_000):06d}"
-    user.code_hash = generate_password_hash(code)
-    user.code_expires_at = utcnow() + timedelta(minutes=SIGNIN_CODE_TTL_MINUTES)
-    user.code_attempts = 0
-    db.session.commit()
-    try:
-        send_verification_email(email, code)
-    except Exception:
-        reservation.release()
-        raise
-
-
 @bp.route("/signup", methods=["GET", "POST"])
 def signup():
     """Show the email form; on submit, email a code and go to the verify page."""
@@ -150,7 +129,7 @@ def signup():
             db.session.add(user)
             db.session.commit()
 
-        _issue_code(user, email, reservation)
+        codes.issue(user, "signin", email, send_verification_email, reservation)
         session["pending_email"] = email
         flash(_("We sent a verification code to %(email)s.", email=email), "success")
         return redirect(url_for("auth.verify"))
@@ -173,20 +152,17 @@ def verify():
 
     form = VerifyCodeForm()
     if form.validate_on_submit():
-        if not user.code_hash or not user.code_expires_at or user.code_expires_at < utcnow():
+        result = codes.check(user, "signin", form.code.data)
+        if result == codes.EXPIRED:
             flash(_("That code has expired. Request a new one."), "error")
-        elif user.code_attempts >= User.MAX_CODE_ATTEMPTS:
+        elif result == codes.LOCKED:
             flash(_("Too many attempts. Request a new code."), "error")
-        elif not check_password_hash(user.code_hash, form.code.data):
-            user.code_attempts += 1
-            db.session.commit()
+        elif result == codes.WRONG:
             log_event("auth", event="code-wrong")
             flash(_("Incorrect code."), "error")
         else:
             user.verified_at = user.verified_at or utcnow()
-            user.code_hash = None
-            user.code_expires_at = None
-            user.code_attempts = 0
+            codes.clear(user, "signin")
             db.session.commit()
             session.pop("pending_email", None)
             session["user_id"] = user.id
@@ -219,7 +195,7 @@ def resend_code():
         flash(ratelimit.refused_message(reservation), "error")
         return redirect(url_for("auth.verify"))
 
-    _issue_code(user, email, reservation)
+    codes.issue(user, "signin", email, send_verification_email, reservation)
     flash(_("We sent a new code to %(email)s.", email=email), "success")
     return redirect(url_for("auth.verify"))
 

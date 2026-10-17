@@ -57,6 +57,25 @@ def test_verify_with_correct_code_signs_in(client, app):
         assert "pending_email" not in sess
 
 
+def test_a_used_code_cannot_sign_in_again(client, app):
+    with mail.record_messages() as outbox:
+        client.post("/signup", data={"email": "used@example.com"})
+    code = _get_code(outbox)
+    client.post("/verify", data={"code": code})
+
+    with app.app_context():
+        user = User.query.filter_by(email_hash=hash_email("used@example.com")).first()
+        assert user.code_hash is None and user.code_expires_at is None
+    # Someone who saw the code (another browser waiting on the same address) is too late.
+    other = app.test_client()
+    with other.session_transaction() as sess:
+        sess["pending_email"] = "used@example.com"
+    resp = other.post("/verify", data={"code": code}, follow_redirects=True)
+    assert b"That code has expired" in resp.data
+    with other.session_transaction() as sess:
+        assert "user_id" not in sess
+
+
 def test_verify_with_wrong_code_fails(client, app):
     with mail.record_messages():
         client.post("/signup", data={"email": "b@example.com"})

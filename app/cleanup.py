@@ -40,7 +40,7 @@ from datetime import UTC, timedelta
 
 from sqlalchemy import and_, delete, exists, func, or_, select, update
 
-from app import avatar, db
+from app import avatar, codes, db
 from app.models import RateEvent, User, WeightEntry
 from app.utils import SIGNIN_CODE_TTL_MINUTES, STALE_SIGNUP_DAYS, utcnow
 
@@ -67,20 +67,6 @@ def _stale_signup(now, stale_days):
     )
 
 
-def _expired_signin_hash(now):
-    return and_(
-        User.code_hash.is_not(None),
-        or_(User.code_expires_at.is_(None), User.code_expires_at < now),
-    )
-
-
-def _expired_removal_hash(now):
-    return and_(
-        User.delete_code_hash.is_not(None),
-        or_(User.delete_code_expires_at.is_(None), User.delete_code_expires_at < now),
-    )
-
-
 def _count(condition):
     return db.session.scalar(select(func.count()).select_from(User).where(condition))
 
@@ -93,8 +79,8 @@ def cleanup(now=None, dry_run=False, stale_days=STALE_SIGNUP_DAYS):
     """
     now = now or utcnow()
     stale = _stale_signup(now, stale_days)
-    signin = _expired_signin_hash(now)
-    removal = _expired_removal_hash(now)
+    signin = codes.expired_hash("signin", now)
+    removal = codes.expired_hash("removal", now)
 
     old_events = RateEvent.at < now - RATE_EVENT_KEEP
 
@@ -109,9 +95,11 @@ def cleanup(now=None, dry_run=False, stale_days=STALE_SIGNUP_DAYS):
         }
 
     removed = db.session.execute(delete(User).where(stale)).rowcount
-    signin_cleared = db.session.execute(update(User).where(signin).values(code_hash=None)).rowcount
+    signin_cleared = db.session.execute(
+        update(User).where(signin).values({codes.hash_column("signin"): None})
+    ).rowcount
     removal_cleared = db.session.execute(
-        update(User).where(removal).values(delete_code_hash=None)
+        update(User).where(removal).values({codes.hash_column("removal"): None})
     ).rowcount
     events_removed = db.session.execute(delete(RateEvent).where(old_events)).rowcount
     db.session.commit()
