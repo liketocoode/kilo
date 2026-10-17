@@ -15,7 +15,9 @@
 
 import re
 
-from app import mail
+import pytest
+
+from app import db, mail
 from app.models import User
 from app.utils import hash_email
 
@@ -133,3 +135,58 @@ def test_send_code_button_sits_next_to_the_email_input(client):
     html = client.get("/").data.decode()
     row = html[html.index('class="input-with-button"'):]
     assert row.index('name="email"') < row.index("Send code") < row.index("</div>")
+
+
+def _flashes(client):
+    with client.session_transaction() as sess:
+        return [message for _category, message in sess.get("_flashes", [])]
+
+
+def test_verify_without_a_sign_in_in_progress_asks_for_the_email(client):
+    resp = client.get("/verify")
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/signup")
+    assert _flashes(client) == ["Enter your email to get a verification code."]
+
+
+def test_resend_without_a_sign_in_in_progress_goes_to_the_email_form(client):
+    with mail.record_messages() as outbox:
+        resp = client.post("/verify/resend")
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/signup")
+    assert outbox == [] and _flashes(client) == []
+
+
+@pytest.mark.parametrize("request_page", [lambda c: c.get("/verify"), lambda c: c.post("/verify/resend")],
+                         ids=["verify", "resend"])
+def test_a_sign_in_whose_account_is_gone_is_forgotten(client, app, request_page):
+    """The daily cleanup can remove the unverified account while its code page is open."""
+    with mail.record_messages():
+        client.post("/signup", data={"email": "gone@example.com"})
+    with app.app_context():
+        db.session.delete(User.query.filter_by(email_hash=hash_email("gone@example.com")).one())
+        db.session.commit()
+    client.get("/signup")  # take the "code sent" flash out of the session
+    with mail.record_messages() as outbox:
+        resp = request_page(client)
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/signup")
+    assert outbox == [] and _flashes(client) == []  # no account was made again, nothing was sent
+    with client.session_transaction() as sess:
+        assert "pending_email" not in sess
+    with app.app_context():
+        assert User.query.filter_by(email_hash=hash_email("gone@example.com")).first() is None
+
+
+@pytest.mark.parametrize("cooldown", [False, True], ids=["sent", "cooldown"])
+def test_signup_remembers_the_address_and_says_the_code_was_sent(client, app, cooldown):
+    """Also when a code was sent less than a minute ago and no new one goes out."""
+    if cooldown:
+        app.config["RATELIMIT_MODE"] = "enforce"
+        with mail.record_messages():
+            client.post("/signup", data={"email": "twice@example.com"})
+        client.get("/verify")  # take the first flash out of the session
+    with mail.record_messages() as outbox:
+        resp = client.post("/signup", data={"email": "twice@example.com"})
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/verify")
+    assert len(outbox) == (0 if cooldown else 1)
+    assert _flashes(client) == ["We sent a verification code to twice@example.com."]
+    with client.session_transaction() as sess:
+        assert sess["pending_email"] == "twice@example.com"

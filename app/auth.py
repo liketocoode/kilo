@@ -119,9 +119,7 @@ def signup():
             # A code was mailed less than a minute ago: a double click, or someone else asking for
             # this address. Do not send another one and do not replace the one in the mailbox
             # (that would invalidate it); answer exactly as for a fresh send.
-            session["pending_email"] = email
-            flash(_("We sent a verification code to %(email)s.", email=email), "success")
-            return redirect(url_for("auth.verify"))
+            return _to_verify(email)
 
         user = User.query.filter_by(email_hash=email_hash).first()
         if user is None:
@@ -130,24 +128,38 @@ def signup():
             db.session.commit()
 
         codes.issue(user, "signin", email, send_verification_email, reservation)
-        session["pending_email"] = email
-        flash(_("We sent a verification code to %(email)s.", email=email), "success")
-        return redirect(url_for("auth.verify"))
+        return _to_verify(email)
 
     return render_template("signup.html", form=form)
+
+
+def _to_verify(email):
+    """After a code was sent (or one is on its way) to `email`: remember the address and go to
+    the page that asks for the code."""
+    session["pending_email"] = email
+    flash(_("We sent a verification code to %(email)s.", email=email), "success")
+    return redirect(url_for("auth.verify"))
+
+
+def _pending_user():
+    """(address, user) of the sign-in in progress: (None, None) without one. The address is
+    forgotten when its account is gone (the cleanup removed it), with user None."""
+    email = session.get("pending_email")
+    if not email:
+        return None, None
+    user = User.query.filter_by(email_hash=hash_email(email)).first()
+    if user is None:
+        session.pop("pending_email", None)
+    return email, user
 
 
 @bp.route("/verify", methods=["GET", "POST"])
 def verify():
     """Check the emailed code and sign the user in. Codes expire and allow a limited number of attempts."""
-    email = session.get("pending_email")
-    if not email:
-        flash(_("Enter your email to get a verification code."), "error")
-        return redirect(url_for("auth.signup"))
-
-    user = User.query.filter_by(email_hash=hash_email(email)).first()
+    email, user = _pending_user()
     if user is None:
-        session.pop("pending_email", None)
+        if not email:
+            flash(_("Enter your email to get a verification code."), "error")
         return redirect(url_for("auth.signup"))
 
     form = VerifyCodeForm()
@@ -181,13 +193,8 @@ def verify():
 @bp.route("/verify/resend", methods=["POST"])
 def resend_code():
     """Send a fresh sign-in code to the email address being verified."""
-    email = session.get("pending_email")
-    if not email:
-        return redirect(url_for("auth.signup"))
-
-    user = User.query.filter_by(email_hash=hash_email(email)).first()
+    email, user = _pending_user()
     if user is None:
-        session.pop("pending_email", None)
         return redirect(url_for("auth.signup"))
 
     reservation = ratelimit.reserve_code("signin", user.email_hash)
