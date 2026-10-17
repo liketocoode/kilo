@@ -16,7 +16,7 @@
 import pytest
 
 from app.csv_io import parse_csv
-from app.utils import parse_decimal
+from app.utils import bmi, parse_decimal
 
 
 @pytest.mark.parametrize(
@@ -56,3 +56,8 @@ def test_csv_import_rejects_exponent_and_nan_weights():
     rows, errors = parse_csv("1-2-26,1e2\n2-2-26,nan\n")
     assert rows == []
     assert len(errors) == 2
+
+
+def test_bmi_is_the_weight_over_the_height_in_metres_squared():
+    assert bmi(81, 180) == pytest.approx(25.0)
+    assert bmi(72.5, 172.5) == pytest.approx(72.5 / 1.725**2)

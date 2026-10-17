@@ -50,7 +50,7 @@ from app.i18n import LANGUAGE_COOKIE, LANGUAGE_COOKIE_DAYS, meters
 from app.importing import parse_import
 from app.models import User, WeightEntry
 from app.security import log_event
-from app.utils import NOTE_MAX_LENGTH, parse_decimal
+from app.utils import NOTE_MAX_LENGTH, bmi, parse_decimal
 
 bp = Blueprint("main", __name__)
 
@@ -147,7 +147,7 @@ def _bmi(moving_average, height_cm):
     height or any entries."""
     if not height_cm or not moving_average:
         return None
-    return moving_average[-1] / ((height_cm / 100) ** 2)
+    return bmi(moving_average[-1], height_cm)
 
 
 def _entries_sorted(user):
@@ -207,10 +207,7 @@ def _daily_series(entries, height_cm):
 
     labels = [(start + timedelta(days=i)).isoformat() for i in range(total_days + 1)]
 
-    bmis = None
-    if height_cm:
-        height_m = height_cm / 100
-        bmis = [v / (height_m ** 2) for v in values]
+    bmis = [bmi(v, height_cm) for v in values] if height_cm else None
 
     return labels, values, bmis, is_real
 

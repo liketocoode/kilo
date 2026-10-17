@@ -51,6 +51,11 @@ STALE_SIGNUP_DAYS = 7
 NOTE_MAX_LENGTH = 280
 
 
+def bmi(weight_kg, height_cm):
+    """Body-mass index of a weight (kg) at a height (cm)."""
+    return weight_kg / (height_cm / 100) ** 2
+
+
 def normalize_email(email):
     """Trim and lowercase an email so equivalent addresses hash the same."""
     return email.strip().lower()
