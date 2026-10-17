@@ -90,6 +90,15 @@ def test_a_second_request_within_the_wait_sends_nothing_but_looks_like_success(e
     assert len(third) == 1
 
 
+def test_a_new_code_may_be_sent_the_moment_the_wait_is_over(enforcing, clock, client):
+    """The window is "the last 60 seconds": a send exactly 60 s ago is no longer in it."""
+    assert len(sign_up(client, "edge@example.com")[1]) == 1
+    clock.advance(seconds=59)
+    assert sign_up(client, "edge@example.com")[1] == []
+    clock.advance(seconds=1)
+    assert len(sign_up(client, "edge@example.com")[1]) == 1
+
+
 def test_the_owner_is_not_locked_out_by_someone_else_asking_for_codes(enforcing, clock, client, app):
     _, first = sign_up(client, "owner@example.com")
     code = code_from(first)
