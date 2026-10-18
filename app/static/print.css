@@ -26,7 +26,8 @@ html, body {
 }
 
 /* Interactive or screen-only parts. */
-.account-menu,
+.account-dropdown,
+.menu-icon,
 .flashes,
 .entries,
 .modal-overlay,
@@ -39,6 +40,13 @@ textarea,
 #scroll-sentinel,
 #loading-hint {
   display: none !important;
+}
+
+/* Whose report this is: the avatar and the address from the account button, as plain text
+   (the menu itself and its icon are left out above). */
+.account-trigger {
+  padding: 0;
+  color: var(--text);
 }
 
 /* The wordmark: always the light one. */
