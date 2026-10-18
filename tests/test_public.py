@@ -22,7 +22,7 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import inspect
 
-from app import create_app, db, routes
+from app import create_app, db, overview, routes
 from app.forms import PublicChartForm
 from app.models import User, WeightEntry
 from app.utils import hash_email
@@ -460,7 +460,7 @@ def range_menu(page):
 def test_the_settings_offer_the_ranges_for_the_public_page(client, owner):
     share(client, "mine")
     menu = range_menu(client.get("/settings").data.decode())
-    assert re.findall(r'<option value="([^"]*)"', menu) == ["", *[key for key, _label, _days in routes.CHART_RANGES]]
+    assert re.findall(r'<option value="([^"]*)"', menu) == ["", *[key for key, _label, _days in overview.CHART_RANGES]]
     assert "Visitor chooses (range buttons)" in menu
     assert "selected" not in menu  # nothing saved: the first choice
 

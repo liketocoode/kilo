@@ -1103,7 +1103,7 @@ def test_account_dropdown_links_to_about_before_log_out(logged_in_client):
 
 
 def test_two_week_range_sits_between_one_month_and_one_week(logged_in_client):
-    from app.routes import CHART_RANGES
+    from app.overview import CHART_RANGES
 
     keys = [key for key, _label, _days in CHART_RANGES]
     assert keys.index("1m") + 1 == keys.index("2w") == keys.index("1w") - 1
@@ -1151,7 +1151,7 @@ def test_chart_pads_the_right_edge_up_to_today(logged_in_client):
 
 
 def test_three_and_six_month_ranges_are_multiples_of_30_days(logged_in_client, app):
-    from app.routes import CHART_RANGES
+    from app.overview import CHART_RANGES
 
     days = {k: d for k, _l, d in CHART_RANGES}
     assert days["3m"] == 90
