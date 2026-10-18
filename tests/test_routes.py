@@ -1043,10 +1043,10 @@ def test_number_fields_are_marked_decimal_only(logged_in_client):
     assert index.count(b"data-decimal-only") >= 2
 
 
-def test_settings_page_has_back_link_to_dashboard(logged_in_client):
+def test_every_settings_section_has_a_back_link_to_the_dashboard(logged_in_client):
     client, _ = logged_in_client
     html = client.get("/settings").data.decode()
-    assert re.search(r'<a class="back-link" href="/"', html)
+    assert len(re.findall(r'<a class="back-link" href="/"', html)) == html.count("<section") == 6
 
 
 def test_remove_data_page_has_back_link_to_settings(logged_in_client):
@@ -1055,9 +1055,9 @@ def test_remove_data_page_has_back_link_to_settings(logged_in_client):
     assert re.search(r'<a class="back-link" href="/settings"', html)
 
 
-def test_about_page_has_back_link_to_dashboard(client):
+def test_every_about_section_has_a_back_link_to_the_dashboard(client):
     html = client.get("/about").data.decode()
-    assert re.search(r'<a class="back-link" href="/"', html)
+    assert len(re.findall(r'<a class="back-link" href="/"', html)) == html.count("<section") == 2
 
 
 def test_daily_log_has_scroll_to_top_button(logged_in_client):
