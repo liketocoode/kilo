@@ -23,10 +23,10 @@ from flask import Blueprint, flash, redirect, render_template, session, url_for
 from flask_babel import gettext as _
 
 from app import avatar, codes, db, ratelimit
-from app.auth import get_current_user, login_required
 from app.email_utils import send_deletion_email
 from app.forms import VerifyCodeForm
 from app.security import log_event
+from app.sessions import get_current_user, login_required
 from app.utils import DELETE_CODE_TTL_MINUTES
 
 bp = Blueprint("account", __name__)
@@ -39,7 +39,7 @@ def sign_out_everywhere():
 
     Sessions are signed cookies with no list of them on the server, so each one carries the
     user's `session_version` from its sign-in; raising the number makes every older cookie
-    invalid at its next request (see auth.keep_session_alive). This session takes the new number.
+    invalid at its next request (see sessions.keep_session_alive). This session takes the new number.
     """
     user = get_current_user()
     user.session_version += 1

@@ -172,12 +172,13 @@ def create_app(test_config=None):
     csrf.init_app(app)
     mail.init_app(app)
 
-    from . import account, auth, errors, ratelimit, routes
+    from . import account, auth, errors, ratelimit, routes, sessions
     errors.init_app(app)
     ratelimit.init_app(app)
     app.register_blueprint(routes.bp)
     app.register_blueprint(account.bp)
     app.register_blueprint(auth.bp)
+    sessions.init_app(app)
 
     migrate.init_app(app, db, directory=MIGRATIONS_DIR)
     with app.app_context():

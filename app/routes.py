@@ -41,7 +41,6 @@ from flask_babel import format_date, format_decimal, gettext as _, ngettext
 from sqlalchemy.exc import IntegrityError
 
 from app import avatar, db
-from app.auth import get_current_user, login_required
 from app.csv_io import MAX_WEIGHT_KG, MIN_WEIGHT_KG, ImportFileError, export_csv
 from app.errors import back_url
 from app.forms import ImportForm, PublicChartForm, SettingsForm, SignupForm
@@ -50,6 +49,7 @@ from app.importing import parse_import
 from app.models import User, WeightEntry
 from app.overview import CHART_RANGE_KEYS, CHART_RANGES, GRID_PAGE_SIZE, entries_sorted, grid_page, overview
 from app.security import log_event
+from app.sessions import get_current_user, login_required
 from app.utils import NOTE_MAX_LENGTH, height_from_cm, height_to_cm, parse_decimal
 
 bp = Blueprint("main", __name__)

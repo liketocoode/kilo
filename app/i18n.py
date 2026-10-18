@@ -191,7 +191,7 @@ def init_app(app):
         # this, a cache in front of the app (Apache mod_cache, a CDN, the
         # browser) serves the first visitor's language to everyone. They depend on
         # the language cookie too; "Vary: Cookie" is already added by Flask, because
-        # every request reads the session (auth.keep_session_alive).
+        # every request reads the session (sessions.keep_session_alive).
         if request.endpoint != "static":
             response.vary.add("Accept-Language")
         return response

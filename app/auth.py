@@ -16,15 +16,14 @@
 Users enter their email and get a 6-digit code (valid for
 SIGNIN_CODE_TTL_MINUTES); entering it signs them in. Only a SHA-256 hash of the
 email is stored - the plaintext address lives only in the session of the
-signed-in user. Also holds the `login_required` decorator and the template
-context shared by all pages.
+signed-in user. What every request needs from the session (the current user,
+`login_required`, keeping a session alive) is in app/sessions.py.
 """
 
 import time
-from functools import wraps
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
-from flask_babel import get_locale, gettext as _
+from flask import Blueprint, flash, redirect, render_template, session, url_for
+from flask_babel import gettext as _
 
 from app import codes, db, ratelimit
 from app.email_utils import send_verification_email
@@ -36,70 +35,6 @@ from app.utils import SIGNIN_CODE_TTL_MINUTES, hash_email, normalize_email, utcn
 from app.version import app_version
 
 bp = Blueprint("auth", __name__)
-
-
-def get_current_user():
-    """The signed-in `User` for this request, or None."""
-    user_id = session.get("user_id")
-    if user_id is None:
-        return None
-    return db.session.get(User, user_id)
-
-
-def login_required(view):
-    """Redirect to the front page unless a user is signed in."""
-
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if get_current_user() is None:
-            flash(_("Enter your email to sign in."), "error")
-            return redirect(url_for("main.index"))
-        return view(*args, **kwargs)
-
-    return wrapped
-
-
-@bp.before_app_request
-def keep_session_alive():
-    """Keep signed-in users signed in across browser restarts, but not forever.
-
-    A signed-in session is marked permanent, so its cookie gets an expiry date
-    (PERMANENT_SESSION_LIFETIME, 30 days) that is pushed forward on every visit, and it
-    survives closing the browser. `login_at` caps that: 90 days after the sign-in
-    (SESSION_ABSOLUTE_LIFETIME) the user has to sign in again, however active they are, so a
-    copied cookie cannot be kept alive for ever. Sessions from before this existed (no
-    `login_at`) are adopted: their 90 days start at the first visit.
-
-    A session whose `session_version` is older than the user's has been signed out by "Sign out
-    everywhere" (account.sign_out_everywhere). A session without one counts as 0, never as the
-    current number: adopting it would let a copied cookie from before that survive.
-    """
-    if "user_id" not in session or request.endpoint == "static":
-        return
-    user = db.session.get(User, session["user_id"])
-    if user is not None and session.get("session_version", 0) != user.session_version:
-        session.clear()
-        return
-    now = int(time.time())
-    login_at = session.get("login_at")
-    if login_at is None:
-        session["login_at"] = now
-    elif now - login_at > current_app.config["SESSION_ABSOLUTE_LIFETIME"].total_seconds():
-        session.clear()  # the page then asks for the email address again, as for any visitor
-        return
-    session.permanent = True
-
-
-@bp.app_context_processor
-def inject_current_user():
-    """Template context for every page: the user, their email, the theme and the language."""
-    user = get_current_user()
-    return {
-        "current_locale": str(get_locale()),
-        "current_user": user,
-        "current_email": session.get("email"),
-        "theme": "dark" if user and user.dark_mode else "light",
-    }
 
 
 @bp.route("/signup", methods=["GET", "POST"])
@@ -181,7 +116,7 @@ def verify():
             session["email"] = email
             session["login_at"] = int(time.time())
             session["session_version"] = user.session_version
-            session.permanent = True  # the cookie outlives the browser window, see keep_session_alive
+            session.permanent = True  # the cookie outlives the browser window, see sessions.keep_session_alive
             flash(_("Email verified — you're signed in."), "success")
             return redirect(url_for("main.index"))
 
