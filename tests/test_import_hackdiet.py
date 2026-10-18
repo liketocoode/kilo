@@ -488,7 +488,8 @@ def test_a_hackers_diet_csv_line_with_a_date_that_is_not_iso_is_reported():
 def test_a_month_without_a_year_or_month_is_skipped():
     no_year = ("<monthlog><properties><month>9</month></properties>"
                "<days><day><date>1</date><weight>90</weight></day></days></monthlog>")
-    result = parse_import(hd_xml(days={(2007, 8): [(1, "94", "")]}, extra=no_year))
+    no_properties = "<monthlog><days><day><date>2</date><weight>91</weight></day></days></monthlog>"
+    result = parse_import(hd_xml(days={(2007, 8): [(1, "94", "")]}, extra=no_year + no_properties))
     assert result.rows == [(date(2007, 8, 1), 94.0, None)] and result.errors == []
 
 
