@@ -19,7 +19,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-# machine-translated
 msgid "You are now signed out on all other browsers and devices."
 msgstr "Kamu sekarang sudah keluar di semua browser dan perangkat lain."
 
