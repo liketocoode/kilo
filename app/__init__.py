@@ -28,7 +28,7 @@ try:
 except ImportError:  # Windows: no lock (production runs on Linux)
     fcntl = None
 
-from flask import Flask, request
+from flask import Flask, current_app, request, url_for
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -48,6 +48,15 @@ mail = Mail()
 
 
 SQLITE_BUSY_TIMEOUT_MS = 30_000
+
+
+def static_url(filename):
+    """The address of a file in static/ with its modification time as `?v=`: Kilo sends static
+    files without a cache lifetime, so a browser may reuse its copy for a while. A deploy that
+    changes the dashboard scripts changes the address too, so the new page never runs with an
+    old script."""
+    mtime = int(os.path.getmtime(os.path.join(current_app.static_folder, filename)))
+    return url_for("static", filename=filename, v=mtime)
 
 
 def _env_int(name, default):
@@ -162,6 +171,7 @@ def create_app(test_config=None):
 
     # The note length limit, for the note editor's maxlength (see app/utils.py).
     app.jinja_env.globals["NOTE_MAX_LENGTH"] = NOTE_MAX_LENGTH
+    app.add_template_global(static_url)
 
     # Content-Security-Policy and X-Frame-Options on every response (see app/csp.py).
     csp.init_app(app)

@@ -122,13 +122,19 @@ def flashes(page, kind="success|error"):
     return [html.unescape(text) for text in re.findall(rf'class="flash flash-(?:{kind})">([^<]+)<', page)]
 
 
-def script_value(html, name):
-    """The JSON value a `let name = ...;` or `const name = ...;` line of the page script holds.
+def page_data(page):
+    """The dashboard's (or public chart's) #page-data block: what its scripts read as PAGE."""
+    html = page if isinstance(page, str) else page.get_data(as_text=True)
+    return json.loads(re.search(r'<script type="application/json" id="page-data">(.*?)</script>', html, re.S).group(1))
 
-    Reads the value, not how the script is written: a renamed helper or a reformatted line does
-    not break the tests that use it.
-    """
-    return json.loads(re.search(rf"(?:let|const) {name} = (.*);\n", html).group(1))
+
+def page_with_scripts(client, path="/"):
+    """The HTML of a page followed by the text of the scripts it loads from static/ (not the
+    vendored Chart.js): the dashboard's code is in static/dashboard-*.js, so a test that looks
+    for a piece of code finds it whether it is in the page or in one of those files."""
+    html = client.get(path).get_data(as_text=True)
+    sources = [src for src in re.findall(r'<script src="(/static/[^"]+)"', html) if "/vendor/" not in src]
+    return html + "".join(client.get(src).get_data(as_text=True) for src in sources)
 
 
 def input_attrs(page, name):

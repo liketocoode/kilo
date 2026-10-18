@@ -26,7 +26,7 @@ from app import create_app, db, overview, routes
 from app.forms import PublicChartForm
 from app.models import User, WeightEntry
 from app.utils import hash_email
-from tests.conftest import input_attrs, script_value, signup_and_verify
+from tests.conftest import input_attrs, page_data, signup_and_verify
 
 EMAIL = "owner@example.com"
 NOTE = "secret-note-text"
@@ -160,8 +160,19 @@ def test_the_public_page_shows_the_chart_and_the_stat_boxes(client, owner):
     assert 'id="weight-chart"' in html and 'id="range-buttons"' in html
     assert 'id="stat-current"' in html and 'id="stat-bmi"' in html and 'data-days="7"' in html
     assert "Height:" in html  # BMI is shown, as the owner chose
-    assert len(script_value(html, "fullValues")) == 9
-    assert script_value(html, "fullBmis") is not None
+    assert len(page_data(html)["chart_values"]) == 9
+    assert page_data(html)["chart_bmis"] is not None
+
+
+def test_the_public_page_runs_only_the_chart_script(client, owner):
+    """The daily log's script (saving, the note editor, the "today" prompt) is never sent to a
+    visitor, and the page data holds no addresses to save to and nothing about today."""
+    share(client, "mine")
+    html = client.get("/public/mine").data.decode()
+    assert "/static/dashboard-chart.js?v=" in html
+    assert "dashboard-log.js" not in html
+    data = page_data(html)
+    assert data["public"] is True and data["urls"] is None and data["today"] is None
 
 
 def test_the_stat_boxes_are_off_until_turned_on(client, owner):
@@ -187,7 +198,7 @@ def test_the_public_page_never_shows_notes_the_address_or_the_daily_log(client, 
     share(client, "mine")
     html = client.get("/public/mine").data.decode()
     assert NOTE not in html
-    assert script_value(html, "fullNotes") == {}
+    assert page_data(html)["chart_notes"] == {}
     assert EMAIL not in html and owner.email_hash not in html
     assert 'id="day-rows"' not in html and "/entries/field" not in html
     assert "/avatar" not in html and "account-menu" not in html
@@ -316,22 +327,22 @@ def test_the_weight_is_shown_until_turned_off(client, owner):
     assert "checked" in input_attrs(client.get("/settings"), "public_show_weight")
     share(client, "mine")
     html = client.get("/public/mine").data.decode()
-    assert script_value(html, "fullValues")[-1] == 80.0
-    assert script_value(html, "hideWeights") is False
+    assert page_data(html)["chart_values"][-1] == 80.0
+    assert page_data(html)["hide_weights"] is False
 
 
 def test_without_the_weight_no_kilogram_reaches_the_page(client, owner):
     share(client, "mine")
     shown = client.get("/public/mine").data.decode()
-    real = script_value(shown, "fullValues") + script_value(shown, "fullMovingAvg")
+    real = page_data(shown)["chart_values"] + page_data(shown)["chart_moving_average"]
     share(client, "mine", show_weight=False, show_stats=False)
     assert owner.public_show_weight is False
     html = client.get("/public/mine").data.decode()
-    assert script_value(html, "hideWeights") is True
-    assert script_value(html, "heightCm") is None
-    assert script_value(html, "fullBmis") is None
-    values = [v for v in script_value(html, "fullValues") if v is not None]
-    moving = [v for v in script_value(html, "fullMovingAvg") if v is not None]
+    assert page_data(html)["hide_weights"] is True
+    assert page_data(html)["height_cm"] is None
+    assert page_data(html)["chart_bmis"] is None
+    values = [v for v in page_data(html)["chart_values"] if v is not None]
+    moving = [v for v in page_data(html)["chart_moving_average"] if v is not None]
     assert min(values + moving) == 0 and max(values + moving) == 100
     # Exactly the real values rescaled to 0-100, and nothing else in the data.
     low, high = min(real), max(real)
@@ -342,9 +353,9 @@ def test_without_the_weight_no_kilogram_reaches_the_page(client, owner):
 
 def test_the_shape_of_the_line_is_kept(client, owner, app):
     share(client, "mine")
-    shown = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    shown = page_data(client.get("/public/mine").data.decode())["chart_values"]
     share(client, "mine", show_weight=False, show_stats=False)
-    hidden = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    hidden = page_data(client.get("/public/mine").data.decode())["chart_values"]
     assert len(hidden) == len(shown)
     # Same order everywhere: a higher weight is a higher point, and equal ones stay equal.
     for i in range(len(shown)):
@@ -358,7 +369,7 @@ def test_a_flat_line_stays_in_the_middle(client, owner):
         entry.weight = 80
     db.session.commit()
     share(client, "mine", show_weight=False, show_stats=False)
-    values = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    values = page_data(client.get("/public/mine").data.decode())["chart_values"]
     assert set(values) == {50.0}
 
 
@@ -389,8 +400,8 @@ def test_the_settings_grey_the_stat_boxes_out_without_the_weight(client, owner):
 def test_the_dashboard_always_shows_the_weights(client, owner):
     share(client, "mine", show_weight=False, show_stats=False)
     html = client.get("/").data.decode()
-    assert script_value(html, "hideWeights") is False
-    assert script_value(html, "fullValues")[-1] == 80.0
+    assert page_data(html)["hide_weights"] is False
+    assert page_data(html)["chart_values"][-1] == 80.0
 
 
 # --- a fixed range: ?range=3m, or the saved one -------------------------------------------------------
@@ -399,7 +410,7 @@ def test_the_dashboard_always_shows_the_weights(client, owner):
 def test_a_range_in_the_address_fixes_the_chart(client, owner):
     share(client, "mine")
     html = client.get("/public/mine?range=1w").data.decode()
-    assert script_value(html, "currentRange") == "1w"
+    assert page_data(html)["chart_range"] == "1w"
     assert 'id="range-buttons"' not in html and "range-btn" not in html.split("<script")[0]
     # The stat boxes no longer switch the range either.
     assert "stat-card-link" not in html.split("<script")[0] and 'role="button"' not in html
@@ -410,12 +421,12 @@ def test_a_range_in_the_address_fixes_the_chart(client, owner):
 def test_the_range_is_not_case_sensitive(client, owner, value, key):
     share(client, "mine")
     html = client.get(f"/public/mine?range={value}").data.decode()
-    assert script_value(html, "currentRange") == key and 'id="range-buttons"' not in html
+    assert page_data(html)["chart_range"] == key and 'id="range-buttons"' not in html
 
 
 def test_any_range_may_be_fixed_even_one_the_data_does_not_span(client, owner):
     share(client, "mine")
-    assert script_value(client.get("/public/mine?range=20y").data.decode(), "currentRange") == "20y"
+    assert page_data(client.get("/public/mine?range=20y").data.decode())["chart_range"] == "20y"
 
 
 @pytest.mark.parametrize("query", ["", "?range=", "?range=3x", "?range=3 m", "?range=<b>"])
@@ -423,7 +434,7 @@ def test_without_a_known_range_the_buttons_stay(client, owner, query):
     share(client, "mine")
     html = client.get("/public/mine" + query).data.decode()
     assert 'id="range-buttons"' in html and "stat-card-link" in html
-    assert script_value(html, "currentRange") == owner.chart_range
+    assert page_data(html)["chart_range"] == owner.chart_range
 
 
 def test_the_saved_range_fixes_the_chart_when_the_address_has_none(client, owner):
@@ -431,13 +442,13 @@ def test_the_saved_range_fixes_the_chart_when_the_address_has_none(client, owner
     assert owner.public_range == "3m"
     for query in ("", "?range=", "?range=3x", "?theme=dark"):
         html = client.get("/public/mine" + query).data.decode()
-        assert script_value(html, "currentRange") == "3m" and 'id="range-buttons"' not in html
+        assert page_data(html)["chart_range"] == "3m" and 'id="range-buttons"' not in html
 
 
 def test_a_range_in_the_address_wins_over_the_saved_one(client, owner):
     share(client, "mine", range_key="3m")
     html = client.get("/public/mine?range=1W").data.decode()
-    assert script_value(html, "currentRange") == "1w" and 'id="range-buttons"' not in html
+    assert page_data(html)["chart_range"] == "1w" and 'id="range-buttons"' not in html
 
 
 @pytest.mark.parametrize("sent, saved", [("1y", "1y"), ("", None), ("1Y", None), ("3x", None), ("<b>", None)])
@@ -450,7 +461,7 @@ def test_only_a_known_range_is_saved(client, owner, sent, saved):
 def test_the_dashboard_ignores_it(client, owner):
     html = client.get("/?range=1w").data.decode()
     assert 'id="range-buttons"' in html
-    assert script_value(html, "currentRange") == owner.chart_range
+    assert page_data(html)["chart_range"] == owner.chart_range
 
 
 def range_menu(page):

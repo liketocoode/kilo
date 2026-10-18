@@ -23,6 +23,7 @@ from app.importing import parse_import
 from app.models import WeightEntry
 from app.utils import NOTE_MAX_LENGTH
 from tests.builders import hd_csv, hd_xml
+from tests.conftest import page_data, page_with_scripts
 
 TOO_LONG = "x" * (NOTE_MAX_LENGTH + 20)
 
@@ -38,9 +39,11 @@ def test_the_database_column_has_the_limit():
 
 def test_the_note_editor_has_the_limit(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").get_data(as_text=True)
+    html = page_with_scripts(client)
     assert f'maxlength="{NOTE_MAX_LENGTH}"' in html
-    assert f"textarea.value.trim().slice(0, {NOTE_MAX_LENGTH})" in html
+    # the script cuts a saved note to the limit the page gives it
+    assert page_data(html)["note_max_length"] == NOTE_MAX_LENGTH
+    assert "textarea.value.trim().slice(0, PAGE.note_max_length)" in html
 
 
 def test_a_saved_note_is_cut_to_the_limit(logged_in_client, app):

@@ -17,6 +17,7 @@ Saving entries is in test_entries.py, the settings in test_settings.py, import a
 test_import_export.py. This file also guards every route: see PUBLIC_ENDPOINTS.
 """
 
+import os
 import re
 from datetime import date, timedelta
 
@@ -25,7 +26,7 @@ from sqlalchemy import event
 
 from app import db
 from app.models import User, WeightEntry
-from tests.conftest import script_value
+from tests.conftest import page_data, page_with_scripts
 
 
 def test_index_shows_login_prompt_when_logged_out(client):
@@ -324,8 +325,8 @@ def test_stats_unaffected_by_interpolation(logged_in_client):
 def test_today_prompt_shows_when_todays_entry_missing(logged_in_client):
     client, _ = logged_in_client
     html = client.get("/").data.decode()
-    assert script_value(html, "todayEntryMissing") is True
-    assert script_value(html, "todayDate") == date.today().isoformat()
+    assert page_data(html)["today"]["entry_missing"] is True
+    assert page_data(html)["today"]["date"] == date.today().isoformat()
     assert 'id="today-prompt"' in html
 
 
@@ -333,7 +334,7 @@ def test_today_prompt_hidden_flag_when_todays_entry_exists(logged_in_client):
     client, _ = logged_in_client
     client.post("/entries/field", json={"date": date.today().isoformat(), "weight": 80.0})
     html = client.get("/").data.decode()
-    assert script_value(html, "todayEntryMissing") is False
+    assert page_data(html)["today"]["entry_missing"] is False
 
 
 def test_today_prompt_missing_when_only_older_entries_exist(logged_in_client):
@@ -342,7 +343,7 @@ def test_today_prompt_missing_when_only_older_entries_exist(logged_in_client):
         "/entries/field", json={"date": (date.today() - timedelta(days=1)).isoformat(), "weight": 80.0}
     )
     html = client.get("/").data.decode()
-    assert script_value(html, "todayEntryMissing") is True
+    assert page_data(html)["today"]["entry_missing"] is True
 
 
 def test_chart_moving_average_default_window(logged_in_client):
@@ -401,8 +402,9 @@ def test_changes_use_moving_average_and_need_enough_history(logged_in_client):
 
 def test_today_prompt_skip_key_is_per_user(logged_in_client):
     client, user_id = logged_in_client
-    html = client.get("/").data.decode()
-    assert f"'weightTracker.todayPromptSkippedDate.' + {user_id}" in html
+    html = page_with_scripts(client)
+    assert page_data(html)["today"]["user_id"] == user_id
+    assert "'weightTracker.todayPromptSkippedDate.' + PAGE.today.user_id" in html
 
 
 def test_current_weight_and_bmi_use_the_moving_average(logged_in_client):
@@ -474,7 +476,7 @@ def test_change_colours_are_not_flipped_without_a_height(logged_in_client):
 
 def test_mobile_layout_rules_and_viewport_are_present(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert '<meta name="viewport" content="width=device-width, initial-scale=1">' in html
     css = client.get("/static/style.css").data.decode()
     assert "@media (max-width: 720px)" in css
@@ -521,7 +523,7 @@ def test_change_boxes_link_to_their_chart_ranges(logged_in_client):
 
 def test_range_cutoff_uses_local_dates_not_utc(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # toISOString() is UTC: east of Greenwich it moved the cutoff a day too
     # early, so 1W/2W/1M each showed one day too many.
     assert "toISOString().slice(0, 10)" not in html
@@ -531,7 +533,7 @@ def test_range_cutoff_uses_local_dates_not_utc(logged_in_client):
 
 def test_chart_pads_the_right_edge_up_to_today(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # The page script adds empty days up to today (local date) after the last entry.
     assert "localIso(today)" in html
     assert "values.push(null)" in html
@@ -569,7 +571,7 @@ def test_landscape_phone_layout_rules_are_present(client):
 
 def test_chart_tooltip_shows_bmi_from_the_moving_average(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "afterBody" in html
     assert "movingAvgBmiOn(items[0].label)" in html
     # the label comes from the page's translated strings, with the user's window (10 days by default)
@@ -582,13 +584,13 @@ def test_responsive_breakpoints_and_axis_thinning_are_present(logged_in_client):
     css = client.get("/static/style.css").data.decode()
     assert "@media (max-width: 1000px), (max-height: 600px)" in css  # flow layout
     assert "@media (max-width: 720px)" in css  # small text
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "function thinTicks" in html and "onResize" in html
 
 
 def test_chart_has_a_right_hand_bmi_axis_tied_to_the_weight_ticks(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "yBmi:" in html
     assert "position: 'right'" in html
     assert "oneDecimalFormat.format(bmiForWeight(weight))" in html
@@ -630,7 +632,7 @@ def test_the_bmi_axis_copies_the_weight_range_again_after_its_ticks_are_built(lo
     range (1W) the BMI axis drifted to another range than the weight axis. The copy must happen in
     afterBuildTicks too; the exact pixel alignment is checked in a real browser (see CLAUDE.md)."""
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     block = html[html.index("afterBuildTicks(scale)"):]
     block = block[:block.index("ticks: {")]
     assert "scale.min = weightScale.min" in block and "scale.max = weightScale.max" in block
@@ -640,7 +642,7 @@ def test_the_bmi_axis_copies_the_weight_range_again_after_its_ticks_are_built(lo
 
 def test_chart_tooltip_title_has_the_weekday_in_the_languages_own_order(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # Intl spells out weekday, day, abbreviated month and year, and orders them per language
     # ("Maandag 5 okt 2026", "Montag, 5. Okt. 2026", "2026. okt. 5., hétfő")
     assert "weekday: 'long', day: 'numeric', month: 'short', year: 'numeric'" in html
@@ -671,17 +673,17 @@ def test_page_embeds_the_notes_without_breaking_out_of_the_script(logged_in_clie
     client, _ = logged_in_client
     client.post("/entries/field", json={"date": "2026-01-02", "weight": 80.0, "note": "</script><b>hi</b> & more"})
     html = client.get("/").data.decode()
-    assert script_value(html, "fullNotes") == {"2026-01-02": "</script><b>hi</b> & more"}  # intact
+    assert page_data(html)["chart_notes"] == {"2026-01-02": "</script><b>hi</b> & more"}  # intact
     assert "</script><b>hi" not in html  # tojson escapes < > &, so a note cannot close the script
     assert "\\u003c/script\\u003e" in html
 
 
 def test_chart_tooltip_shows_the_note_under_the_bmi(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "footer: (items) => (items.length ? wrapNote(fullNotes[items[0].label]) : [])" in html
     assert "function wrapNote(" in html
-    assert "fullNotes = data.chart_notes;" in html  # refreshed after every save
+    assert "fullNotes = data.chart_notes;" in html  # refreshed after every save (setSeries)
 
 
 def test_note_editor_has_an_emoji_button_and_one_shared_panel(logged_in_client):
@@ -697,9 +699,9 @@ def test_note_editor_has_an_emoji_button_and_one_shared_panel(logged_in_client):
 
 def test_emoji_picker_lists_the_most_common_emoji_first(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # general favourites first, then the ones for movement, food and mood
-    assert "const EMOJI = [\n    '😊', '😂', '👍', '❤️', '😢', '🎉', '🔥', '🙏'" in html
+    assert "const EMOJI = [\n  '😊', '😂', '👍', '❤️', '😢', '🎉', '🔥', '🙏'" in html
     assert html.index("'🏃'") > html.index("'🙏'")  # movement after the general favourites
     # recently used ones (kept per device) are shown above the list
     assert "const EMOJI_STORAGE_KEY = 'kilo.recentEmoji';" in html
@@ -708,7 +710,7 @@ def test_emoji_picker_lists_the_most_common_emoji_first(logged_in_client):
 
 def test_emoji_picker_respects_the_note_length_limit(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # setRangeText ignores maxlength, so inserting checks it itself
     assert "textarea.value.length - selected + emoji.length > textarea.maxLength" in html
     assert 'maxlength="280"' in html
@@ -740,7 +742,7 @@ def test_note_editor_buttons_stay_on_one_line_and_the_box_is_wide(client):
 
 def test_note_in_the_tooltip_is_not_italic(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # the canvas would slant the emoji in a note as well
     assert "footerFont: { weight: 'normal', style: 'normal' }" in html
     assert "italic" not in html.split("footerFont")[1][:120]
@@ -748,7 +750,7 @@ def test_note_in_the_tooltip_is_not_italic(logged_in_client):
 
 def test_note_editor_is_kept_inside_the_screen(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "function placePopover(popover)" in html
     # called when the editor opens, before the cursor goes into the text box
     opening = html.split("if (opening) {")[1][:120]
@@ -759,8 +761,40 @@ def test_chart_js_is_served_by_the_app_not_a_cdn(logged_in_client):
     client, _ = logged_in_client
     html = client.get("/").data.decode()
     # No visitor data goes to a third party for the chart (see app/static/vendor/README.md).
-    assert re.findall(r'<script src="([^"]+)"', html) == ["/static/vendor/chartjs-4.4.4/chart.umd.js"]
+    sources = re.findall(r'<script src="([^"]+)"', html)
+    assert sources[0] == "/static/vendor/chartjs-4.4.4/chart.umd.js"
+    assert all(src.startswith("/static/") for src in sources)  # the rest are Kilo's own scripts
     script = client.get("/static/vendor/chartjs-4.4.4/chart.umd.js")
     assert script.status_code == 200
     assert b"Chart.js v4.4.4" in script.data
     assert b"sourceMappingURL" not in script.data
+
+
+def test_the_dashboard_runs_both_scripts_with_its_addresses_in_the_page_data(logged_in_client):
+    client, _ = logged_in_client
+    html = client.get("/").data.decode()
+    assert "/static/dashboard-chart.js?v=" in html and "/static/dashboard-log.js?v=" in html
+    data = page_data(html)
+    assert data["public"] is False
+    assert data["urls"] == {"save_field": "/entries/field", "chart_range": "/chart-range",
+                            "entries_window": "/entries/window"}
+
+
+def test_the_page_data_has_the_same_chart_keys_as_a_save(logged_in_client):
+    """setSeries() loads the series from the page data at first and from each save's answer
+    later: both must use the keys of routes.overview()."""
+    client, _ = logged_in_client
+    answer = client.post("/entries/field", json={"date": date.today().isoformat(), "weight": "80"}).get_json()
+    chart_keys = {key for key in page_data(client.get("/").data.decode()) if key.startswith("chart_")}
+    assert chart_keys - {"chart_range", "chart_range_days"} == {key for key in answer if key.startswith("chart_")}
+
+
+def test_the_dashboard_scripts_are_addressed_by_their_modification_time(logged_in_client, app):
+    """Static files have no cache lifetime, so a browser may keep its copy; the ?v= changes when
+    a deploy changes the file, so the page never runs with an old script."""
+    client, _ = logged_in_client
+    html = client.get("/").data.decode()
+    for name in ("dashboard-chart.js", "dashboard-log.js"):
+        mtime = int(os.path.getmtime(os.path.join(app.static_folder, name)))
+        assert f"/static/{name}?v={mtime}" in html
+        assert client.get(f"/static/{name}?v={mtime}").status_code == 200

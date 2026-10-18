@@ -49,3 +49,18 @@ def test_a_saved_range_and_theme_apply_without_buttons(live_server, page):
     expect(page.locator("html")).to_have_attribute("data-theme", "dark")
     expect(page.locator("#range-buttons")).to_have_count(0)
     assert page.evaluate("chart.data.labels.length") == 8  # today minus 7 days .. today
+
+
+def test_a_visitor_can_switch_ranges_and_click_the_chart_without_saving_anything(live_server, page):
+    share(live_server)
+    page.goto(live_server.url + "/public/mine")
+    requests = []
+    page.on("request", lambda request: requests.append(request.url))
+    page.click('.range-btn[data-range="1w"]')
+    expect(page.locator('.range-btn[data-range="1w"]')).to_have_class("range-btn active")
+    assert page.evaluate("chart.data.labels.length") == 8
+    box = page.locator("#weight-chart").bounding_box()
+    # A point of the line; on the dashboard it jumps to its day in the daily log, which is not here.
+    page.mouse.click(box["x"] + box["width"] * 0.8, box["y"] + box["height"] / 2)
+    assert page.evaluate("chart.getActiveElements().length") == 1  # it hit the line (and errors have arrived)
+    assert requests == []  # a visitor's choice is not saved anywhere

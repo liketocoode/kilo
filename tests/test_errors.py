@@ -22,7 +22,7 @@ import pytest
 
 from app import db, errors
 from app.models import User, WeightEntry
-from tests.conftest import flashes, signup_and_verify
+from tests.conftest import flashes, page_with_scripts, signup_and_verify
 
 BROWSER = {"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}
 EXPIRED = "Your session has expired and nothing was changed. Please try again."
@@ -154,7 +154,7 @@ def test_the_json_message_is_translated(logged_in_client, csrf_on):
 
 def test_the_dashboard_has_a_session_expired_dialog_and_uses_it(logged_in_client):
     client, _user_id = logged_in_client
-    html = client.get("/", headers={"Accept-Language": "de"}).get_data(as_text=True)
+    html = page_with_scripts(client, "/?lang=de")
     assert 'id="session-expired-prompt"' in html
     assert "Sitzung abgelaufen" in html and "Seite neu laden" in html
     # title, text and button are all rendered by the page, so they always match its language
