@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_forms.html" import code_field %}
 
 {% block title %}{{ _("Verify your email") }}{% endblock %}
 
@@ -8,13 +9,7 @@
     <p>{% trans num=ttl_minutes, email=email %}We sent a 6-digit code to <strong>{{ email }}</strong>. It expires in {{ num }} minute.{% pluralize num %}We sent a 6-digit code to <strong>{{ email }}</strong>. It expires in {{ num }} minutes.{% endtrans %}</p>
     <form method="post" action="{{ url_for('auth.verify') }}" class="entry-form">
       {{ form.hidden_tag() }}
-      <div class="field">
-        {{ form.code.label }}
-        {{ form.code(placeholder="123456", autofocus=true, maxlength=6, inputmode="numeric") }}
-        {% for error in form.code.errors %}
-          <p class="flash flash-error">{{ error }}</p>
-        {% endfor %}
-      </div>
+      {{ code_field(form) }}
       <button type="submit">{{ _("Verify") }}</button>
     </form>
     <form method="post" action="{{ url_for('auth.resend_code') }}" class="inline-form">

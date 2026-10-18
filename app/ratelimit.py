@@ -60,7 +60,7 @@ from app.security import client_ip, log_event
 from app.utils import utcnow
 
 MODES = ("off", "log", "enforce")
-HOUR = 3600
+HOUR = int(timedelta(hours=1).total_seconds())
 
 _warned_no_address = False
 
@@ -157,17 +157,22 @@ def _warn_no_address():
         )
 
 
+def _in_window(event_kind, subject, window, now):
+    """SQL conditions: the events of `event_kind` for `subject` in the last `window` seconds."""
+    since = now - timedelta(seconds=window)
+    return RateEvent.kind == event_kind, RateEvent.subject == subject, RateEvent.at > since
+
+
 def _insert_if_below(event_kind, subject, limit, window, now):
     """Count one event, unless `limit` events already lie in the last `window` seconds.
 
     One statement, so the check and the insert cannot be separated by another worker. Returns
     the new row's id, or None when the limit is reached.
     """
-    since = now - timedelta(seconds=window)
     in_window = (
         select(func.count())
         .select_from(RateEvent)
-        .where(RateEvent.kind == event_kind, RateEvent.subject == subject, RateEvent.at > since)
+        .where(*_in_window(event_kind, subject, window, now))
         .scalar_subquery()
     )
     statement = insert(RateEvent).from_select(
@@ -180,12 +185,7 @@ def _insert_if_below(event_kind, subject, limit, window, now):
 
 def _retry_after(event_kind, subject, window, now):
     """Seconds until the oldest event in the window leaves it and a slot opens up."""
-    since = now - timedelta(seconds=window)
-    oldest = db.session.scalar(
-        select(func.min(RateEvent.at)).where(
-            RateEvent.kind == event_kind, RateEvent.subject == subject, RateEvent.at > since
-        )
-    )
+    oldest = db.session.scalar(select(func.min(RateEvent.at)).where(*_in_window(event_kind, subject, window, now)))
     if oldest is None:
         return window
     return max(1, math.ceil((oldest + timedelta(seconds=window) - now).total_seconds()))

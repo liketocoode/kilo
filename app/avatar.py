@@ -39,6 +39,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from datetime import timedelta
 
 from flask import current_app
 
@@ -47,11 +48,13 @@ GRAVATAR_URL = "https://www.gravatar.com/avatar/{hash}?s={size}&d=404"
 SIZE = 40
 TIMEOUT_SECONDS = 3
 MAX_BYTES = 100 * 1024
-CACHE_SECONDS = 24 * 60 * 60
-RETRY_SECONDS = 15 * 60
+CACHE_SECONDS = int(timedelta(days=1).total_seconds())
+RETRY_SECONDS = int(timedelta(minutes=15).total_seconds())
 # Cache files of accounts that no longer exist are removed by the daily cleanup; any other
 # file this old is too (its owner has not visited for a month).
-KEEP_SECONDS = 30 * 24 * 60 * 60
+KEEP_SECONDS = int(timedelta(days=30).total_seconds())
+# A temporary file this old was left behind by a write that was interrupted.
+TMP_KEEP_SECONDS = int(timedelta(hours=1).total_seconds())
 
 _HASH = re.compile(r"[0-9a-f]{64}")
 # Extension -> (content type, test on the first bytes).
@@ -123,10 +126,52 @@ def _write(path, data, mtime=None):
         raise
 
 
+def _retry_mtime(now):
+    """A modification time that makes a cache file stale RETRY_SECONDS from `now`."""
+    return now - CACHE_SECONDS + RETRY_SECONDS
+
+
+def _unlink_quietly(path):
+    """Delete `path`; True if it was deleted, False if it could not be (or was not there)."""
+    try:
+        os.unlink(path)
+    except OSError:
+        return False
+    return True
+
+
 def _remove_others(paths, keep):
     for ext, path in paths.items():
         if ext != keep and os.path.exists(path):
             os.unlink(path)
+
+
+def _cached(paths, now):
+    """(ext, path, age in seconds) of this hash's cache file, or None when there is none."""
+    for ext, path in paths.items():
+        try:
+            return ext, path, now - os.path.getmtime(path)
+        except OSError:
+            continue
+    return None
+
+
+def _after_failed_fetch(paths, cached, now):
+    """Gravatar could not be reached: the old avatar if there is one, else the placeholder.
+    Either way Gravatar is asked again in RETRY_SECONDS, not on every page load."""
+    if cached and cached[0] != _MISSING:
+        # An old avatar is better than none.
+        try:
+            os.utime(cached[1], (_retry_mtime(now),) * 2)
+        except OSError:
+            pass
+        return _read(*cached[:2])
+    try:
+        _write(paths[_MISSING], b"", mtime=_retry_mtime(now))
+        _remove_others(paths, _MISSING)
+    except OSError:
+        pass
+    return None
 
 
 def get(email_hash, now=None):
@@ -135,15 +180,7 @@ def get(email_hash, now=None):
         return None
     now = time.time() if now is None else now
     paths = _paths(email_hash)
-    cached = None
-    for ext, path in paths.items():
-        try:
-            age = now - os.path.getmtime(path)
-        except OSError:
-            continue
-        cached = (ext, path, age)
-        break
-
+    cached = _cached(paths, now)
     if cached and cached[2] < CACHE_SECONDS:
         return _read(*cached[:2])
 
@@ -151,20 +188,7 @@ def get(email_hash, now=None):
         result = _download(email_hash)
     except OSError as error:
         current_app.logger.warning("Could not fetch a Gravatar: %s", error)
-        if cached and cached[0] != _MISSING:
-            # An old avatar is better than none; ask Gravatar again in RETRY_SECONDS.
-            try:
-                os.utime(cached[1], (now - CACHE_SECONDS + RETRY_SECONDS,) * 2)
-            except OSError:
-                pass
-            return _read(*cached[:2])
-        try:
-            # Try again in RETRY_SECONDS rather than on every page load.
-            _write(paths[_MISSING], b"", mtime=now - CACHE_SECONDS + RETRY_SECONDS)
-            _remove_others(paths, _MISSING)
-        except OSError:
-            pass
-        return None
+        return _after_failed_fetch(paths, cached, now)
 
     keep = _MISSING if result is None else _TYPE_TO_EXT[result[0]]
     try:
@@ -190,10 +214,18 @@ def forget(email_hash):
     if not _HASH.fullmatch(email_hash or ""):
         return
     for path in _paths(email_hash).values():
-        try:
-            os.unlink(path)
-        except OSError:
-            pass
+        _unlink_quietly(path)
+
+
+def _goes(name, age, known_hashes):
+    """Whether the cleanup deletes this cache file: a temporary file left behind, a file of a
+    removed account, or one nobody has used for KEEP_SECONDS. Files that are not ours stay."""
+    if name.startswith(".tmp-"):
+        return age > TMP_KEEP_SECONDS
+    stem, _dot, ext = name.partition(".")
+    if not (_HASH.fullmatch(stem) and ext in [*_FORMATS, _MISSING]):
+        return False  # not ours
+    return age > KEEP_SECONDS or stem not in known_hashes
 
 
 def prune(known_hashes, now=None, dry_run=False):
@@ -206,23 +238,12 @@ def prune(known_hashes, now=None, dry_run=False):
     count = 0
     for name in os.listdir(folder):
         path = os.path.join(folder, name)
-        stem, _dot, ext = name.partition(".")
         try:
             age = now - os.path.getmtime(path)
         except OSError:
             continue
-        if name.startswith(".tmp-"):
-            old = age > 60 * 60  # left behind by a write that was interrupted
-        elif _HASH.fullmatch(stem) and ext in [*_FORMATS, _MISSING]:
-            old = age > KEEP_SECONDS
-        else:
-            continue  # not ours
-        if not old and (name.startswith(".tmp-") or stem in known_hashes):
+        if not _goes(name, age, known_hashes):
             continue
-        count += 1
-        if not dry_run:
-            try:
-                os.unlink(path)
-            except OSError:
-                count -= 1
+        if dry_run or _unlink_quietly(path):
+            count += 1
     return count

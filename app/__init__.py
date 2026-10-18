@@ -14,9 +14,8 @@
 """Application factory and shared extensions for Kilo Tracker.
 
 Creates the Flask app (`create_app`), wires up SQLAlchemy, CSRF protection and
-Flask-Mail, configures SQLite for use by several processes (WAL mode), and adds
-columns that newer versions of the app expect to databases created by older
-ones.
+Flask-Mail, configures SQLite for use by several processes (WAL mode), and brings
+the database to the newest migration (Alembic, migrations/versions) at every start.
 """
 
 import os
@@ -29,7 +28,7 @@ try:
 except ImportError:  # Windows: no lock (production runs on Linux)
     fcntl = None
 
-from flask import Flask, request
+from flask import Flask, current_app, request, url_for
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -38,6 +37,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from . import csp, i18n, security
+from .utils import NOTE_MAX_LENGTH, PROJECT_ROOT
 
 db = SQLAlchemy()
 # Alembic through Flask-Migrate; the migrations are in migrations/versions (see _migrate_database).
@@ -50,12 +50,26 @@ mail = Mail()
 SQLITE_BUSY_TIMEOUT_MS = 30_000
 
 
+def static_url(filename):
+    """The address of a file in static/ with its modification time as `?v=`: Kilo sends static
+    files without a cache lifetime, so a browser may reuse its copy for a while. A deploy that
+    changes the dashboard scripts changes the address too, so the new page never runs with an
+    old script."""
+    mtime = int(os.path.getmtime(os.path.join(current_app.static_folder, filename)))
+    return url_for("static", filename=filename, v=mtime)
+
+
 def _env_int(name, default):
     """An integer setting from the environment; a missing or invalid value gives the default."""
     try:
         return int(os.environ[name])
     except (KeyError, ValueError):
         return default
+
+
+def _env_flag(name, default):
+    """An on/off setting from the environment: on only when it is "1"; unset gives the default."""
+    return os.environ.get(name, "1" if default else "0") == "1"
 
 
 @event.listens_for(Engine, "connect")
@@ -89,18 +103,18 @@ def create_app(test_config=None):
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAIL_SERVER=os.environ.get("MAIL_SERVER", "localhost"),
         MAIL_PORT=int(os.environ.get("MAIL_PORT", "25")),
-        MAIL_USE_TLS=os.environ.get("MAIL_USE_TLS", "0") == "1",
+        MAIL_USE_TLS=_env_flag("MAIL_USE_TLS", False),
         MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
         MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
         MAIL_DEFAULT_SENDER=os.environ.get("MAIL_DEFAULT_SENDER", "no-reply@weight-tracker.local"),
-        MAIL_SUPPRESS_SEND=os.environ.get("MAIL_SUPPRESS_SEND", "1") == "1",
-        CHECK_EMAIL_MX=os.environ.get("CHECK_EMAIL_MX", "1") == "1",
+        MAIL_SUPPRESS_SEND=_env_flag("MAIL_SUPPRESS_SEND", True),
+        CHECK_EMAIL_MX=_env_flag("CHECK_EMAIL_MX", True),
         # A log of suspicious requests (unknown pages, wrong sign-in codes) in a fixed format
         # for fail2ban, see app/security.py. Unset: nothing is written.
         SECURITY_LOG_FILE=os.environ.get("SECURITY_LOG_FILE"),
         # The header's avatar is fetched from Gravatar by the server and cached on disk, see
         # app/avatar.py. 0 shows a local placeholder for everyone and never contacts Gravatar.
-        GRAVATAR_ENABLED=os.environ.get("GRAVATAR_ENABLED", "1") == "1",
+        GRAVATAR_ENABLED=_env_flag("GRAVATAR_ENABLED", True),
         AVATAR_CACHE_DIR=os.path.join(app.instance_path, "avatars"),
         # Limits on emailed codes, see app/ratelimit.py. The mode is "log" until the numbers have
         # been checked against real traffic; 0 turns a single limit off.
@@ -129,7 +143,7 @@ def create_app(test_config=None):
         SESSION_COOKIE_SAMESITE="Lax",
         # In production set SESSION_COOKIE_SECURE=1, so the cookie is only ever sent over HTTPS.
         # Off by default: it would stop the plain-http development server from signing in.
-        SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "0") == "1",
+        SESSION_COOKIE_SECURE=_env_flag("SESSION_COOKIE_SECURE", False),
     )
 
     if test_config:
@@ -155,6 +169,10 @@ def create_app(test_config=None):
         if request.endpoint == "main.import_entries":
             request.max_content_length = app.config["IMPORT_MAX_CONTENT_LENGTH"]
 
+    # The note length limit, for the note editor's maxlength (see app/utils.py).
+    app.jinja_env.globals["NOTE_MAX_LENGTH"] = NOTE_MAX_LENGTH
+    app.add_template_global(static_url)
+
     # Content-Security-Policy and X-Frame-Options on every response (see app/csp.py).
     csp.init_app(app)
 
@@ -164,12 +182,13 @@ def create_app(test_config=None):
     csrf.init_app(app)
     mail.init_app(app)
 
-    from . import account, auth, errors, ratelimit, routes
+    from . import account, auth, errors, ratelimit, routes, sessions
     errors.init_app(app)
     ratelimit.init_app(app)
     app.register_blueprint(routes.bp)
     app.register_blueprint(account.bp)
     app.register_blueprint(auth.bp)
+    sessions.init_app(app)
 
     migrate.init_app(app, db, directory=MIGRATIONS_DIR)
     with app.app_context():
@@ -178,7 +197,7 @@ def create_app(test_config=None):
     return app
 
 
-MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "migrations")
+MIGRATIONS_DIR = os.path.join(PROJECT_ROOT, "migrations")
 
 
 @contextmanager

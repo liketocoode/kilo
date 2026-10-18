@@ -19,7 +19,6 @@ records the URLs asked for and answers like Gravatar would.
 
 import io
 import os
-import re
 import time
 import urllib.error
 import urllib.request
@@ -31,7 +30,7 @@ from app import avatar, db, mail
 from app.cleanup import cleanup
 from app.models import User
 from app.utils import hash_email, utcnow
-from tests.conftest import signup_and_verify
+from tests.conftest import code_from, signup_and_verify
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 50
@@ -207,7 +206,7 @@ def test_removing_the_account_deletes_its_cached_avatar(app, gravatar, signed_in
     assert signed_in.get("/settings/export").status_code == 200  # "Remove my data" needs a download
     with mail.record_messages() as outbox:
         signed_in.post("/settings/remove/send-code")
-    code = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+    code = code_from(outbox)
     signed_in.post("/settings/remove/confirm", data={"code": code})
     assert User.query.count() == 0
     assert cache_files(app) == []
@@ -231,6 +230,36 @@ def test_the_cleanup_removes_avatars_of_removed_and_long_inactive_accounts(app):
     assert planned["avatars"] == 2 and len(cache_files(app)) == 5  # a dry run changes nothing
     assert cleanup(now=utcnow())["avatars"] == 2
     assert cache_files(app) == sorted([".tmp-x", "README", f"{kept.email_hash}.png"])
+
+
+def test_the_cleanup_removes_a_temporary_file_left_for_an_hour(app):
+    """A write that was interrupted leaves a .tmp- file; one still being written must stay."""
+    folder = app.config["AVATAR_CACHE_DIR"]
+    os.makedirs(folder)
+    now = time.time()
+    for name, age in ((".tmp-recent", avatar.TMP_KEEP_SECONDS - 60), (".tmp-left", avatar.TMP_KEEP_SECONDS + 60)):
+        path = os.path.join(folder, name)
+        with open(path, "wb") as f:
+            f.write(b"x")
+        os.utime(path, (now - age, now - age))
+    assert avatar.TMP_KEEP_SECONDS == 3600
+    assert avatar.prune(set(), now=now) == 1
+    assert cache_files(app) == [".tmp-recent"]
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root may delete in a read-only folder")
+def test_the_cleanup_counts_only_the_files_it_could_delete(app):
+    folder = app.config["AVATAR_CACHE_DIR"]
+    os.makedirs(folder)
+    with open(os.path.join(folder, f"{hash_email('gone@example.com')}.png"), "wb") as f:
+        f.write(b"x")
+    os.chmod(folder, 0o500)  # no deleting in it
+    try:
+        assert avatar.prune(set(), dry_run=True) == 1
+        assert avatar.prune(set()) == 0
+    finally:
+        os.chmod(folder, 0o700)
+    assert len(cache_files(app)) == 1
 
 
 def test_the_real_opener_does_not_follow_a_redirect():

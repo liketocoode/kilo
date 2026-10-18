@@ -98,6 +98,22 @@ def _template_problems(source_pot, committed_pot):
     return problems
 
 
+def _entry_problems(lang, entries, template):
+    """Fuzzy and untranslated entries among those the template still has."""
+    problems = []
+    for msgid, message in entries.items():
+        if msgid not in template:
+            continue
+        if message.fuzzy:
+            problems.append(f"{lang}: fuzzy entry {_show(msgid)} (review it, then remove the fuzzy flag)")
+        # Babel pads a plural entry with fewer forms than the language needs with
+        # empty strings, so a missing form shows up here as untranslated too.
+        forms = message.string if isinstance(message.string, (tuple, list)) else (message.string,)
+        if not all(form and form.strip() for form in forms):
+            problems.append(f"{lang}: untranslated entry {_show(msgid)}")
+    return problems
+
+
 def _catalog_problems(lang, po_path, template):
     """Problems in one language's catalog, compared with the template's entries."""
     if not po_path.exists():
@@ -121,16 +137,7 @@ def _catalog_problems(lang, po_path, template):
     for msgid in entries.keys() - template.keys():
         problems.append(f"{lang}: stale entry {_show(msgid)} (merge the template: see TRANSLATING.md)")
 
-    for msgid, message in entries.items():
-        if msgid not in template:
-            continue
-        if message.fuzzy:
-            problems.append(f"{lang}: fuzzy entry {_show(msgid)} (review it, then remove the fuzzy flag)")
-        # Babel pads a plural entry with fewer forms than the language needs with
-        # empty strings, so a missing form shows up here as untranslated too.
-        forms = message.string if isinstance(message.string, (tuple, list)) else (message.string,)
-        if not all(form and form.strip() for form in forms):
-            problems.append(f"{lang}: untranslated entry {_show(msgid)}")
+    problems += _entry_problems(lang, entries, template)
 
     for message, errors in catalog.check():
         for error in errors:

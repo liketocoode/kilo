@@ -120,7 +120,6 @@
     (function () {
       var toggles = document.querySelectorAll('.dark-mode-toggle');
       if (!toggles.length) return;
-      var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
       toggles.forEach(function (toggle) {
         toggle.addEventListener('change', function () {
@@ -129,11 +128,7 @@
           var favicon = document.getElementById('favicon');
           if (favicon) favicon.href = favicon.dataset[checked ? 'dark' : 'light'];
           toggles.forEach(function (other) { other.checked = checked; });
-          fetch('{{ url_for("main.set_dark_mode") }}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify({ dark_mode: checked }),
-          }).catch(function () {});
+          postJson('{{ url_for("main.set_dark_mode") }}', { dark_mode: checked }).catch(function () {});
         });
       });
     })();
@@ -188,6 +183,17 @@
     window.normalizeDecimal = function (raw) {
       var s = String(raw).trim();
       return /^(\d+([.,]\d*)?|[.,]\d+)$/.test(s) ? s.replace(',', '.') : s;
+    };
+
+    // POST a JSON body with the page's CSRF token; resolves to the fetch Response. The token is
+    // read at call time: the public chart has no csrf-token meta (it never posts).
+    window.postJson = function (url, body) {
+      var meta = document.querySelector('meta[name="csrf-token"]');
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': meta ? meta.content : '' },
+        body: JSON.stringify(body),
+      });
     };
   </script>
 

@@ -13,17 +13,25 @@
 
 """Shared pytest fixtures: an app on an in-memory database, a client and a signed-in client."""
 
+import functools
+import html
+import json
 import os
 import re
+from html.parser import HTMLParser
+from pathlib import Path
 
 import pytest
 from babel.messages.mofile import write_mo
 from babel.messages.pofile import read_po
+from werkzeug.security import generate_password_hash
 
-from app import create_app, db, mail
+from app import codes, create_app, db, mail
 from app.models import User
 
-TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), "..", "translations")
+# The project's top folder, for tests that read its files.
+ROOT = Path(__file__).resolve().parent.parent
+TRANSLATIONS_DIR = str(ROOT / "translations")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -40,6 +48,18 @@ def compiled_catalogs():
             catalog = read_po(po_file, locale=lang)
         with open(base + ".mo", "wb") as mo_file:
             write_mo(mo_file, catalog)
+
+
+@pytest.fixture(autouse=True)
+def fast_code_hashes(request, monkeypatch):
+    """Hash emailed codes with a cheap method: production's scrypt costs about 0.1 s per hash and
+    per check, which was two thirds of the suite's time. Checking a code still works, because a
+    hash names its own method. A test marked `real_hash` keeps scrypt."""
+    if request.node.get_closest_marker("real_hash"):
+        return
+    monkeypatch.setattr(
+        codes, "generate_password_hash", functools.partial(generate_password_hash, method="pbkdf2:sha256:1")
+    )
 
 
 @pytest.fixture
@@ -72,11 +92,72 @@ def client(app):
     return app.test_client()
 
 
+# A visitor's address as the proxy reports it (X-Real-IP), from the documentation range.
+VISITOR_IP = "203.0.113.9"
+
+
+def code_from(outbox):
+    """The 6-digit code in the newest mail."""
+    body = outbox[-1].body
+    match = re.search(r"\b(\d{6})\b", body)
+    assert match, f"no code found in email body: {body!r}"
+    return match.group(1)
+
+
+def sign_up(client, email, ip=VISITOR_IP, lang=None):
+    """POST /signup as a visitor behind the proxy (no address: none known); returns
+    (response after the redirect, mails sent)."""
+    headers = {"X-Real-IP": ip} if ip else {}
+    if lang:
+        headers["Accept-Language"] = lang
+    with mail.record_messages() as outbox:
+        response = client.post("/signup", data={"email": email}, headers=headers, follow_redirects=True)
+    return response, outbox
+
+
+def flashes(page, kind="success|error"):
+    """The flash messages of `kind` on a page (a response or its HTML), as the visitor reads them."""
+    if not isinstance(page, str):
+        page = page.get_data(as_text=True)
+    return [html.unescape(text) for text in re.findall(rf'class="flash flash-(?:{kind})">([^<]+)<', page)]
+
+
+def page_data(page):
+    """The dashboard's (or public chart's) #page-data block: what its scripts read as PAGE."""
+    html = page if isinstance(page, str) else page.get_data(as_text=True)
+    return json.loads(re.search(r'<script type="application/json" id="page-data">(.*?)</script>', html, re.S).group(1))
+
+
+def page_with_scripts(client, path="/"):
+    """The HTML of a page followed by the text of the scripts it loads from static/ (not the
+    vendored Chart.js): the dashboard's code is in static/dashboard-*.js, so a test that looks
+    for a piece of code finds it whether it is in the page or in one of those files."""
+    html = client.get(path).get_data(as_text=True)
+    sources = [src for src in re.findall(r'<script src="(/static/[^"]+)"', html) if "/vendor/" not in src]
+    return html + "".join(client.get(src).get_data(as_text=True) for src in sources)
+
+
+def input_attrs(page, name):
+    """The attributes of the <input name="..."> on a page, as a dict; a valueless attribute such
+    as `checked` maps to None. Does not depend on the order WTForms writes them in."""
+
+    class Finder(HTMLParser):
+        found = None
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "input" and dict(attrs).get("name") == name and self.found is None:
+                self.found = dict(attrs)
+
+    finder = Finder()
+    finder.feed(page if isinstance(page, str) else page.get_data(as_text=True))
+    assert finder.found is not None, f'no <input name="{name}"> on the page'
+    return finder.found
+
+
 def signup_and_verify(client, email):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": email})
-    match = re.search(r"\b(\d{6})\b", outbox[-1].body)
-    client.post("/verify", data={"code": match.group(1)})
+    client.post("/verify", data={"code": code_from(outbox)})
 
 
 @pytest.fixture

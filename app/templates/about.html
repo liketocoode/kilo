@@ -42,7 +42,10 @@
   </section>
 
   <section class="add-entry">
-    <h2>{{ _("How signing in works") }}</h2>
+    <div class="page-head">
+      {{ back_link(url_for('main.index'), _("Back to the dashboard")) }}
+      <h2>{{ _("How signing in works") }}</h2>
+    </div>
     <p>{% trans trimmed num=ttl_minutes %}There are no passwords. Enter your email and we send a 6-digit code
       that's valid for {{ num }} minute — enter it and you're signed in.{% pluralize num %}There are no passwords. Enter your email and we send a 6-digit code
       that's valid for {{ num }} minutes — enter it and you're signed in.{% endtrans %}</p>

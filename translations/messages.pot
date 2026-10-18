@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Kilo Tracker VERSION\n"
 "Report-Msgid-Bugs-To: info@11tools.com\n"
-"POT-Creation-Date: 2026-10-12 18:48+0200\n"
+"POT-Creation-Date: 2026-10-17 17:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -180,13 +180,13 @@ msgstr ""
 msgid "Share my chart on a public page"
 msgstr ""
 
-#. NOTE: Switch in the settings: show the boxes with the current average, BMI
-#. and changes under the public chart.
 #. NOTE: Switch in the settings: show the kilograms on the public chart, or
 #. only the shape of the line.
 msgid "Show my weight"
 msgstr ""
 
+#. NOTE: Switch in the settings: show the boxes with the current average, BMI
+#. and changes under the public chart.
 msgid "Show the stat boxes on the public page"
 msgstr ""
 
@@ -291,6 +291,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Invalid date."
+msgstr ""
+
+msgid "Invalid request."
 msgstr ""
 
 #, python-format

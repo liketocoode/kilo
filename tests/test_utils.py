@@ -11,12 +11,16 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-"""Tests for the decimal parser in app/utils.py and its use in the CSV import."""
+"""Tests for the helpers in app/utils.py: the decimal parser (and its use in the CSV import),
+the BMI and the height in cm or m."""
 
 import pytest
 
 from app.csv_io import parse_csv
-from app.utils import parse_decimal
+from app.forms import SettingsForm
+from app.importing import parse_import
+from app.utils import MAX_HEIGHT_CM, MIN_HEIGHT_CM, bmi, height_from_cm, height_to_cm, parse_decimal
+from tests.builders import hd_xml
 
 
 @pytest.mark.parametrize(
@@ -56,3 +60,35 @@ def test_csv_import_rejects_exponent_and_nan_weights():
     rows, errors = parse_csv("1-2-26,1e2\n2-2-26,nan\n")
     assert rows == []
     assert len(errors) == 2
+
+
+def test_bmi_is_the_weight_over_the_height_in_metres_squared():
+    assert bmi(81, 180) == pytest.approx(25.0)
+    assert bmi(72.5, 172.5) == pytest.approx(72.5 / 1.725**2)
+
+
+@pytest.mark.parametrize(
+    "value, unit, cm", [(1.8, "m", 180), (1.875, "m", 187.5), (180, "cm", 180), (172.5, "cm", 172.5)]
+)
+def test_a_height_is_stored_in_centimetres(value, unit, cm):
+    assert height_to_cm(value, unit) == pytest.approx(cm)
+
+
+@pytest.mark.parametrize(
+    "cm, unit, shown", [(187, "m", 1.87), (172.456, "m", 1.72), (187.04, "cm", 187.0), (172.46, "cm", 172.5)]
+)
+def test_a_stored_height_is_shown_in_the_users_unit(cm, unit, shown):
+    assert height_from_cm(cm, unit) == shown
+
+
+@pytest.mark.parametrize("unit", ["cm", "m"])
+def test_a_height_survives_the_way_there_and_back(unit):
+    assert height_to_cm(height_from_cm(187.0, unit), unit) == pytest.approx(187.0)
+
+
+def test_the_settings_and_the_xml_import_accept_the_same_heights(app):
+    assert (SettingsForm.MIN_HEIGHT_CM, SettingsForm.MAX_HEIGHT_CM) == (MIN_HEIGHT_CM, MAX_HEIGHT_CM) == (50, 275)
+    with app.test_request_context():
+        for height, expected in [(MIN_HEIGHT_CM, 50.0), (MAX_HEIGHT_CM, 275.0), (MIN_HEIGHT_CM - 0.5, None),
+                                 (MAX_HEIGHT_CM + 0.5, None)]:
+            assert parse_import(hd_xml(height=str(height))).height_cm == expected

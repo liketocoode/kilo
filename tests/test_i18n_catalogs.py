@@ -15,12 +15,12 @@
 
 import importlib.util
 import shutil
-from pathlib import Path
 
 import pytest
 from babel.messages.pofile import read_po, write_po
 
-ROOT = Path(__file__).resolve().parent.parent
+from tests.conftest import ROOT
+
 LANGUAGES = ["nl", "fr", "es", "pt", "de", "it", "id", "pl", "ro", "hu", "da", "fi", "sv", "nb"]
 
 spec = importlib.util.spec_from_file_location("check_i18n", ROOT / "scripts" / "check_i18n.py")
@@ -156,10 +156,36 @@ def test_a_language_without_a_catalog_is_reported(translations):
     assert any(line.startswith("pt: no catalog") and "pybabel init" in line for line in found)
 
 
-def test_machine_translated_entries_are_counted():
-    counts = check_i18n.count_machine_translated(ROOT / "translations", LANGUAGES)
+def test_machine_translated_entries_are_counted(translations):
+    # On a scratch copy, so the test does not depend on how far the native reviews are (a
+    # reviewed language has no markers left: Finnish since PR #16).
+    def mark_all(catalog):
+        for message in catalog:
+            if message.id and "machine-translated" not in message.user_comments:
+                message.user_comments.append("machine-translated")
+
+    def unmark_all(catalog):
+        for message in catalog:
+            message.user_comments = [c for c in message.user_comments if c != "machine-translated"]
+
+    edit_catalog(po(translations, "da"), mark_all, locale="da")
+    edit_catalog(po(translations, "sv"), unmark_all, locale="sv")
+    with open(po(translations, "da"), "rb") as f:
+        entries = sum(1 for m in read_po(f, locale="da") if m.id)
+
+    counts = check_i18n.count_machine_translated(translations, LANGUAGES)
     assert set(counts) == set(LANGUAGES)
-    assert all(count > 0 for count in counts.values())
+    assert counts["da"] == entries > 0
+    assert counts["sv"] == 0
+
+
+def test_a_fully_reviewed_language_is_not_listed_as_needing_review(monkeypatch, capsys):
+    monkeypatch.setattr(check_i18n, "find_problems", lambda: [])
+    monkeypatch.setattr(check_i18n, "count_machine_translated", lambda _dir, _langs: {"nl": 3, "fi": 0})
+    assert check_i18n.main() == 0
+    out = capsys.readouterr().out
+    assert "nl: 3 entries still marked machine-translated" in out
+    assert "fi:" not in out
 
 
 def test_the_command_line_fails_when_there_are_problems(monkeypatch, capsys):

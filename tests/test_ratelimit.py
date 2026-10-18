@@ -23,8 +23,9 @@ from sqlalchemy.exc import OperationalError
 from app import create_app, db, mail, ratelimit, security
 from app.models import RateEvent, User
 from app.utils import hash_email
+from tests.conftest import VISITOR_IP, code_from, sign_up
 
-IP = "203.0.113.9"
+IP = VISITOR_IP
 
 
 @pytest.fixture
@@ -52,20 +53,6 @@ def enforcing(app, clock):
     return app
 
 
-def sign_up(client, email, ip=IP, lang=None):
-    """POST /signup (as a visitor behind the proxy); returns (response, mails sent)."""
-    headers = {"X-Real-IP": ip} if ip else {}
-    if lang:
-        headers["Accept-Language"] = lang
-    with mail.record_messages() as outbox:
-        response = client.post("/signup", data={"email": email}, headers=headers, follow_redirects=True)
-    return response, outbox
-
-
-def code_from(outbox):
-    return re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
-
-
 def counted(kind=None):
     query = RateEvent.query
     return (query.filter_by(kind=kind) if kind else query).count()
@@ -88,6 +75,15 @@ def test_a_second_request_within_the_wait_sends_nothing_but_looks_like_success(e
     clock.advance(seconds=55)  # 65 s after the first
     _, third = sign_up(client, "a@example.com")
     assert len(third) == 1
+
+
+def test_a_new_code_may_be_sent_the_moment_the_wait_is_over(enforcing, clock, client):
+    """The window is "the last 60 seconds": a send exactly 60 s ago is no longer in it."""
+    assert len(sign_up(client, "edge@example.com")[1]) == 1
+    clock.advance(seconds=59)
+    assert sign_up(client, "edge@example.com")[1] == []
+    clock.advance(seconds=1)
+    assert len(sign_up(client, "edge@example.com")[1]) == 1
 
 
 def test_the_owner_is_not_locked_out_by_someone_else_asking_for_codes(enforcing, clock, client, app):
@@ -297,6 +293,23 @@ def test_a_failed_send_does_not_use_up_the_allowance(enforcing, clock, client, m
     assert counted() == 0  # given back
     monkeypatch.undo()
     assert len(sign_up(client, "a@example.com")[1]) == 1  # no wait to sit out
+
+
+def test_a_release_that_fails_is_logged_and_does_not_break_the_request(enforcing, clock, app, monkeypatch, caplog):
+    with app.test_request_context("/signup", method="POST", headers={"X-Real-IP": IP}):
+        reservation = ratelimit.reserve_code("signin", hash_email("a@example.com"))
+    assert reservation.allowed and counted() > 0
+
+    def broken(*args, **kwargs):
+        raise OperationalError("DELETE", {}, Exception("database is locked"))
+
+    monkeypatch.setattr(db.session, "execute", broken)
+    reservation.release()  # no exception: the visitor gets the mail error, not a second one
+    monkeypatch.undo()
+    assert "Could not give back a rate limit reservation" in caplog.text
+    assert counted() > 0  # nothing was given back
+    reservation.release()  # and a second call does nothing
+    assert counted() > 0
 
 
 def test_a_failed_removal_mail_gives_the_allowance_back_too(enforcing, clock, logged_in_client, monkeypatch):

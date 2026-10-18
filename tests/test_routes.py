@@ -11,17 +11,22 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-"""Tests for the dashboard, the entries API, settings and related pages."""
+"""The dashboard, the chart and its ranges, the stat boxes and the other pages.
 
-import io
+Saving entries is in test_entries.py, the settings in test_settings.py, import and export in
+test_import_export.py. This file also guards every route: see PUBLIC_ENDPOINTS.
+"""
+
+import os
 import re
 from datetime import date, timedelta
 
 import pytest
+from sqlalchemy import event
 
 from app import db
 from app.models import User, WeightEntry
-from tests.conftest import signup_and_verify
+from tests.conftest import page_data, page_with_scripts
 
 
 def test_index_shows_login_prompt_when_logged_out(client):
@@ -38,181 +43,28 @@ def test_index_shows_grid_when_logged_in(logged_in_client):
     assert b"No entries yet" in resp.data
 
 
-def test_save_field_creates_entry(logged_in_client, app):
-    client, user_id = logged_in_client
-    resp = client.post(
-        "/entries/field",
-        json={"date": "2026-01-01", "weight": 80.5, "note": "morning"},
+# Endpoints anyone may reach. Every other endpoint must send a signed-out visitor away; adding one
+# here is a decision about what strangers may do, not a way to make a failing test pass.
+PUBLIC_ENDPOINTS = {
+    "static", "main.index", "main.robots_txt", "main.set_language", "main.user_avatar",
+    "main.public_chart", "auth.about", "auth.signup", "auth.verify", "auth.resend_code", "auth.logout",
+}
+
+
+def test_every_other_endpoint_needs_a_sign_in(app, client):
+    """So a new route that forgets @login_required fails here, not in production."""
+    guarded = sorted(
+        (rule.endpoint, "POST" if "POST" in rule.methods else "GET", rule.rule)
+        for rule in app.url_map.iter_rules()
+        if rule.endpoint not in PUBLIC_ENDPOINTS
     )
-    assert resp.status_code == 200
-    assert resp.get_json()["status"] == "saved"
-    with app.app_context():
-        entry = WeightEntry.query.filter_by(user_id=user_id).one()
-        assert entry.weight == 80.5
-        assert entry.note == "morning"
-
-
-def test_save_field_upserts_same_date(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post("/entries/field", json={"date": "2026-01-01", "weight": 80.5})
-    client.post("/entries/field", json={"date": "2026-01-01", "weight": 81.0})
-    with app.app_context():
-        entries = WeightEntry.query.filter_by(user_id=user_id).all()
-        assert len(entries) == 1
-        assert entries[0].weight == 81.0
-
-
-def test_save_field_empty_weight_deletes_entry(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post("/entries/field", json={"date": "2026-01-01", "weight": 80.5})
-    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": ""})
-    assert resp.get_json()["status"] == "cleared"
-    with app.app_context():
-        assert WeightEntry.query.filter_by(user_id=user_id).count() == 0
-
-
-def test_clearing_a_weight_says_what_was_removed_so_it_can_be_undone(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post("/entries/field", json={"date": "2026-01-01", "weight": "80,5", "note": "after the party"})
-    removed = client.post("/entries/field", json={"date": "2026-01-01", "weight": ""}).get_json()["removed"]
-    assert removed == {"weight": 80.5, "note": "after the party"}
-
-    # "Undo" saves the same values again (confirmed, so no outlier question).
-    resp = client.post(
-        "/entries/field", json={"date": "2026-01-01", "weight": str(removed["weight"]), "note": removed["note"],
-                                "confirm": True},
-    )
-    assert resp.get_json()["status"] == "saved"
-    with app.app_context():
-        (entry,) = WeightEntry.query.filter_by(user_id=user_id).all()
-        assert (entry.weight, entry.note) == (80.5, "after the party")
-
-
-def test_clearing_a_day_without_a_weight_removes_nothing(logged_in_client):
-    client, _ = logged_in_client
-    data = client.post("/entries/field", json={"date": "2026-01-01", "weight": ""}).get_json()
-    assert data["status"] == "cleared" and data["removed"] is None
-
-
-def test_a_removed_weight_without_a_note_gives_an_empty_note(logged_in_client):
-    client, _ = logged_in_client
-    client.post("/entries/field", json={"date": "2026-01-01", "weight": 80.5})
-    data = client.post("/entries/field", json={"date": "2026-01-01", "weight": ""}).get_json()
-    assert data["removed"] == {"weight": 80.5, "note": ""}
-
-
-def test_the_dashboard_has_the_undo_notice(logged_in_client):
-    client, _ = logged_in_client
-    html = client.get("/").get_data(as_text=True)
-    assert 'id="undo-toast"' in html and 'role="status"' in html and ">Undo</button>" in html
-    assert '"weightRemoved": "Weight of %(date)s removed."' in html
-
-
-def test_save_field_rejects_invalid_weight(logged_in_client, app):
-    client, user_id = logged_in_client
-    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": -5})
-    assert resp.status_code == 400
-    with app.app_context():
-        assert WeightEntry.query.filter_by(user_id=user_id).count() == 0
-
-
-def test_save_field_requires_login(client):
-    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": 80.5})
-    assert resp.status_code == 302
-
-
-def test_entries_window_returns_days_before_given_date(logged_in_client, app):
-    client, user_id = logged_in_client
-    with app.app_context():
-        db.session.add(WeightEntry(user_id=user_id, entry_date=date(2026, 1, 1), weight=80.0))
-        db.session.commit()
-
-    resp = client.get("/entries/window?before=2026-01-02")
-    assert resp.status_code == 200
-    days = resp.get_json()["days"]
-    assert len(days) == 30
-    assert days[0]["date"] == "2026-01-01"
-    assert days[0]["weight"] == 80.0
-    assert days[-1]["date"] == (date(2026, 1, 1) - timedelta(days=29)).isoformat()
-
-
-def test_data_is_isolated_between_users(app):
-    client_a = app.test_client()
-    client_b = app.test_client()
-
-    signup_and_verify(client_a, "a@example.com")
-    signup_and_verify(client_b, "b@example.com")
-
-    client_a.post("/entries/field", json={"date": "2026-01-01", "weight": 70.0})
-    client_b.post("/entries/field", json={"date": "2026-01-01", "weight": 90.0})
-
-    resp_a = client_a.get("/")
-    resp_b = client_b.get("/")
-    assert b"70.0" in resp_a.data
-    assert b"90.0" not in resp_a.data
-    assert b"90.0" in resp_b.data
-    assert b"70.0" not in resp_b.data
-
-    with app.app_context():
-        assert WeightEntry.query.count() == 2
-
-
-def test_settings_requires_login(client):
-    resp = client.get("/settings")
-    assert resp.status_code == 302
-
-
-def test_settings_updates_height_in_cm(logged_in_client, app):
-    client, user_id = logged_in_client
-    resp = client.post(
-        "/settings", data={"height_value": "180", "height_unit": "cm"}, follow_redirects=True
-    )
-    assert resp.status_code == 200
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.height_cm == 180
-        assert user.height_unit == "cm"
-
-
-def test_settings_updates_height_in_meters(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post("/settings", data={"height_value": "1.8", "height_unit": "m"})
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.height_cm == 180
-        assert user.height_unit == "m"
-
-
-def test_set_dark_mode_requires_login(client):
-    resp = client.post("/settings/dark-mode", json={"dark_mode": True})
-    assert resp.status_code == 302
-
-
-def test_set_dark_mode_saves_immediately(logged_in_client, app):
-    client, user_id = logged_in_client
-    resp = client.post("/settings/dark-mode", json={"dark_mode": True})
-    assert resp.get_json() == {"status": "saved", "dark_mode": True}
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.dark_mode is True
-
-    resp2 = client.post("/settings/dark-mode", json={"dark_mode": False})
-    assert resp2.get_json() == {"status": "saved", "dark_mode": False}
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.dark_mode is False
-
-
-def test_dark_mode_toggle_in_account_dropdown(logged_in_client):
-    client, _ = logged_in_client
-    html = client.get("/").data.decode()
-    assert 'class="dark-mode-toggle"' in html
-
-
-def test_dark_mode_field_is_first_in_settings_form(logged_in_client):
-    client, _ = logged_in_client
-    html = client.get("/settings").data.decode()
-    assert html.index("dark-mode-toggle") < html.index("height_value")
+    assert len(guarded) == 12  # a new route shows up here: decide whether it is public
+    for endpoint, method, path in guarded:
+        resp = client.open(path, method=method, json={} if method == "POST" else None)
+        assert resp.status_code == 302, endpoint
+        assert resp.headers["Location"].endswith("/"), endpoint
+    with client.session_transaction() as sess:
+        assert "user_id" not in sess
 
 
 def test_bmi_shown_once_height_and_weight_are_set(logged_in_client, app):
@@ -244,152 +96,48 @@ def test_about_page_renders(client):
     assert b'href="https://github.com/ramondevries/kilo"' in resp.data
 
 
-def test_default_theme_is_light(logged_in_client, app):
+def _queries(app, request):
+    """The SQL statements one request runs."""
+    statements = []
+
+    def record(_conn, _cursor, statement, *_args):
+        statements.append(statement)
+
+    engine = db.engine
+    event.listen(engine, "before_cursor_execute", record)
+    try:
+        response = request()
+    finally:
+        event.remove(engine, "before_cursor_execute", record)
+    assert response.status_code == 200
+    return statements
+
+
+def test_the_number_of_queries_does_not_grow_with_the_data(logged_in_client, app):
+    """No query per entry or per day: 10 entries and 2,000 (over five years) take the same
+    number of queries for the dashboard, a page of the daily log and a save. Counted rather
+    than timed, so a slow machine cannot make it fail."""
     client, user_id = logged_in_client
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.dark_mode is False
-
-    resp = client.get("/")
-    assert b'data-theme="light"' in resp.data
-
-
-def test_logged_out_theme_is_light(client):
-    resp = client.get("/")
-    assert b'data-theme="light"' in resp.data
-
-
-def test_settings_toggle_dark_mode(logged_in_client, app):
-    client, user_id = logged_in_client
-    resp = client.post(
-        "/settings",
-        data={"height_value": "180", "height_unit": "cm", "dark_mode": "y"},
-        follow_redirects=True,
-    )
-    assert resp.status_code == 200
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.dark_mode is True
-
-    resp2 = client.get("/")
-    assert b'data-theme="dark"' in resp2.data
-
-
-def test_settings_untoggle_dark_mode(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post(
-        "/settings", data={"height_value": "180", "height_unit": "cm", "dark_mode": "y"}
-    )
-    client.post("/settings", data={"height_value": "180", "height_unit": "cm"})
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.dark_mode is False
-
-
-def _upload(client, text, filename="data.csv"):
-    return client.post(
-        "/settings/import",
-        data={"csv_file": (io.BytesIO(text.encode()), filename)},
-        content_type="multipart/form-data",
-        follow_redirects=True,
-    )
-
-
-def test_import_creates_entries(logged_in_client, app):
-    client, user_id = logged_in_client
-    text = "23-9-26,79.7,optional notes\n25-9-26,80.5,\n"
-    resp = _upload(client, text)
-    assert resp.status_code == 200
-    assert b"Imported 2" in resp.data
-
-    with app.app_context():
-        entries = WeightEntry.query.filter_by(user_id=user_id).order_by(WeightEntry.entry_date).all()
-        assert len(entries) == 2
-        assert entries[0].entry_date == date(2026, 9, 23)
-        assert entries[0].weight == 79.7
-        assert entries[0].note == "optional notes"
-        assert entries[1].note is None
-
-
-def test_import_overwrites_existing_entry_for_same_date(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-23", "weight": 70.0, "note": "old"})
-    _upload(client, "23-9-26,79.7,new note\n")
-    with app.app_context():
-        entries = WeightEntry.query.filter_by(user_id=user_id).all()
-        assert len(entries) == 1
-        assert entries[0].weight == 79.7
-        assert entries[0].note == "new note"
-
-
-def test_import_reports_skipped_invalid_lines(logged_in_client, app):
-    client, user_id = logged_in_client
-    text = "23-9-26,79.7,\nnot-a-date,80,\n24-9-26,not-a-number,\n"
-    resp = _upload(client, text)
-    assert b"Imported 1" in resp.data
-    assert b"Skipped 2" in resp.data
-    with app.app_context():
-        assert WeightEntry.query.filter_by(user_id=user_id).count() == 1
-
-
-def test_import_four_digit_year(logged_in_client, app):
-    client, user_id = logged_in_client
-    _upload(client, "23-9-2026,79.7,\n")
-    with app.app_context():
-        entry = WeightEntry.query.filter_by(user_id=user_id).one()
-        assert entry.entry_date == date(2026, 9, 23)
-
-
-def test_import_requires_login(client):
-    resp = _upload(client, "23-9-26,79.7,\n")
-    assert resp.status_code == 200
-    assert b"Sign in" in resp.data
-
-
-def test_import_rejects_wrong_file_type(logged_in_client, app):
-    client, user_id = logged_in_client
-    resp = client.post(
-        "/settings/import",
-        data={"csv_file": (io.BytesIO(b"not a csv"), "data.png")},
-        content_type="multipart/form-data",
-        follow_redirects=True,
-    )
-    assert b"CSV, XML or text files only" in resp.data
-    with app.app_context():
-        assert WeightEntry.query.filter_by(user_id=user_id).count() == 0
-
-
-def test_export_returns_csv_attachment(logged_in_client, app):
-    client, _ = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-23", "weight": 79.7, "note": "hi"})
-
-    resp = client.get("/settings/export")
-    assert resp.status_code == 200
-    assert resp.mimetype == "text/csv"
-    assert "attachment" in resp.headers["Content-Disposition"]
-    assert resp.data.decode() == "23-9-26,79.7,hi\r\n"
-
-
-def test_export_requires_login(client):
-    resp = client.get("/settings/export")
-    assert resp.status_code == 302
-
-
-def test_export_then_import_round_trips(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-23", "weight": 79.7, "note": "hi"})
-    client.post("/entries/field", json={"date": "2026-09-24", "weight": 80.1})
-
-    exported = client.get("/settings/export").data
-
-    with app.app_context():
-        WeightEntry.query.filter_by(user_id=user_id).delete()
+    today = date.today()
+    counts = {}
+    added = 0
+    for size, weight in ((10, "80.5"), (2000, "81.5")):
+        db.session.add_all(
+            WeightEntry(user_id=user_id, entry_date=today - timedelta(days=d), weight=80 + (d % 7) / 10,
+                        note="a note" if d % 3 == 0 else None)  # notes go into the chart tooltip
+            for d in range(added, size)  # today included, with a note: each save below updates it
+        )
         db.session.commit()
-
-    _upload(client, exported.decode())
-    with app.app_context():
-        entries = WeightEntry.query.filter_by(user_id=user_id).order_by(WeightEntry.entry_date).all()
-        assert [e.weight for e in entries] == [79.7, 80.1]
+        added = size
+        # Each round's save changes today's weight (an UPDATE both times) and sends its note back.
+        save = {"date": str(today), "weight": weight, "note": "a note", "confirm": True}
+        counts[size] = {
+            "dashboard": len(_queries(app, lambda: client.get("/"))),
+            "log page": len(_queries(app, lambda: client.get(f"/entries/window?before={today}"))),
+            "save": len(_queries(app, lambda save=save: client.post("/entries/field", json=save))),
+        }
+    assert counts[10] == counts[2000]
+    assert counts[2000]["dashboard"] <= 4 and counts[2000]["log page"] <= 2 and counts[2000]["save"] <= 5
 
 
 def _add_entry(app, user_id, days_ago, weight=70.0):
@@ -454,6 +202,16 @@ def test_set_chart_range_rejects_invalid_value(logged_in_client, app):
     client, user_id = logged_in_client
     resp = client.post("/chart-range", json={"range": "bogus"})
     assert resp.status_code == 400
+    with app.app_context():
+        assert db.session.get(User, user_id).chart_range == "all"
+
+
+@pytest.mark.parametrize("value", [["1w"], {"key": "1w"}, 7, None])
+def test_set_chart_range_refuses_a_range_that_is_not_text(logged_in_client, app, value):
+    client, user_id = logged_in_client
+    resp = client.post("/chart-range", json={"range": value})
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "Invalid range."}
     with app.app_context():
         assert db.session.get(User, user_id).chart_range == "all"
 
@@ -567,8 +325,8 @@ def test_stats_unaffected_by_interpolation(logged_in_client):
 def test_today_prompt_shows_when_todays_entry_missing(logged_in_client):
     client, _ = logged_in_client
     html = client.get("/").data.decode()
-    assert "const todayEntryMissing = true;" in html
-    assert f'const todayDate = "{date.today().isoformat()}";' in html
+    assert page_data(html)["today"]["entry_missing"] is True
+    assert page_data(html)["today"]["date"] == date.today().isoformat()
     assert 'id="today-prompt"' in html
 
 
@@ -576,7 +334,7 @@ def test_today_prompt_hidden_flag_when_todays_entry_exists(logged_in_client):
     client, _ = logged_in_client
     client.post("/entries/field", json={"date": date.today().isoformat(), "weight": 80.0})
     html = client.get("/").data.decode()
-    assert "const todayEntryMissing = false;" in html
+    assert page_data(html)["today"]["entry_missing"] is False
 
 
 def test_today_prompt_missing_when_only_older_entries_exist(logged_in_client):
@@ -585,96 +343,7 @@ def test_today_prompt_missing_when_only_older_entries_exist(logged_in_client):
         "/entries/field", json={"date": (date.today() - timedelta(days=1)).isoformat(), "weight": 80.0}
     )
     html = client.get("/").data.decode()
-    assert "const todayEntryMissing = true;" in html
-
-
-def test_save_field_warns_on_outlier_before_neighbor(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-01", "weight": 80.0})
-
-    resp = client.post("/entries/field", json={"date": "2026-09-05", "weight": 95.0})
-    data = resp.get_json()
-    assert data["status"] == "warning"
-    assert "message" in data
-    with app.app_context():
-        assert WeightEntry.query.filter_by(user_id=user_id, entry_date=date(2026, 9, 5)).count() == 0
-
-
-def test_save_field_warning_message_mentions_neighbor(logged_in_client):
-    client, _ = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-01", "weight": 80.0})
-
-    resp = client.post("/entries/field", json={"date": "2026-09-05", "weight": 95.0})
-    message = resp.get_json()["message"]
-    assert "80" in message
-    assert "Sep 1, 2026" in message  # the neighbour's date, formatted for the locale
-
-
-def test_save_field_confirm_overrides_outlier_warning(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-01", "weight": 80.0})
-
-    resp = client.post(
-        "/entries/field", json={"date": "2026-09-05", "weight": 95.0, "confirm": True}
-    )
-    data = resp.get_json()
-    assert data["status"] == "saved"
-    with app.app_context():
-        entry = WeightEntry.query.filter_by(user_id=user_id, entry_date=date(2026, 9, 5)).one()
-        assert entry.weight == 95.0
-
-
-def test_save_field_no_warning_within_threshold(logged_in_client):
-    client, _ = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-01", "weight": 80.0})
-
-    # 85 is a 6.25% change from 80 — within the 10% threshold
-    resp = client.post("/entries/field", json={"date": "2026-09-05", "weight": 85.0})
-    assert resp.get_json()["status"] == "saved"
-
-
-def test_save_field_checks_after_neighbor_when_no_before_neighbor(logged_in_client):
-    client, _ = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-10", "weight": 80.0})
-
-    # Inserting an earlier date with no entry before it, but one after it
-    # that differs by more than 10%.
-    resp = client.post("/entries/field", json={"date": "2026-09-01", "weight": 95.0})
-    assert resp.get_json()["status"] == "warning"
-
-
-def test_save_field_no_neighbors_no_warning(logged_in_client):
-    client, _ = logged_in_client
-    # The very first entry ever — nothing to compare against.
-    resp = client.post("/entries/field", json={"date": "2026-09-01", "weight": 300.0})
-    assert resp.get_json()["status"] == "saved"
-
-
-def test_save_field_editing_existing_entry_does_not_compare_to_itself(logged_in_client):
-    client, _ = logged_in_client
-    client.post("/entries/field", json={"date": "2026-09-01", "weight": 80.0})
-    # Re-editing that same day to a very different value: only neighbor is
-    # itself, which the query excludes, so there's nothing to warn against.
-    resp = client.post("/entries/field", json={"date": "2026-09-01", "weight": 200.0})
-    assert resp.get_json()["status"] == "saved"
-
-
-def test_moving_avg_days_defaults_to_10(logged_in_client, app):
-    _, user_id = logged_in_client
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.moving_avg_days == 10
-
-
-def test_settings_updates_moving_avg_days(logged_in_client, app):
-    client, user_id = logged_in_client
-    client.post(
-        "/settings",
-        data={"height_value": "180", "height_unit": "cm", "moving_avg_days": "14"},
-    )
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        assert user.moving_avg_days == 14
+    assert page_data(html)["today"]["entry_missing"] is True
 
 
 def test_chart_moving_average_default_window(logged_in_client):
@@ -733,8 +402,9 @@ def test_changes_use_moving_average_and_need_enough_history(logged_in_client):
 
 def test_today_prompt_skip_key_is_per_user(logged_in_client):
     client, user_id = logged_in_client
-    html = client.get("/").data.decode()
-    assert f"'weightTracker.todayPromptSkippedDate.' + {user_id}" in html
+    html = page_with_scripts(client)
+    assert page_data(html)["today"]["user_id"] == user_id
+    assert "'weightTracker.todayPromptSkippedDate.' + PAGE.today.user_id" in html
 
 
 def test_current_weight_and_bmi_use_the_moving_average(logged_in_client):
@@ -767,15 +437,6 @@ def test_total_change_is_empty_with_a_single_entry(logged_in_client):
     assert data["stats"]["entry_count"] == 1
 
 
-def test_export_filename_contains_todays_date(logged_in_client):
-    client, _ = logged_in_client
-    resp = client.get("/settings/export")
-    assert (
-        f"filename=kilo-tracker-export-{date.today().isoformat()}.csv"
-        in resp.headers["Content-Disposition"]
-    )
-
-
 def test_print_stylesheet_is_linked_for_print_only(logged_in_client):
     client, _ = logged_in_client
     html = client.get("/").data.decode()
@@ -783,103 +444,9 @@ def test_print_stylesheet_is_linked_for_print_only(logged_in_client):
     assert client.get("/static/print.css").status_code == 200
 
 
-@pytest.mark.parametrize(
-    "value,unit,ok",
-    [
-        ("50", "cm", True),
-        ("275", "cm", True),
-        ("49.9", "cm", False),
-        ("275.1", "cm", False),
-        ("0.5", "m", True),
-        ("2.75", "m", True),
-        ("0.49", "m", False),
-        ("2.76", "m", False),
-        ("180", "m", False),
-        ("1.8", "cm", False),
-    ],
-)
-def test_height_must_be_between_50_and_275_cm(logged_in_client, app, value, unit, ok):
-    client, user_id = logged_in_client
-    resp = client.post("/settings", data={"height_value": value, "height_unit": unit})
-    user = db.session.get(User, user_id)
-    if ok:
-        assert resp.status_code == 302
-        assert user.height_cm == pytest.approx(float(value) * (100 if unit == "m" else 1))
-    else:
-        assert resp.status_code == 200
-        assert b"between 50 and 275 cm" in resp.data
-        assert user.height_cm is None
-
-
-def test_non_numeric_height_is_rejected_without_crashing(logged_in_client):
-    client, _ = logged_in_client
-    resp = client.post("/settings", data={"height_value": "tall", "height_unit": "cm"})
-    assert resp.status_code == 200
-
-
-@pytest.mark.parametrize(
-    "weight", ["1e2", "1_0", "nan", "inf", "-80", "+80", "abc", "8,0,1", "1,234.5", "80,5.1", "80.5.1", ",", "."]
-)
-def test_weight_must_be_a_plain_decimal(logged_in_client, weight):
-    client, _ = logged_in_client
-    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": weight})
-    assert resp.status_code == 400
-    assert WeightEntry.query.count() == 0
-
-
-@pytest.mark.parametrize("weight", ["80", "80.5", "80.", "80.25", "80,5", " 80,5 ", "80,", "80,25"])
-def test_plain_decimal_weights_are_accepted(logged_in_client, weight):
-    client, _ = logged_in_client
-    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": weight, "confirm": True})
-    assert resp.status_code == 200
-
-
-@pytest.mark.parametrize("weight", ["72,5", "72.5"])
-def test_comma_and_point_save_the_same_weight(logged_in_client, weight):
-    client, _ = logged_in_client
-    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": weight, "confirm": True})
-    assert resp.status_code == 200
-    assert WeightEntry.query.one().weight == 72.5
-
-
-@pytest.mark.parametrize("height, unit, cm", [("1,8", "m", 180), ("1.8", "m", 180), ("180,5", "cm", 180.5)])
-def test_height_accepts_comma_and_point(logged_in_client, height, unit, cm):
-    client, user_id = logged_in_client
-    resp = client.post("/settings", data={"height_value": height, "height_unit": unit})
-    assert resp.status_code == 302
-    assert db.session.get(User, user_id).height_cm == pytest.approx(cm)
-
-
-@pytest.mark.parametrize("height", ["1e2", "1_8", "nan", "-180", "+180", "1,234.5"])
-def test_height_must_be_a_plain_decimal(logged_in_client, height):
-    client, user_id = logged_in_client
-    resp = client.post("/settings", data={"height_value": height, "height_unit": "cm"})
-    assert resp.status_code == 200
-    assert db.session.get(User, user_id).height_cm is None
-
-
-def test_number_fields_are_marked_decimal_only(logged_in_client):
-    client, _ = logged_in_client
-    assert b"data-decimal-only" in client.get("/settings").data
-    index = client.get("/").data
-    assert index.count(b"data-decimal-only") >= 2
-
-
-def test_settings_page_has_back_link_to_dashboard(logged_in_client):
-    client, _ = logged_in_client
-    html = client.get("/settings").data.decode()
-    assert re.search(r'<a class="back-link" href="/"', html)
-
-
-def test_remove_data_page_has_back_link_to_settings(logged_in_client):
-    client, _ = logged_in_client
-    html = client.get("/settings/remove").data.decode()
-    assert re.search(r'<a class="back-link" href="/settings"', html)
-
-
-def test_about_page_has_back_link_to_dashboard(client):
+def test_every_about_section_has_a_back_link_to_the_dashboard(client):
     html = client.get("/about").data.decode()
-    assert re.search(r'<a class="back-link" href="/"', html)
+    assert len(re.findall(r'<a class="back-link" href="/"', html)) == html.count("<section") == 2
 
 
 def test_daily_log_has_scroll_to_top_button(logged_in_client):
@@ -909,7 +476,7 @@ def test_change_colours_are_not_flipped_without_a_height(logged_in_client):
 
 def test_mobile_layout_rules_and_viewport_are_present(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert '<meta name="viewport" content="width=device-width, initial-scale=1">' in html
     css = client.get("/static/style.css").data.decode()
     assert "@media (max-width: 720px)" in css
@@ -925,7 +492,7 @@ def test_account_dropdown_links_to_about_before_log_out(logged_in_client):
 
 
 def test_two_week_range_sits_between_one_month_and_one_week(logged_in_client):
-    from app.routes import CHART_RANGES
+    from app.overview import CHART_RANGES
 
     keys = [key for key, _label, _days in CHART_RANGES]
     assert keys.index("1m") + 1 == keys.index("2w") == keys.index("1w") - 1
@@ -956,7 +523,7 @@ def test_change_boxes_link_to_their_chart_ranges(logged_in_client):
 
 def test_range_cutoff_uses_local_dates_not_utc(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # toISOString() is UTC: east of Greenwich it moved the cutoff a day too
     # early, so 1W/2W/1M each showed one day too many.
     assert "toISOString().slice(0, 10)" not in html
@@ -966,14 +533,14 @@ def test_range_cutoff_uses_local_dates_not_utc(logged_in_client):
 
 def test_chart_pads_the_right_edge_up_to_today(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # The page script adds empty days up to today (local date) after the last entry.
     assert "localIso(today)" in html
     assert "values.push(null)" in html
 
 
 def test_three_and_six_month_ranges_are_multiples_of_30_days(logged_in_client, app):
-    from app.routes import CHART_RANGES
+    from app.overview import CHART_RANGES
 
     days = {k: d for k, _l, d in CHART_RANGES}
     assert days["3m"] == 90
@@ -1004,7 +571,7 @@ def test_landscape_phone_layout_rules_are_present(client):
 
 def test_chart_tooltip_shows_bmi_from_the_moving_average(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "afterBody" in html
     assert "movingAvgBmiOn(items[0].label)" in html
     # the label comes from the page's translated strings, with the user's window (10 days by default)
@@ -1017,13 +584,13 @@ def test_responsive_breakpoints_and_axis_thinning_are_present(logged_in_client):
     css = client.get("/static/style.css").data.decode()
     assert "@media (max-width: 1000px), (max-height: 600px)" in css  # flow layout
     assert "@media (max-width: 720px)" in css  # small text
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "function thinTicks" in html and "onResize" in html
 
 
 def test_chart_has_a_right_hand_bmi_axis_tied_to_the_weight_ticks(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "yBmi:" in html
     assert "position: 'right'" in html
     assert "oneDecimalFormat.format(bmiForWeight(weight))" in html
@@ -1046,36 +613,6 @@ def test_robots_txt_needs_no_login(logged_in_client):
     assert client.get("/robots.txt").status_code == 200
 
 
-@pytest.mark.parametrize(
-    "weight, ok",
-    [("1", True), ("0.9", False), ("500", True), ("500,0", True), ("500.1", False), ("501", False), ("1000", False)],
-)
-def test_weight_must_be_between_1_and_500_kg(logged_in_client, weight, ok):
-    client, _ = logged_in_client
-    resp = client.post("/entries/field", json={"date": "2026-01-01", "weight": weight, "confirm": True})
-    assert resp.status_code == (200 if ok else 400)
-    assert WeightEntry.query.count() == (1 if ok else 0)
-    if not ok:
-        assert resp.get_json()["error"] == "Weight must be between 1 and 500 kg."
-
-
-def test_the_weight_limit_message_is_translated_with_the_limit(logged_in_client):
-    client, _ = logged_in_client
-    resp = client.post(
-        "/entries/field", json={"date": "2026-01-01", "weight": "501"}, headers={"Accept-Language": "nl"}
-    )
-    assert resp.get_json()["error"] == "Het gewicht moet tussen 1 en 500 kg liggen."
-
-
-def test_csv_import_uses_the_same_weight_limit(logged_in_client):
-    import io
-
-    client, _ = logged_in_client
-    data = {"csv_file": (io.BytesIO(b"1-1-26,500\n2-1-26,500.1\n3-1-26,750\n"), "w.csv")}
-    client.post("/settings/import", data=data, content_type="multipart/form-data")
-    assert [e.weight for e in WeightEntry.query.all()] == [500.0]
-
-
 def test_the_account_button_has_a_menu_icon_after_the_email_address(logged_in_client):
     client, _ = logged_in_client
     html = client.get("/").get_data(as_text=True)
@@ -1095,7 +632,7 @@ def test_the_bmi_axis_copies_the_weight_range_again_after_its_ticks_are_built(lo
     range (1W) the BMI axis drifted to another range than the weight axis. The copy must happen in
     afterBuildTicks too; the exact pixel alignment is checked in a real browser (see CLAUDE.md)."""
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     block = html[html.index("afterBuildTicks(scale)"):]
     block = block[:block.index("ticks: {")]
     assert "scale.min = weightScale.min" in block and "scale.max = weightScale.max" in block
@@ -1105,7 +642,7 @@ def test_the_bmi_axis_copies_the_weight_range_again_after_its_ticks_are_built(lo
 
 def test_chart_tooltip_title_has_the_weekday_in_the_languages_own_order(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # Intl spells out weekday, day, abbreviated month and year, and orders them per language
     # ("Maandag 5 okt 2026", "Montag, 5. Okt. 2026", "2026. okt. 5., hétfő")
     assert "weekday: 'long', day: 'numeric', month: 'short', year: 'numeric'" in html
@@ -1136,17 +673,17 @@ def test_page_embeds_the_notes_without_breaking_out_of_the_script(logged_in_clie
     client, _ = logged_in_client
     client.post("/entries/field", json={"date": "2026-01-02", "weight": 80.0, "note": "</script><b>hi</b> & more"})
     html = client.get("/").data.decode()
-    assert "let fullNotes = " in html
+    assert page_data(html)["chart_notes"] == {"2026-01-02": "</script><b>hi</b> & more"}  # intact
     assert "</script><b>hi" not in html  # tojson escapes < > &, so a note cannot close the script
     assert "\\u003c/script\\u003e" in html
 
 
 def test_chart_tooltip_shows_the_note_under_the_bmi(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "footer: (items) => (items.length ? wrapNote(fullNotes[items[0].label]) : [])" in html
     assert "function wrapNote(" in html
-    assert "fullNotes = data.chart_notes;" in html  # refreshed after every save
+    assert "fullNotes = data.chart_notes;" in html  # refreshed after every save (setSeries)
 
 
 def test_note_editor_has_an_emoji_button_and_one_shared_panel(logged_in_client):
@@ -1162,9 +699,9 @@ def test_note_editor_has_an_emoji_button_and_one_shared_panel(logged_in_client):
 
 def test_emoji_picker_lists_the_most_common_emoji_first(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # general favourites first, then the ones for movement, food and mood
-    assert "const EMOJI = [\n    '😊', '😂', '👍', '❤️', '😢', '🎉', '🔥', '🙏'" in html
+    assert "const EMOJI = [\n  '😊', '😂', '👍', '❤️', '😢', '🎉', '🔥', '🙏'" in html
     assert html.index("'🏃'") > html.index("'🙏'")  # movement after the general favourites
     # recently used ones (kept per device) are shown above the list
     assert "const EMOJI_STORAGE_KEY = 'kilo.recentEmoji';" in html
@@ -1173,7 +710,7 @@ def test_emoji_picker_lists_the_most_common_emoji_first(logged_in_client):
 
 def test_emoji_picker_respects_the_note_length_limit(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # setRangeText ignores maxlength, so inserting checks it itself
     assert "textarea.value.length - selected + emoji.length > textarea.maxLength" in html
     assert 'maxlength="280"' in html
@@ -1205,7 +742,7 @@ def test_note_editor_buttons_stay_on_one_line_and_the_box_is_wide(client):
 
 def test_note_in_the_tooltip_is_not_italic(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     # the canvas would slant the emoji in a note as well
     assert "footerFont: { weight: 'normal', style: 'normal' }" in html
     assert "italic" not in html.split("footerFont")[1][:120]
@@ -1213,7 +750,7 @@ def test_note_in_the_tooltip_is_not_italic(logged_in_client):
 
 def test_note_editor_is_kept_inside_the_screen(logged_in_client):
     client, _ = logged_in_client
-    html = client.get("/").data.decode()
+    html = page_with_scripts(client)
     assert "function placePopover(popover)" in html
     # called when the editor opens, before the cursor goes into the text box
     opening = html.split("if (opening) {")[1][:120]
@@ -1224,8 +761,40 @@ def test_chart_js_is_served_by_the_app_not_a_cdn(logged_in_client):
     client, _ = logged_in_client
     html = client.get("/").data.decode()
     # No visitor data goes to a third party for the chart (see app/static/vendor/README.md).
-    assert re.findall(r'<script src="([^"]+)"', html) == ["/static/vendor/chartjs-4.4.4/chart.umd.js"]
+    sources = re.findall(r'<script src="([^"]+)"', html)
+    assert sources[0] == "/static/vendor/chartjs-4.4.4/chart.umd.js"
+    assert all(src.startswith("/static/") for src in sources)  # the rest are Kilo's own scripts
     script = client.get("/static/vendor/chartjs-4.4.4/chart.umd.js")
     assert script.status_code == 200
     assert b"Chart.js v4.4.4" in script.data
     assert b"sourceMappingURL" not in script.data
+
+
+def test_the_dashboard_runs_both_scripts_with_its_addresses_in_the_page_data(logged_in_client):
+    client, _ = logged_in_client
+    html = client.get("/").data.decode()
+    assert "/static/dashboard-chart.js?v=" in html and "/static/dashboard-log.js?v=" in html
+    data = page_data(html)
+    assert data["public"] is False
+    assert data["urls"] == {"save_field": "/entries/field", "chart_range": "/chart-range",
+                            "entries_window": "/entries/window"}
+
+
+def test_the_page_data_has_the_same_chart_keys_as_a_save(logged_in_client):
+    """setSeries() loads the series from the page data at first and from each save's answer
+    later: both must use the keys of routes.overview()."""
+    client, _ = logged_in_client
+    answer = client.post("/entries/field", json={"date": date.today().isoformat(), "weight": "80"}).get_json()
+    chart_keys = {key for key in page_data(client.get("/").data.decode()) if key.startswith("chart_")}
+    assert chart_keys - {"chart_range", "chart_range_days"} == {key for key in answer if key.startswith("chart_")}
+
+
+def test_the_dashboard_scripts_are_addressed_by_their_modification_time(logged_in_client, app):
+    """Static files have no cache lifetime, so a browser may keep its copy; the ?v= changes when
+    a deploy changes the file, so the page never runs with an old script."""
+    client, _ = logged_in_client
+    html = client.get("/").data.decode()
+    for name in ("dashboard-chart.js", "dashboard-log.js"):
+        mtime = int(os.path.getmtime(os.path.join(app.static_folder, name)))
+        assert f"/static/{name}?v={mtime}" in html
+        assert client.get(f"/static/{name}?v={mtime}").status_code == 200

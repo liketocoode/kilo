@@ -14,6 +14,7 @@
 """Small shared helpers: email hashing, decimal parsing, code lifetimes and UTC time."""
 
 import hashlib
+import os
 import re
 from datetime import UTC, datetime
 
@@ -37,6 +38,9 @@ def parse_decimal(raw):
         return None
     return float(raw.replace(",", "."))
 
+# The project's top folder (the one with app/, migrations/ and translations/).
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # How long an emailed code stays valid. Deleting an account is destructive,
 # so its confirmation code gets a shorter window than the sign-in code.
 SIGNIN_CODE_TTL_MINUTES = 30
@@ -45,6 +49,30 @@ DELETE_CODE_TTL_MINUTES = 10
 # An account that was never verified and has been idle this long is removed by
 # the daily cleanup (see app/cleanup.py).
 STALE_SIGNUP_DAYS = 7
+
+# The longest note a day can have, in characters. The note editor, the JSON API and every
+# importer cut a note to this length; templates see it as NOTE_MAX_LENGTH.
+NOTE_MAX_LENGTH = 280
+
+# The heights a user can have, in centimetres: the settings form and the Hacker's Diet XML
+# import accept only these. A height is stored in cm whatever unit it was typed in.
+MIN_HEIGHT_CM = 50
+MAX_HEIGHT_CM = 275
+
+
+def height_to_cm(value, unit):
+    """A height typed in `unit` ("cm" or "m") in centimetres."""
+    return value * 100 if unit == "m" else value
+
+
+def height_from_cm(height_cm, unit):
+    """A stored height (cm) as shown in `unit`: metres to 2 decimals, centimetres to 1."""
+    return round(height_cm / 100, 2) if unit == "m" else round(height_cm, 1)
+
+
+def bmi(weight_kg, height_cm):
+    """Body-mass index of a weight (kg) at a height (cm)."""
+    return weight_kg / (height_cm / 100) ** 2
 
 
 def normalize_email(email):

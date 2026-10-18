@@ -20,6 +20,7 @@ import pytest
 
 from app import create_app, mail, security
 from app.security import MAX_FIELD_LENGTH, client_ip, log_event
+from tests.conftest import code_from
 
 
 @pytest.fixture
@@ -147,7 +148,7 @@ def _wrong_code(real_code):
 def test_wrong_sign_in_code_is_logged(client, lines):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "someone@example.com"})
-    real = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+    real = code_from(outbox)
 
     client.post("/verify", data={"code": _wrong_code(real)}, headers={"X-Real-IP": "203.0.113.9"})
     assert lines() == ["kilo-auth ip=203.0.113.9 event=code-wrong"]
@@ -159,7 +160,7 @@ def test_wrong_sign_in_code_is_logged(client, lines):
 def test_the_log_never_holds_an_address_or_a_code(client, lines):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "private.person@example.com"})
-    real = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+    real = code_from(outbox)
     wrong = _wrong_code(real)
     client.post("/verify", data={"code": wrong})
     text = "\n".join(lines())
@@ -171,7 +172,7 @@ def test_wrong_removal_code_is_logged(logged_in_client, lines):
     client.get("/settings/export")
     with mail.record_messages() as outbox:
         client.post("/settings/remove/send-code")
-    real = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+    real = code_from(outbox)
     client.post(
         "/settings/remove/confirm",
         data={"code": _wrong_code(real)},

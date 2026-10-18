@@ -14,7 +14,6 @@
 """The public chart: /public/<id>, turned on and named in the settings."""
 
 import hashlib
-import json
 import re
 import sqlite3
 from datetime import date, timedelta
@@ -23,11 +22,11 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import inspect
 
-from app import create_app, db, routes
+from app import create_app, db, overview, routes
 from app.forms import PublicChartForm
 from app.models import User, WeightEntry
 from app.utils import hash_email
-from tests.conftest import signup_and_verify
+from tests.conftest import input_attrs, page_data, signup_and_verify
 
 EMAIL = "owner@example.com"
 NOTE = "secret-note-text"
@@ -47,8 +46,10 @@ def owner(client):
     return user
 
 
-def share(client, public_id="", enabled=True, show_stats=True, show_weight=True):
-    data = {"public_id": public_id}
+def share(client, public_id="", enabled=True, show_stats=True, show_weight=True, dark=False, range_key=""):
+    data = {"public_id": public_id, "public_range": range_key}
+    if dark:
+        data["public_dark_mode"] = "y"
     if enabled:
         data["public_enabled"] = "y"
     if show_stats:
@@ -56,11 +57,6 @@ def share(client, public_id="", enabled=True, show_stats=True, show_weight=True)
     if show_weight:
         data["public_show_weight"] = "y"
     return client.post("/settings/public", data=data)
-
-
-def script_value(html, name):
-    """The JSON a `let name = ...;` line of the page script holds."""
-    return json.loads(re.search(rf"let {name} = (.*);\n", html).group(1))
 
 
 # --- turning it on and choosing the id -----------------------------------------------------
@@ -164,13 +160,24 @@ def test_the_public_page_shows_the_chart_and_the_stat_boxes(client, owner):
     assert 'id="weight-chart"' in html and 'id="range-buttons"' in html
     assert 'id="stat-current"' in html and 'id="stat-bmi"' in html and 'data-days="7"' in html
     assert "Height:" in html  # BMI is shown, as the owner chose
-    assert len(script_value(html, "fullValues")) == 9
-    assert script_value(html, "fullBmis") is not None
+    assert len(page_data(html)["chart_values"]) == 9
+    assert page_data(html)["chart_bmis"] is not None
+
+
+def test_the_public_page_runs_only_the_chart_script(client, owner):
+    """The daily log's script (saving, the note editor, the "today" prompt) is never sent to a
+    visitor, and the page data holds no addresses to save to and nothing about today."""
+    share(client, "mine")
+    html = client.get("/public/mine").data.decode()
+    assert "/static/dashboard-chart.js?v=" in html
+    assert "dashboard-log.js" not in html
+    data = page_data(html)
+    assert data["public"] is True and data["urls"] is None and data["today"] is None
 
 
 def test_the_stat_boxes_are_off_until_turned_on(client, owner):
     assert owner.public_show_stats is False
-    assert '<input id="public_show_stats"' in client.get("/settings").data.decode()
+    assert "checked" not in input_attrs(client.get("/settings"), "public_show_stats")
     share(client, "mine", show_stats=False)
     html = client.get("/public/mine").data.decode()
     assert 'id="weight-chart"' in html and 'id="range-buttons"' in html
@@ -178,7 +185,7 @@ def test_the_stat_boxes_are_off_until_turned_on(client, owner):
 
     share(client, "mine")
     assert owner.public_show_stats is True
-    assert '<input checked id="public_show_stats"' in client.get("/settings").data.decode()
+    assert "checked" in input_attrs(client.get("/settings"), "public_show_stats")
     assert 'id="stat-current"' in client.get("/public/mine").data.decode()
 
 
@@ -191,7 +198,7 @@ def test_the_public_page_never_shows_notes_the_address_or_the_daily_log(client, 
     share(client, "mine")
     html = client.get("/public/mine").data.decode()
     assert NOTE not in html
-    assert script_value(html, "fullNotes") == {}
+    assert page_data(html)["chart_notes"] == {}
     assert EMAIL not in html and owner.email_hash not in html
     assert 'id="day-rows"' not in html and "/entries/field" not in html
     assert "/avatar" not in html and "account-menu" not in html
@@ -240,14 +247,27 @@ def test_a_public_address_without_a_chart_may_be_framed_too(client, owner):
     assert "frame-ancestors" not in response.headers["Content-Security-Policy"]
 
 
-def test_the_theme_follows_the_owner_or_the_address(client, owner):
+def test_the_theme_is_the_public_pages_own_not_the_owners(client, owner):
     share(client, "mine")
     assert 'data-theme="light"' in client.get("/public/mine").data.decode()
-    owner.dark_mode = True
+    owner.dark_mode = True  # the owner's own theme does not reach the public page
+    db.session.commit()
+    assert 'data-theme="light"' in client.get("/public/mine").data.decode()
+    share(client, "mine", dark=True)
+    assert owner.public_dark_mode is True
+    assert 'data-theme="dark"' in client.get("/public/mine").data.decode()
+    owner.dark_mode = False
     db.session.commit()
     assert 'data-theme="dark"' in client.get("/public/mine").data.decode()
+
+
+def test_the_address_can_still_choose_the_theme(client, owner):
+    """Embed codes made before the theme was saved carry ?theme=; it still wins."""
+    share(client, "mine", dark=True)
     assert 'data-theme="light"' in client.get("/public/mine?theme=light").data.decode()
     assert 'data-theme="dark"' in client.get("/public/mine?theme=evil").data.decode()
+    share(client, "mine")
+    assert 'data-theme="dark"' in client.get("/public/mine?theme=dark").data.decode()
 
 
 def test_a_page_without_a_chart_is_a_404_page_not_a_redirect_and_is_logged(client, owner, monkeypatch):
@@ -304,25 +324,25 @@ def test_an_older_database_gets_the_columns_and_the_unique_index(tmp_path):
 
 def test_the_weight_is_shown_until_turned_off(client, owner):
     assert owner.public_show_weight is True
-    assert '<input checked id="public_show_weight"' in client.get("/settings").data.decode()
+    assert "checked" in input_attrs(client.get("/settings"), "public_show_weight")
     share(client, "mine")
     html = client.get("/public/mine").data.decode()
-    assert script_value(html, "fullValues")[-1] == 80.0
-    assert "const hideWeights = false;" in html
+    assert page_data(html)["chart_values"][-1] == 80.0
+    assert page_data(html)["hide_weights"] is False
 
 
 def test_without_the_weight_no_kilogram_reaches_the_page(client, owner):
     share(client, "mine")
     shown = client.get("/public/mine").data.decode()
-    real = script_value(shown, "fullValues") + script_value(shown, "fullMovingAvg")
+    real = page_data(shown)["chart_values"] + page_data(shown)["chart_moving_average"]
     share(client, "mine", show_weight=False, show_stats=False)
     assert owner.public_show_weight is False
     html = client.get("/public/mine").data.decode()
-    assert "const hideWeights = true;" in html
-    assert "const heightCm = null;" in html
-    assert script_value(html, "fullBmis") is None
-    values = [v for v in script_value(html, "fullValues") if v is not None]
-    moving = [v for v in script_value(html, "fullMovingAvg") if v is not None]
+    assert page_data(html)["hide_weights"] is True
+    assert page_data(html)["height_cm"] is None
+    assert page_data(html)["chart_bmis"] is None
+    values = [v for v in page_data(html)["chart_values"] if v is not None]
+    moving = [v for v in page_data(html)["chart_moving_average"] if v is not None]
     assert min(values + moving) == 0 and max(values + moving) == 100
     # Exactly the real values rescaled to 0-100, and nothing else in the data.
     low, high = min(real), max(real)
@@ -333,9 +353,9 @@ def test_without_the_weight_no_kilogram_reaches_the_page(client, owner):
 
 def test_the_shape_of_the_line_is_kept(client, owner, app):
     share(client, "mine")
-    shown = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    shown = page_data(client.get("/public/mine").data.decode())["chart_values"]
     share(client, "mine", show_weight=False, show_stats=False)
-    hidden = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    hidden = page_data(client.get("/public/mine").data.decode())["chart_values"]
     assert len(hidden) == len(shown)
     # Same order everywhere: a higher weight is a higher point, and equal ones stay equal.
     for i in range(len(shown)):
@@ -349,7 +369,7 @@ def test_a_flat_line_stays_in_the_middle(client, owner):
         entry.weight = 80
     db.session.commit()
     share(client, "mine", show_weight=False, show_stats=False)
-    values = script_value(client.get("/public/mine").data.decode(), "fullValues")
+    values = page_data(client.get("/public/mine").data.decode())["chart_values"]
     assert set(values) == {50.0}
 
 
@@ -369,28 +389,28 @@ def test_an_older_stats_setting_is_ignored_while_the_weight_is_hidden(client, ow
 def test_the_settings_grey_the_stat_boxes_out_without_the_weight(client, owner):
     share(client, "mine", show_weight=False, show_stats=False)
     page = client.get("/settings").data.decode()
-    assert '<input disabled id="public_show_stats"' in page
+    assert "disabled" in input_attrs(page, "public_show_stats")
     assert 'class="toggle-row is-disabled" id="public-stats-row"' in page
     share(client, "mine")
     page = client.get("/settings").data.decode()
-    assert '<input checked id="public_show_stats"' in page
+    assert "checked" in input_attrs(page, "public_show_stats")
     assert 'class="toggle-row" id="public-stats-row"' in page
 
 
 def test_the_dashboard_always_shows_the_weights(client, owner):
     share(client, "mine", show_weight=False, show_stats=False)
     html = client.get("/").data.decode()
-    assert "const hideWeights = false;" in html
-    assert script_value(html, "fullValues")[-1] == 80.0
+    assert page_data(html)["hide_weights"] is False
+    assert page_data(html)["chart_values"][-1] == 80.0
 
 
-# --- a fixed range: ?range=3m ----------------------------------------------------------------------
+# --- a fixed range: ?range=3m, or the saved one -------------------------------------------------------
 
 
 def test_a_range_in_the_address_fixes_the_chart(client, owner):
     share(client, "mine")
     html = client.get("/public/mine?range=1w").data.decode()
-    assert script_value(html, "currentRange") == "1w"
+    assert page_data(html)["chart_range"] == "1w"
     assert 'id="range-buttons"' not in html and "range-btn" not in html.split("<script")[0]
     # The stat boxes no longer switch the range either.
     assert "stat-card-link" not in html.split("<script")[0] and 'role="button"' not in html
@@ -401,12 +421,12 @@ def test_a_range_in_the_address_fixes_the_chart(client, owner):
 def test_the_range_is_not_case_sensitive(client, owner, value, key):
     share(client, "mine")
     html = client.get(f"/public/mine?range={value}").data.decode()
-    assert script_value(html, "currentRange") == key and 'id="range-buttons"' not in html
+    assert page_data(html)["chart_range"] == key and 'id="range-buttons"' not in html
 
 
 def test_any_range_may_be_fixed_even_one_the_data_does_not_span(client, owner):
     share(client, "mine")
-    assert script_value(client.get("/public/mine?range=20y").data.decode(), "currentRange") == "20y"
+    assert page_data(client.get("/public/mine?range=20y").data.decode())["chart_range"] == "20y"
 
 
 @pytest.mark.parametrize("query", ["", "?range=", "?range=3x", "?range=3 m", "?range=<b>"])
@@ -414,28 +434,91 @@ def test_without_a_known_range_the_buttons_stay(client, owner, query):
     share(client, "mine")
     html = client.get("/public/mine" + query).data.decode()
     assert 'id="range-buttons"' in html and "stat-card-link" in html
-    assert script_value(html, "currentRange") == owner.chart_range
+    assert page_data(html)["chart_range"] == owner.chart_range
+
+
+def test_the_saved_range_fixes_the_chart_when_the_address_has_none(client, owner):
+    share(client, "mine", range_key="3m")
+    assert owner.public_range == "3m"
+    for query in ("", "?range=", "?range=3x", "?theme=dark"):
+        html = client.get("/public/mine" + query).data.decode()
+        assert page_data(html)["chart_range"] == "3m" and 'id="range-buttons"' not in html
+
+
+def test_a_range_in_the_address_wins_over_the_saved_one(client, owner):
+    share(client, "mine", range_key="3m")
+    html = client.get("/public/mine?range=1W").data.decode()
+    assert page_data(html)["chart_range"] == "1w" and 'id="range-buttons"' not in html
+
+
+@pytest.mark.parametrize("sent, saved", [("1y", "1y"), ("", None), ("1Y", None), ("3x", None), ("<b>", None)])
+def test_only_a_known_range_is_saved(client, owner, sent, saved):
+    share(client, "mine", range_key="3m")
+    share(client, "mine", range_key=sent)
+    assert owner.public_range == saved
 
 
 def test_the_dashboard_ignores_it(client, owner):
     html = client.get("/?range=1w").data.decode()
     assert 'id="range-buttons"' in html
-    assert script_value(html, "currentRange") == owner.chart_range
+    assert page_data(html)["chart_range"] == owner.chart_range
 
 
-def test_the_settings_offer_the_ranges_for_the_embed_code(client, owner):
+def range_menu(page):
+    return page.split('<select id="embed-range" name="public_range">')[1].split("</select>")[0]
+
+
+def test_the_settings_offer_the_ranges_for_the_public_page(client, owner):
     share(client, "mine")
-    page = client.get("/settings").data.decode()
-    menu = page.split('<select id="embed-range">')[1].split("</select>")[0]
-    assert re.findall(r'<option value="([^"]*)"', menu) == ["", *[key for key, _label, _days in routes.CHART_RANGES]]
+    menu = range_menu(client.get("/settings").data.decode())
+    assert re.findall(r'<option value="([^"]*)"', menu) == ["", *[key for key, _label, _days in overview.CHART_RANGES]]
     assert "Visitor chooses (range buttons)" in menu
+    assert "selected" not in menu  # nothing saved: the first choice
 
 
-def test_the_settings_offer_a_theme_for_the_embed_code_starting_as_the_owners(client, owner):
-    share(client, "mine")
-    page = client.get("/settings").data.decode()
-    assert '<input type="checkbox" id="embed-dark">' in page  # light owner: off
-    assert 'name="embed' not in page  # nothing in it is saved
-    owner.dark_mode = True
+def test_the_settings_show_the_saved_range_also_while_not_shared(client, owner):
+    share(client, "mine", range_key="6m")
+    assert re.findall(r'<option value="([^"]*)" selected>', range_menu(client.get("/settings").data.decode())) == ["6m"]
+    share(client, "mine", enabled=False, range_key="6m")
+    assert re.findall(r'<option value="([^"]*)" selected>', range_menu(client.get("/settings").data.decode())) == ["6m"]
+    assert owner.public_range == "6m"
+
+
+def test_a_refused_save_keeps_the_picked_range(client, owner, app):
+    with app.app_context():
+        db.session.add(User(email_hash="other", public_id="taken"))
+        db.session.commit()
+    page = share(client, "taken", range_key="1m").data.decode()
+    assert "That ID is already taken" in page
+    assert re.findall(r'<option value="([^"]*)" selected>', range_menu(page)) == ["1m"]
+
+
+def test_the_settings_show_the_saved_theme_of_the_public_page(client, owner):
+    owner.dark_mode = True  # the owner's own theme is not the public page's
     db.session.commit()
-    assert '<input type="checkbox" id="embed-dark" checked>' in client.get("/settings").data.decode()
+    page = client.get("/settings").data.decode()
+    assert "checked" not in input_attrs(page, "public_dark_mode")
+    share(client, "mine", dark=True)
+    page = client.get("/settings").data.decode()
+    assert "checked" in input_attrs(page, "public_dark_mode")
+    # Not only while shared: turning sharing off keeps the theme for the next time.
+    share(client, "mine", enabled=False, dark=True)
+    assert 'id="public_dark_mode"' in client.get("/settings").data.decode()
+    assert owner.public_dark_mode is True
+
+
+def test_the_link_and_embed_code_say_the_theme_and_the_range(client, owner):
+    """The script puts ?theme= and &range= in both, from the switch and the menu."""
+    share(client, "mine", dark=True)
+    script = client.get("/settings").data.decode().split("</select>")[-1]
+    assert "params.set('theme', document.getElementById('public_dark_mode').checked ? 'dark' : 'light')" in script
+    assert "if (range) params.set('range', range)" in script
+
+
+@pytest.mark.parametrize(
+    "show_weight, show_stats, shown",
+    [(True, True, True), (True, False, False), (False, True, False), (False, False, False)],
+)
+def test_the_stat_boxes_are_shown_only_with_the_weight(show_weight, show_stats, shown):
+    user = User(public_show_weight=show_weight, public_show_stats=show_stats)
+    assert user.public_stats_shown is shown

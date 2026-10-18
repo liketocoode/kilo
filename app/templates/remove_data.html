@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_back_link.html" import back_link %}
+{% from "_forms.html" import code_field %}
 
 {% block title %}{{ _("Remove my data") }} — Kilo Tracker{% endblock %}
 
@@ -28,10 +29,7 @@
         <p>{% trans num=ttl_minutes, email=email %}We sent a 6-digit code to <strong>{{ email }}</strong>. It expires in {{ num }} minute.{% pluralize num %}We sent a 6-digit code to <strong>{{ email }}</strong>. It expires in {{ num }} minutes.{% endtrans %}</p>
         <form method="post" action="{{ url_for('account.confirm_removal') }}" class="entry-form">
           {{ form.hidden_tag() }}
-          <div class="field">
-            {{ form.code.label }}
-            {{ form.code(placeholder="123456", autofocus=true, maxlength=6, inputmode="numeric") }}
-          </div>
+          {{ code_field(form) }}
           <button type="submit" class="button-danger">{{ _("Delete everything") }}</button>
         </form>
         <form method="post" action="{{ url_for('account.send_removal_code') }}" class="inline-form">

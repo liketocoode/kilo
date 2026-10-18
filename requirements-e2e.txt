@@ -1,0 +1,6 @@
+# Browser tests (tests/e2e/), kept out of the normal test run. Once:
+#   pip install -r requirements-e2e.txt && playwright install chromium
+# then: pytest -m e2e
+-r requirements-dev.txt
+playwright>=1.64.0
+pytest-playwright>=0.10.0

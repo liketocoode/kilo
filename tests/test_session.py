@@ -23,6 +23,7 @@ import pytest
 
 from app import create_app, mail
 from app.models import User
+from tests.conftest import code_from
 
 DAY = 24 * 3600
 
@@ -31,7 +32,7 @@ def sign_in(client, email="user@example.com"):
     """Sign up and enter the emailed code; returns the response to the code form."""
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": email})
-    code = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+    code = code_from(outbox)
     return client.post("/verify", data={"code": code})
 
 

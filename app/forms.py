@@ -24,7 +24,7 @@ from wtforms.validators import (
 
 from app.email_utils import MxCheckError, check_mx
 from app.models import User
-from app.utils import parse_decimal
+from app.utils import MAX_HEIGHT_CM, MIN_HEIGHT_CM, height_to_cm, parse_decimal
 
 
 class SignupForm(FlaskForm):
@@ -81,8 +81,8 @@ class DecimalFloatField(FloatField):
 
 class SettingsForm(FlaskForm):
     """User settings: height (cm or m, 50-275 cm), dark mode and the moving-average window in days."""
-    MIN_HEIGHT_CM = 50
-    MAX_HEIGHT_CM = 275
+    MIN_HEIGHT_CM = MIN_HEIGHT_CM
+    MAX_HEIGHT_CM = MAX_HEIGHT_CM
 
     # InputRequired, not DataRequired: a typo then gets the "plain number"
     # message from the field instead of also "This field is required".
@@ -104,7 +104,7 @@ class SettingsForm(FlaskForm):
         # means 180 in "cm" but 1.8 in "m".
         if field.data is None or self.height_unit.data not in User.HEIGHT_UNITS:
             return  # the field/unit report their own errors
-        height_cm = field.data * 100 if self.height_unit.data == "m" else field.data
+        height_cm = height_to_cm(field.data, self.height_unit.data)
         if not self.MIN_HEIGHT_CM <= height_cm <= self.MAX_HEIGHT_CM:
             raise ValidationError(
                 _(
@@ -129,10 +129,11 @@ class PublicChartForm(FlaskForm):
 
     # NOTE: Switch in the settings that makes the weight chart visible on a public web page.
     public_enabled = BooleanField(_l("Share my chart on a public page"))
-    # NOTE: Switch in the settings: show the boxes with the current average, BMI and changes under the public chart.
     # NOTE: Switch in the settings: show the kilograms on the public chart, or only the shape of the line.
     public_show_weight = BooleanField(_l("Show my weight"))
+    # NOTE: Switch in the settings: show the boxes with the current average, BMI and changes under the public chart.
     public_show_stats = BooleanField(_l("Show the stat boxes on the public page"))
+    public_dark_mode = BooleanField(_l("Dark mode"))
     public_id = StringField(
         # NOTE: Label of the field with the last part of the public page's address (the "ramon" in .../public/ramon).
         _l("Page ID"),

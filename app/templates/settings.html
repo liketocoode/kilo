@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_back_link.html" import back_link %}
+{% from "_forms.html" import field_errors %}
 
 {% block title %}{{ _("Settings") }} — Kilo Tracker{% endblock %}
 
@@ -24,9 +25,7 @@
       <div class="field">
         {{ form.height_value.label }}
         {{ form.height_value(inputmode="decimal", autocomplete="off", **{"data-decimal-only": ""}) }}
-        {% for error in form.height_value.errors %}
-          <p class="flash flash-error">{{ error }}</p>
-        {% endfor %}
+        {{ field_errors(form.height_value) }}
       </div>
       <div class="field">
         {{ form.height_unit.label }}
@@ -35,9 +34,7 @@
       <div class="field">
         {{ form.moving_avg_days.label }}
         {{ form.moving_avg_days(min="1", max="3650", step="1") }}
-        {% for error in form.moving_avg_days.errors %}
-          <p class="flash flash-error">{{ error }}</p>
-        {% endfor %}
+        {{ field_errors(form.moving_avg_days) }}
       </div>
       {# NOTE: Button that saves the settings (verb). #}
       <button type="submit" class="form-action">{{ _("Save") }}</button>
@@ -45,8 +42,11 @@
   </section>
 
   <section class="add-entry" id="public-chart">
-    {# NOTE: Heading of the settings section about showing the weight chart on a public web page. #}
-    <h2>{{ _("Public chart") }}</h2>
+    <div class="page-head">
+      {{ back_link(url_for('main.index'), _("Back to the dashboard")) }}
+      {# NOTE: Heading of the settings section about showing the weight chart on a public web page. #}
+      <h2>{{ _("Public chart") }}</h2>
+    </div>
     <p>{{ _("Show your chart and stat boxes on a public page that anyone with the link can see, and that you can embed in another website. Your notes, your email address and your daily log are never shown.") }}</p>
     <form method="post" action="{{ url_for('main.set_public_chart') }}" class="entry-form">
       {{ public_form.hidden_tag() }}
@@ -85,41 +85,41 @@
         {{ public_form.public_id.label }}
         {{ public_form.public_id(autocomplete="off", spellcheck="false", autocapitalize="none", maxlength=public_form.MAX_ID_LENGTH) }}
         <p class="field-hint">{{ _("The last part of the page's address: %(min)d to %(max)d letters (a-z), digits, hyphens or underscores. Leave it empty for a new random ID.", min=public_form.MIN_ID_LENGTH, max=public_form.MAX_ID_LENGTH) }}</p>
-        {% for error in public_form.public_id.errors %}
-          <p class="flash flash-error">{{ error }}</p>
-        {% endfor %}
+        {{ field_errors(public_form.public_id) }}
+      </div>
+      {# The public page's own theme and range, saved with this form (also while it is not
+         shared); the owner's own theme is the switch at the top of the page. The link and the
+         embed code below say both, and the script below rewrites them when they change. #}
+      <div class="field field-wide">
+        <label class="toggle-row">
+          {{ public_form.public_dark_mode.label.text }}
+          <span class="toggle-switch">
+            {{ public_form.public_dark_mode() }}
+            <span class="toggle-slider"></span>
+          </span>
+        </label>
+      </div>
+      <div class="field field-wide">
+        {# NOTE: Label of a menu in the settings: which period the shared chart shows. #}
+        <label for="embed-range">{{ _("Chart range") }}</label>
+        {# After a refused save, what was picked; otherwise what is saved. #}
+        {% set chosen_range = request.form.get('public_range', user.public_range or '') %}
+        <select id="embed-range" name="public_range">
+          {# NOTE: First choice of the chart range menu: the chart keeps its range buttons and the visitor picks. #}
+          <option value="">{{ _("Visitor chooses (range buttons)") }}</option>
+          {% for key, label, _days in chart_ranges %}
+            <option value="{{ key }}"{{ ' selected' if key == chosen_range }}>{{ label }}</option>
+          {% endfor %}
+        </select>
       </div>
       {% if user.public_enabled and user.public_id %}
         {% set public_path = url_for('main.public_chart', public_id=user.public_id) %}
         {# The full addresses are completed by the script below with the address the browser
-           sees: behind a proxy the server itself may only know http://. The range menu has no
-           name: it only changes the address shown here, nothing is saved. #}
+           sees: behind a proxy the server itself may only know http://. #}
         {% set public_url = request.host_url.rstrip('/') ~ public_path %}
         <div class="field-wide embed-options">
-          {# Like the range menu: no name, only changes the address shown below. It starts as the
-             owner's own theme; the address always says which one, so an embed keeps its look. #}
-          <div class="field">
-            <label class="toggle-row">
-              {{ _("Dark mode") }}
-              <span class="toggle-switch">
-                <input type="checkbox" id="embed-dark"{{ ' checked' if user.dark_mode }}>
-                <span class="toggle-slider"></span>
-              </span>
-            </label>
-          </div>
-          <div class="field">
-            {# NOTE: Label of a menu in the settings: which period the shared chart shows. #}
-            <label for="embed-range">{{ _("Chart range") }}</label>
-            <select id="embed-range">
-              {# NOTE: First choice of the chart range menu: the chart keeps its range buttons and the visitor picks. #}
-              <option value="">{{ _("Visitor chooses (range buttons)") }}</option>
-              {% for key, label, _days in chart_ranges %}
-                <option value="{{ key }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
           <p>{{ _("Your public chart:") }}
-            <a href="{{ public_path }}" target="_blank" rel="noopener" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">{{ public_url }}</a></p>
+            <a class="public-link" href="{{ public_path }}" target="_blank" rel="noopener" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">{{ public_url }}</a></p>
           <p>{{ _("To show it in another website, put this code in that page's HTML:") }}</p>
           <pre class="csv-example embed-code" data-server-url="{{ public_url }}" data-public-path="{{ public_path }}">&lt;iframe src="{{ public_url }}" title="Kilo Tracker" width="100%" height="600" style="border: 0;" loading="lazy"&gt;&lt;/iframe&gt;</pre>
         </div>
@@ -130,7 +130,10 @@
   </section>
 
   <section class="add-entry">
-    <h2>{{ _("Import data") }}</h2>
+    <div class="page-head">
+      {{ back_link(url_for('main.index'), _("Back to the dashboard")) }}
+      <h2>{{ _("Import data") }}</h2>
+    </div>
     {# NOTE: The text in <code> only names the three columns of a line such as 23-9-26,79.7,text. Translate the names (date, weight, note): the file itself has no header and is the same in every language. #}
     <p>{% trans trimmed %}Import weigh-ins from a CSV text file. Each line is
       <code>date,weight,note</code> (note is optional), for example:{% endtrans %}</p>
@@ -153,9 +156,7 @@
       <div class="field field-wide">
         {{ import_form.csv_file.label }}
         {{ import_form.csv_file() }}
-        {% for error in import_form.csv_file.errors %}
-          <p class="flash flash-error">{{ error }}</p>
-        {% endfor %}
+        {{ field_errors(import_form.csv_file) }}
         <p class="flash flash-error" id="import-too-large" hidden></p>
       </div>
       <button type="submit" class="form-action">{{ _("Import") }}</button>
@@ -163,7 +164,10 @@
   </section>
 
   <section class="add-entry">
-    <h2>{{ _("Export data") }}</h2>
+    <div class="page-head">
+      {{ back_link(url_for('main.index'), _("Back to the dashboard")) }}
+      <h2>{{ _("Export data") }}</h2>
+    </div>
     <p>{{ _("Download all your weigh-ins as a CSV file (date, weight in kilograms, note).") }}</p>
     <div class="section-actions">
       <a class="button-link" href="{{ url_for('main.export_entries') }}">{{ _("Export CSV") }}</a>
@@ -171,8 +175,11 @@
   </section>
 
   <section class="add-entry">
-    {# NOTE: Heading of the settings section that ends the sign-in on every other browser and device. #}
-    <h2>{{ _("Sign out everywhere") }}</h2>
+    <div class="page-head">
+      {{ back_link(url_for('main.index'), _("Back to the dashboard")) }}
+      {# NOTE: Heading of the settings section that ends the sign-in on every other browser and device. #}
+      <h2>{{ _("Sign out everywhere") }}</h2>
+    </div>
     <p>{{ _("Signed in on a computer that isn't yours, or lost a phone? This signs you out on every other browser and device. You stay signed in here.") }}</p>
     <form method="post" action="{{ url_for('account.sign_out_everywhere') }}" class="section-actions">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -182,7 +189,10 @@
   </section>
 
   <section class="add-entry">
-    <h2>{{ _("Remove my data") }}</h2>
+    <div class="page-head">
+      {{ back_link(url_for('main.index'), _("Back to the dashboard")) }}
+      <h2>{{ _("Remove my data") }}</h2>
+    </div>
     <p>{% trans trimmed %}Permanently delete your account and all your weigh-ins. You'll be asked
       to download your data and confirm with a code sent by email first.{% endtrans %}</p>
     <div class="section-actions">
@@ -206,7 +216,6 @@
     });
   })();
 
-  // The public chart's full address as the browser sees it (https:// behind the proxy).
   // Refuse a file over the import limit before it is uploaded at all.
   (function () {
     var form = document.getElementById('import-form');
@@ -230,7 +239,8 @@
   })();
 
   // The public chart's address and iframe code: always with ?theme=light or dark, and with
-  // ?range=... when a fixed range is picked.
+  // &range=... when a fixed range is picked; they follow the switch and the menu at once,
+  // before Save stores them as the page's own (used when an address has neither).
   (function () {
     var shown = document.querySelectorAll('[data-public-path]');
     if (!shown.length) return;
@@ -238,7 +248,7 @@
     var current = Array.prototype.map.call(shown, function (el) { return el.dataset.serverUrl; });
     function update() {
       var params = new URLSearchParams();
-      params.set('theme', document.getElementById('embed-dark').checked ? 'dark' : 'light');
+      params.set('theme', document.getElementById('public_dark_mode').checked ? 'dark' : 'light');
       var range = document.getElementById('embed-range').value;
       if (range) params.set('range', range);
       var url = location.origin + shown[0].dataset.publicPath + '?' + params.toString();
@@ -249,7 +259,7 @@
       });
     }
     document.getElementById('embed-range').addEventListener('change', update);
-    document.getElementById('embed-dark').addEventListener('change', update);
+    document.getElementById('public_dark_mode').addEventListener('change', update);
     update();
   })();
 </script>

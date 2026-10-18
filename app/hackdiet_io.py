@@ -34,25 +34,27 @@ cannot be converted reliably (stone) refuses the file rather than import wrong
 numbers. The height is only used if the account is metric, where it is in cm.
 """
 
-import csv
-import io
 import re
 import xml.etree.ElementTree as ET
+from functools import partial
 
 from flask_babel import gettext as _
 
 from app.csv_io import (
-    MAX_WEIGHT_KG,
-    MIN_WEIGHT_KG,
+    LEADING_JUNK,
     CsvRowError,
     ImportFileError,
     ImportResult,
+    data_rows,
+    line_weight_error,
     parse_ddmyy,
+    weight_kg,
 )
-from app.forms import SettingsForm
-from app.utils import parse_decimal
+from app.utils import MAX_HEIGHT_CM, MIN_HEIGHT_CM, NOTE_MAX_LENGTH, parse_decimal
 
 POUND_KG = 0.45359237
+# Weights are rounded to grams: a pound is 0.45359237 kg, so 180.4 lb has a long tail.
+WEIGHT_DIGITS = 3
 UNIT_FACTORS = {
     "kilogram": 1.0, "kilograms": 1.0, "kg": 1.0,
     "pound": POUND_KG, "pounds": POUND_KG, "lb": POUND_KG, "lbs": POUND_KG,
@@ -62,7 +64,6 @@ METRIC_UNITS = ("kilogram", "kilograms", "kg")
 # CSV lines that are not days: the metadata at the top and the per-month header/trend lines.
 CSV_SKIPPED_LINES = {"epoch", "user", "preferences", "diet-plan", "date", "starttrend"}
 ISO_DATE = re.compile(r"^\d{4}-\d{1,2}-\d{1,2}$")
-NOTE_MAX = 280
 
 
 def looks_like_hackdiet_csv(text):
@@ -82,24 +83,35 @@ def _unit_factor(unit):
     return factor
 
 
-def _weight_kg(text, factor):
-    """(weight in kg or None, problem) for a weight cell: problem is "invalid" or "range"."""
-    value = parse_decimal(text)
-    if value is None:
-        return None, "invalid"
-    kg = round(value * factor, 3)
-    if not (MIN_WEIGHT_KG <= kg <= MAX_WEIGHT_KG):
-        return None, "range"
-    return kg, None
+def _iso_date(text):
+    """The date of a `2026-09-23` cell, or None (the CSV writes ISO dates only)."""
+    if not ISO_DATE.match(text):
+        return None
+    try:
+        return parse_ddmyy(text)
+    except CsvRowError:
+        return None
+
+
+def _add_weighing(result, entry_date, weight_text, note, factor, weight_error):
+    """One day into `result`: a row, an error (`weight_error(text, problem)` words it), or a
+    skipped note (a note needs a weight to hang on)."""
+    if not weight_text:
+        if note:
+            result.notes_skipped += 1
+        return
+    weight, problem = weight_kg(weight_text, factor, digits=WEIGHT_DIGITS)
+    if problem:
+        result.errors.append(weight_error(weight_text, problem))
+    else:
+        result.rows.append((entry_date, weight, note or None))
 
 
 def parse_hackdiet_csv(text):
     """Parse the text of a Hacker's Diet CSV export into an `ImportResult`."""
     result = ImportResult()
     factor = 1.0
-    for lineno, row in enumerate(csv.reader(io.StringIO(text)), start=1):
-        if not row or all(not cell.strip() for cell in row):
-            continue
+    for lineno, row in data_rows(text):
         key = row[0].strip()
         if key.lower() == "preferences":
             factor = _unit_factor(row[2] if len(row) > 2 else "")  # the unit weights are logged in
@@ -108,26 +120,12 @@ def parse_hackdiet_csv(text):
             continue
 
         weight_text = row[1].strip() if len(row) > 1 else ""
-        note = ",".join(row[4:]).strip()[:NOTE_MAX] if len(row) > 4 else ""
-        try:
-            if not ISO_DATE.match(key):
-                raise CsvRowError()
-            entry_date = parse_ddmyy(key)
-        except CsvRowError:
+        note = ",".join(row[4:]).strip()[:NOTE_MAX_LENGTH] if len(row) > 4 else ""
+        entry_date = _iso_date(key)
+        if entry_date is None:
             result.errors.append(_("line %(line)d: invalid date %(value)s", line=lineno, value=repr(key)))
             continue
-
-        if not weight_text:
-            if note:
-                result.notes_skipped += 1  # a note needs a weight to hang on
-            continue
-        weight, problem = _weight_kg(weight_text, factor)
-        if problem == "invalid":
-            result.errors.append(_("line %(line)d: invalid weight %(value)s", line=lineno, value=repr(weight_text)))
-        elif problem == "range":
-            result.errors.append(_("line %(line)d: weight out of range", line=lineno))
-        else:
-            result.rows.append((entry_date, weight, note or None))
+        _add_weighing(result, entry_date, weight_text, note, factor, partial(line_weight_error, lineno))
     return result
 
 
@@ -138,15 +136,47 @@ def _height_cm(root, metric):
     value = parse_decimal((root.findtext("account/user/height") or "").strip())
     if value is None:
         return None
-    if SettingsForm.MIN_HEIGHT_CM <= value <= SettingsForm.MAX_HEIGHT_CM:
+    if MIN_HEIGHT_CM <= value <= MAX_HEIGHT_CM:
         return value
     return None
+
+
+def _month(monthlog, account_unit):
+    """(year, month, kg factor) of a `<monthlog>`, or None when its year or month is missing."""
+    properties = monthlog.find("properties")
+    if properties is None:
+        return None
+    year = parse_decimal(properties.findtext("year") or "")
+    month = parse_decimal(properties.findtext("month") or "")
+    if year is None or month is None:
+        return None
+    return int(year), int(month), _unit_factor(properties.findtext("weight-unit") or account_unit)
+
+
+def _day_date(day, year, month):
+    """(date or None, label) of a `<day>`; the label names the day in error messages."""
+    value = parse_decimal((day.findtext("date") or "").strip())
+    number = int(value) if value is not None else None
+    label = f"{year:04d}-{month:02d}" + (f"-{number:02d}" if number is not None else "")
+    if number is None:
+        return None, label
+    try:
+        return parse_ddmyy(f"{year:04d}-{month}-{number}"), label
+    except CsvRowError:
+        return None, label
+
+
+def _day_weight_error(label, text, problem):
+    """The import's message for an XML day whose weight `weight_kg` refused."""
+    if problem == "invalid":
+        return _("%(date)s: invalid weight %(value)s", date=label, value=repr(text))
+    return _("%(date)s: weight out of range", date=label)
 
 
 def parse_hackdiet_xml(data):
     """Parse the bytes of a Hacker's Diet XML export into an `ImportResult`."""
     invalid = ImportFileError(_("That file isn't a valid Hacker's Diet XML export."))
-    data = data.lstrip(b"\xef\xbb\xbf \t\r\n")  # the XML declaration must be the very first thing
+    data = data.lstrip(LEADING_JUNK)  # the XML declaration must be the very first thing
     if b"<!ENTITY" in data:
         raise invalid
     try:
@@ -161,39 +191,18 @@ def parse_hackdiet_xml(data):
     result = ImportResult(height_cm=_height_cm(root, display_unit in METRIC_UNITS))
 
     for monthlog in root.iterfind("monthlogs/monthlog"):
-        properties = monthlog.find("properties")
-        year = parse_decimal((properties.findtext("year") if properties is not None else "") or "")
-        month = parse_decimal((properties.findtext("month") if properties is not None else "") or "")
-        if year is None or month is None:
+        month = _month(monthlog, account_unit)
+        if month is None:
             continue
-        year, month = int(year), int(month)
-        unit = (properties.findtext("weight-unit") or account_unit)
-        factor = _unit_factor(unit)
-
+        year, month_number, factor = month
         for day in monthlog.iterfind("days/day"):
             weight_text = (day.findtext("weight") or "").strip()
-            note = (day.findtext("comment") or "").strip()[:NOTE_MAX]
+            note = (day.findtext("comment") or "").strip()[:NOTE_MAX_LENGTH]
             if not weight_text and not note:
                 continue
-            day_value = parse_decimal((day.findtext("date") or "").strip())
-            day_number = int(day_value) if day_value is not None else None
-            label = f"{year:04d}-{month:02d}" + (f"-{day_number:02d}" if day_number is not None else "")
-            try:
-                if day_number is None:
-                    raise CsvRowError()
-                entry_date = parse_ddmyy(f"{year:04d}-{month}-{day_number}")
-            except CsvRowError:
+            entry_date, label = _day_date(day, year, month_number)
+            if entry_date is None:
                 result.errors.append(_("%(date)s: invalid date", date=label))
                 continue
-
-            if not weight_text:
-                result.notes_skipped += 1
-                continue
-            weight, problem = _weight_kg(weight_text, factor)
-            if problem == "invalid":
-                result.errors.append(_("%(date)s: invalid weight %(value)s", date=label, value=repr(weight_text)))
-            elif problem == "range":
-                result.errors.append(_("%(date)s: weight out of range", date=label))
-            else:
-                result.rows.append((entry_date, weight, note or None))
+            _add_weighing(result, entry_date, weight_text, note, factor, partial(_day_weight_error, label))
     return result

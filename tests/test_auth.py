@@ -13,18 +13,15 @@
 
 """Tests for email sign-in: codes, expiry, attempt limits and sign-out."""
 
+
 import re
 
-from app import mail
+import pytest
+
+from app import db, mail
 from app.models import User
 from app.utils import hash_email
-
-
-def _get_code(outbox):
-    body = outbox[-1].body
-    match = re.search(r"\b(\d{6})\b", body)
-    assert match, f"no code found in email body: {body!r}"
-    return match.group(1)
+from tests.conftest import code_from, flashes
 
 
 def test_signup_sends_code_and_creates_unverified_user(client, app):
@@ -43,7 +40,7 @@ def test_signup_sends_code_and_creates_unverified_user(client, app):
 def test_verify_with_correct_code_signs_in(client, app):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "a@example.com"})
-    code = _get_code(outbox)
+    code = code_from(outbox)
 
     resp = client.post("/verify", data={"code": code}, follow_redirects=True)
     assert resp.status_code == 200
@@ -55,6 +52,25 @@ def test_verify_with_correct_code_signs_in(client, app):
     with client.session_transaction() as sess:
         assert sess.get("user_id") == user.id
         assert "pending_email" not in sess
+
+
+def test_a_used_code_cannot_sign_in_again(client, app):
+    with mail.record_messages() as outbox:
+        client.post("/signup", data={"email": "used@example.com"})
+    code = code_from(outbox)
+    client.post("/verify", data={"code": code})
+
+    with app.app_context():
+        user = User.query.filter_by(email_hash=hash_email("used@example.com")).first()
+        assert user.code_hash is None and user.code_expires_at is None
+    # Someone who saw the code (another browser waiting on the same address) is too late.
+    other = app.test_client()
+    with other.session_transaction() as sess:
+        sess["pending_email"] = "used@example.com"
+    resp = other.post("/verify", data={"code": code}, follow_redirects=True)
+    assert b"That code has expired" in resp.data
+    with other.session_transaction() as sess:
+        assert "user_id" not in sess
 
 
 def test_verify_with_wrong_code_fails(client, app):
@@ -72,11 +88,11 @@ def test_verify_with_wrong_code_fails(client, app):
 def test_resend_code_issues_new_code(client, app):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "c@example.com"})
-    first_code = _get_code(outbox)
+    first_code = code_from(outbox)
 
     with mail.record_messages() as outbox2:
         client.post("/verify/resend", follow_redirects=True)
-    second_code = _get_code(outbox2)
+    second_code = code_from(outbox2)
 
     resp = client.post("/verify", data={"code": first_code}, follow_redirects=True)
     assert b"Incorrect code" in resp.data or b"expired" in resp.data
@@ -88,7 +104,7 @@ def test_resend_code_issues_new_code(client, app):
 def test_logout_clears_session(client, app):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "d@example.com"})
-    code = _get_code(outbox)
+    code = code_from(outbox)
     client.post("/verify", data={"code": code})
 
     client.post("/logout", follow_redirects=True)
@@ -114,3 +130,85 @@ def test_send_code_button_sits_next_to_the_email_input(client):
     html = client.get("/").data.decode()
     row = html[html.index('class="input-with-button"'):]
     assert row.index('name="email"') < row.index("Send code") < row.index("</div>")
+
+
+def _flashes(client):
+    with client.session_transaction() as sess:
+        return [message for _category, message in sess.get("_flashes", [])]
+
+
+def test_verify_without_a_sign_in_in_progress_asks_for_the_email(client):
+    resp = client.get("/verify")
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/signup")
+    assert _flashes(client) == ["Enter your email to get a verification code."]
+
+
+def test_resend_without_a_sign_in_in_progress_goes_to_the_email_form(client):
+    with mail.record_messages() as outbox:
+        resp = client.post("/verify/resend")
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/signup")
+    assert outbox == [] and _flashes(client) == []
+
+
+@pytest.mark.parametrize("request_page", [lambda c: c.get("/verify"), lambda c: c.post("/verify/resend")],
+                         ids=["verify", "resend"])
+def test_a_sign_in_whose_account_is_gone_is_forgotten(client, app, request_page):
+    """The daily cleanup can remove the unverified account while its code page is open."""
+    with mail.record_messages():
+        client.post("/signup", data={"email": "gone@example.com"})
+    with app.app_context():
+        db.session.delete(User.query.filter_by(email_hash=hash_email("gone@example.com")).one())
+        db.session.commit()
+    client.get("/signup")  # take the "code sent" flash out of the session
+    with mail.record_messages() as outbox:
+        resp = request_page(client)
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/signup")
+    assert outbox == [] and _flashes(client) == []  # no account was made again, nothing was sent
+    with client.session_transaction() as sess:
+        assert "pending_email" not in sess
+    with app.app_context():
+        assert User.query.filter_by(email_hash=hash_email("gone@example.com")).first() is None
+
+
+@pytest.mark.parametrize("cooldown", [False, True], ids=["sent", "cooldown"])
+def test_signup_remembers_the_address_and_says_the_code_was_sent(client, app, cooldown):
+    """Also when a code was sent less than a minute ago and no new one goes out."""
+    if cooldown:
+        app.config["RATELIMIT_MODE"] = "enforce"
+        with mail.record_messages():
+            client.post("/signup", data={"email": "twice@example.com"})
+        client.get("/verify")  # take the first flash out of the session
+    with mail.record_messages() as outbox:
+        resp = client.post("/signup", data={"email": "twice@example.com"})
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/verify")
+    assert len(outbox) == (0 if cooldown else 1)
+    assert _flashes(client) == ["We sent a verification code to twice@example.com."]
+    with client.session_transaction() as sess:
+        assert sess["pending_email"] == "twice@example.com"
+
+
+def test_the_code_field_takes_six_digits_with_a_number_keyboard(app, logged_in_client):
+    """The same field on the sign-in code page and on "Remove my data" (_forms.code_field)."""
+    visitor = app.test_client()
+    with mail.record_messages():
+        visitor.post("/signup", data={"email": "field@example.com"})
+    signed_in, _user_id = logged_in_client
+    signed_in.get("/settings/export")  # the removal step needs a download first
+    with mail.record_messages():
+        signed_in.post("/settings/remove/send-code")
+    for page in (visitor.get("/verify"), signed_in.get("/settings/remove")):
+        field = re.search(r'<input[^>]*name="code"[^>]*>', page.get_data(as_text=True)).group(0)
+        assert 'maxlength="6"' in field and 'inputmode="numeric"' in field and 'placeholder="123456"' in field
+
+
+def test_the_code_page_says_when_there_were_too_many_attempts(client, app):
+    with mail.record_messages() as outbox:
+        client.post("/signup", data={"email": "lock@example.com"})
+    code = code_from(outbox)
+    wrong = f"{(int(code) + 1) % 1_000_000:06d}"
+    for _ in range(User.MAX_CODE_ATTEMPTS):
+        client.post("/verify", data={"code": wrong})
+    resp = client.post("/verify", data={"code": code})  # the right code, too late
+    assert "Too many attempts. Request a new code." in flashes(resp.get_data(as_text=True), "error")
+    with client.session_transaction() as sess:
+        assert "user_id" not in sess

@@ -19,7 +19,17 @@ from datetime import date
 
 import pytest
 
-from app.csv_io import CsvRowError, export_csv, format_ddmyy, parse_csv, parse_ddmyy, protect_cell
+from app.csv_io import (
+    CsvRowError,
+    data_rows,
+    decode_text,
+    export_csv,
+    format_ddmyy,
+    parse_csv,
+    parse_ddmyy,
+    protect_cell,
+    weight_kg,
+)
 
 
 def test_parse_ddmyy_two_digit_year():
@@ -144,3 +154,41 @@ def test_no_exported_cell_starts_like_a_formula():
 
 def test_protect_cell_leaves_the_empty_note_alone():
     assert protect_cell("") == ""
+
+
+def test_data_rows_skips_blank_lines_but_keeps_the_line_numbers():
+    text = "1-1-26,80\n\n ,  , \n2-1-26,81\n,\n"
+    assert list(data_rows(text)) == [(1, ["1-1-26", "80"]), (4, ["2-1-26", "81"])]
+
+
+@pytest.mark.parametrize(
+    "text, factor, digits, expected",
+    [
+        ("72,5", 1.0, None, (72.5, None)),
+        ("72.12345", 1.0, None, (72.12345, None)),  # the plain CSV keeps what was typed
+        ("180", 0.45359237, 3, (81.647, None)),  # pounds, rounded to grams
+        ("abc", 1.0, None, (None, "invalid")),
+        ("0.5", 1.0, None, (None, "range")),
+        ("501", 1.0, None, (None, "range")),
+        ("1200", 0.45359237, 3, (None, "range")),  # 544 kg: the range is checked in kg
+    ],
+)
+def test_weight_kg(text, factor, digits, expected):
+    assert weight_kg(text, factor, digits) == expected
+
+
+def test_the_plain_csv_import_does_not_round_a_weight():
+    rows, errors = parse_csv(b"1-1-26,72.12345\n")
+    assert errors == [] and rows[0][1] == 72.12345
+
+
+@pytest.mark.parametrize(
+    "data, text",
+    [
+        ("señor".encode(), "señor"),  # UTF-8 first
+        ("señor €".encode("cp1252"), "señor €"),  # then Windows-1252
+        (b"\x81\x8d", "\x81\x8d"),  # bytes Windows-1252 leaves undefined: Latin-1, which takes any byte
+    ],
+)
+def test_text_is_decoded_as_utf8_then_windows_1252_then_latin_1(data, text):
+    assert decode_text(data) == text

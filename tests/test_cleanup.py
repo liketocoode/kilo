@@ -14,7 +14,6 @@
 """Tests for the daily cleanup of stale sign-ups and expired code hashes."""
 
 import itertools
-import re
 from datetime import date, datetime, timedelta
 
 import pytest
@@ -23,6 +22,7 @@ from app import db, mail
 from app.cleanup import cleanup, main
 from app.models import RateEvent, User, WeightEntry
 from app.utils import SIGNIN_CODE_TTL_MINUTES, hash_email
+from tests.conftest import code_from
 
 NOW = datetime(2026, 10, 5, 12, 0, 0)
 DAY = timedelta(days=1)
@@ -150,7 +150,7 @@ def test_expired_removal_code_hashes_are_cleared_too(app):
 def test_a_cleared_code_is_reported_as_expired_when_entered(client, app):
     with mail.record_messages() as outbox:
         client.post("/signup", data={"email": "late@example.com"})
-    code = re.search(r"\b(\d{6})\b", outbox[-1].body).group(1)
+    code = code_from(outbox)
     cleanup(now=datetime.now() + 2 * timedelta(minutes=SIGNIN_CODE_TTL_MINUTES))  # the code has expired
     assert User.query.one().code_hash is None
     response = client.post("/verify", data={"code": code})

@@ -22,7 +22,7 @@ import pytest
 
 from app import db, errors
 from app.models import User, WeightEntry
-from tests.conftest import signup_and_verify
+from tests.conftest import flashes, page_with_scripts, signup_and_verify
 
 BROWSER = {"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}
 EXPIRED = "Your session has expired and nothing was changed. Please try again."
@@ -42,11 +42,6 @@ def csrf_token(client):
     return re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)
 
 
-def flashes(html):
-    """The error flashes on a page, as the visitor reads them (HTML entities decoded)."""
-    return [html_lib.unescape(text) for text in re.findall(r'class="flash flash-error">([^<]+)<', html)]
-
-
 # ---- CSRF: forms ------------------------------------------------------------
 
 
@@ -56,7 +51,7 @@ def test_a_form_without_a_token_goes_back_with_a_message(client, csrf_on):
     )
     assert response.status_code == 302
     assert response.headers["Location"] == "/signup?lang=nl"
-    assert EXPIRED in flashes(client.get("/signup").get_data(as_text=True))
+    assert EXPIRED in flashes(client.get("/signup").get_data(as_text=True), "error")
 
 
 def test_nothing_is_changed_when_the_token_is_refused(client, csrf_on):
@@ -71,7 +66,7 @@ def test_an_expired_token_gets_the_same_friendly_answer(client, csrf_on):
     csrf_on.config["WTF_CSRF_TIME_LIMIT"] = -1  # every token is now too old
     response = client.post("/signup", data={"email": "a@example.com", "csrf_token": token})
     assert response.status_code == 302
-    assert EXPIRED in flashes(client.get("/").get_data(as_text=True))
+    assert EXPIRED in flashes(client.get("/").get_data(as_text=True), "error")
 
 
 def test_a_valid_token_still_works(client, csrf_on):
@@ -110,7 +105,7 @@ def test_the_redirect_never_leaves_the_site(client, csrf_on, referrer):
 def test_the_form_message_is_in_the_visitors_language(client, csrf_on, lang, text):
     client.environ_base["HTTP_ACCEPT_LANGUAGE"] = lang
     client.post("/signup", data={"email": "a@example.com"})
-    assert text in flashes(client.get("/").get_data(as_text=True))
+    assert text in flashes(client.get("/").get_data(as_text=True), "error")
 
 
 # ---- CSRF: the dashboard's background saves ---------------------------------
@@ -159,12 +154,16 @@ def test_the_json_message_is_translated(logged_in_client, csrf_on):
 
 def test_the_dashboard_has_a_session_expired_dialog_and_uses_it(logged_in_client):
     client, _user_id = logged_in_client
-    html = client.get("/", headers={"Accept-Language": "de"}).get_data(as_text=True)
+    html = page_with_scripts(client, "/?lang=de")
     assert 'id="session-expired-prompt"' in html
     assert "Sitzung abgelaufen" in html and "Seite neu laden" in html
     # title, text and button are all rendered by the page, so they always match its language
     assert "Deine Sitzung ist abgelaufen. Lade die Seite neu und versuche es erneut." in html
-    assert html.count("data.code === 'csrf_expired'") == 2  # the row save and the "today" prompt
+    # Checked once, in saveDay, which both the row save and the "today" prompt go through.
+    assert html.count("data.code === 'csrf_expired'") == 1
+    assert html.count("await saveDay(") == 2
+    # Every JSON POST of the page (saves, range, dark mode) sends the token through postJson.
+    assert html.count("X-CSRFToken") == 1
     assert "location.reload()" in html
 
 
@@ -176,7 +175,7 @@ def test_a_missing_page_sends_a_browser_to_the_start_page(client, path):
     response = client.get(path, headers=BROWSER)
     assert response.status_code == 302
     assert response.headers["Location"] == "/"
-    assert NOT_AVAILABLE in flashes(client.get("/").get_data(as_text=True))
+    assert NOT_AVAILABLE in flashes(client.get("/").get_data(as_text=True), "error")
 
 
 def test_typing_a_post_only_address_gets_the_same_treatment(client):
@@ -188,21 +187,21 @@ def test_typing_a_post_only_address_gets_the_same_treatment(client):
 
 def test_signed_out_visitors_land_on_the_sign_in_form(client):
     html = client.get("/nope", headers=BROWSER, follow_redirects=True).get_data(as_text=True)
-    assert NOT_AVAILABLE in flashes(html)
+    assert NOT_AVAILABLE in flashes(html, "error")
     assert 'action="/signup"' in html
 
 
 def test_signed_in_visitors_land_on_their_dashboard(logged_in_client):
     client, _user_id = logged_in_client
     html = client.get("/nope", headers=BROWSER, follow_redirects=True).get_data(as_text=True)
-    assert NOT_AVAILABLE in flashes(html)
+    assert NOT_AVAILABLE in flashes(html, "error")
     assert 'id="weight-chart"' in html
 
 
 def test_the_missing_page_message_is_translated(client):
     client.environ_base["HTTP_ACCEPT_LANGUAGE"] = "nl"
     html = client.get("/nope", headers=BROWSER, follow_redirects=True).get_data(as_text=True)
-    assert "Die pagina is niet beschikbaar, daarom ben je naar de startpagina gebracht." in flashes(html)
+    assert "Die pagina is niet beschikbaar, daarom ben je naar de startpagina gebracht." in flashes(html, "error")
 
 
 @pytest.mark.parametrize(
@@ -392,6 +391,42 @@ def test_the_rest_of_a_refused_upload_is_read_so_the_browser_gets_the_answer(app
                                   headers={"Content-Length": str(3 * MB)}):
         errors._drain_upload()
     assert body.read() == b""
+
+
+# The test request helper sets Content-Length from the stream it is given; environ_overrides keeps
+# the length a real client claimed, which is what these cases are about.
+def _claimed(length):
+    return {"CONTENT_LENGTH": str(length)}
+
+
+def test_an_upload_shorter_than_it_claims_does_not_hang(app):
+    body = io.BytesIO(b"x" * MB)  # says 3 MB, sends 1 MB
+    with app.test_request_context("/settings/import", method="POST", input_stream=body,
+                                  environ_overrides=_claimed(3 * MB)) as ctx:
+        assert ctx.request.content_length == 3 * MB
+        errors._drain_upload()
+    assert body.read() == b""
+
+
+def test_a_connection_that_breaks_while_draining_is_ignored(app):
+    reads = []
+
+    class Broken(io.BytesIO):
+        def read(self, *args):
+            reads.append(args)
+            raise OSError("connection reset by peer")
+
+    with app.test_request_context("/settings/import", method="POST", input_stream=Broken(b"x" * MB),
+                                  environ_overrides=_claimed(MB)):
+        errors._drain_upload()  # no exception: the answer still goes out
+    assert len(reads) == 1
+
+
+def test_a_request_without_a_body_stream_is_left_alone(app):
+    with app.test_request_context("/settings/import", method="POST", environ_overrides=_claimed(MB)) as ctx:
+        ctx.request.environ.pop("wsgi.input")
+        assert ctx.request.content_length == MB
+        errors._drain_upload()
 
 
 def test_a_huge_upload_is_not_read(app, monkeypatch):

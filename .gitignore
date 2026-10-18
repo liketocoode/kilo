@@ -8,3 +8,8 @@ instance/
 *.mo
 CLAUDE.md
 IMPROVEMENTS.md
+.claude/
+audits/
+RATELIMIT.md
+VIDEO-TUTORIAL.md
+.coverage

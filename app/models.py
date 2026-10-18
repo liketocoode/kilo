@@ -16,7 +16,7 @@
 from datetime import date
 
 from app import db
-from app.utils import utcnow
+from app.utils import NOTE_MAX_LENGTH, utcnow
 
 
 class WeightEntry(db.Model):
@@ -27,7 +27,7 @@ class WeightEntry(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     entry_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
     weight = db.Column(db.Float, nullable=False)
-    note = db.Column(db.String(280), nullable=True)
+    note = db.Column(db.String(NOTE_MAX_LENGTH), nullable=True)
 
     def __repr__(self):
         return f"<WeightEntry user={self.user_id} {self.entry_date} {self.weight}>"
@@ -66,7 +66,7 @@ class User(db.Model):
     chart_range = db.Column(db.String(4), nullable=False, default="all")
     moving_avg_days = db.Column(db.Integer, nullable=False, default=10)
     # Raised by "Sign out everywhere": a session cookie that carries an older number is no longer
-    # accepted (see auth.keep_session_alive). Cookies from before this column count as 0.
+    # accepted (see sessions.keep_session_alive). Cookies from before this column count as 0.
     session_version = db.Column(db.Integer, nullable=False, default=0)
 
     # The public chart at /public/<public_id> (see routes.public_chart). The id is kept when
@@ -79,10 +79,22 @@ class User(db.Model):
     # Whether the public chart shows the weights. Off: only the shape of the line (see
     # routes._without_weights), and never the stat boxes, whatever public_show_stats says.
     public_show_weight = db.Column(db.Boolean, nullable=False, default=True)
+    # The public chart's own theme, apart from the owner's dark_mode, and its fixed range (a
+    # CHART_RANGES key; None: the visitor chooses with the range buttons). ?theme= and ?range=
+    # in the address override them. Migration 0002 gave existing users their own dark_mode; 0003
+    # added the range.
+    public_dark_mode = db.Column(db.Boolean, nullable=False, default=False)
+    public_range = db.Column(db.String(4), nullable=True)
 
     entries = db.relationship(
         "WeightEntry", backref="user", cascade="all, delete-orphan", lazy="dynamic"
     )
+
+    @property
+    def public_stats_shown(self):
+        """Whether the public chart shows the stat boxes: they show kilograms, so never without
+        the weight, whatever public_show_stats says."""
+        return self.public_show_weight and self.public_show_stats
 
     @property
     def is_verified(self):

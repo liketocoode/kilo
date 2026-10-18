@@ -13,13 +13,10 @@
 
 """Tests for importing The Hacker's Diet CSV/XML exports and for the header rule of the plain CSV import.
 
-The exports below are made up, but follow the real ones: a per-month header and
-StartTrend line in the CSV, Windows-1252 text, days without a weight, a note
-without a weight, and an XML with a DOCTYPE that points at a DTD.
+The exports are made up by tests/builders.py (hd_csv, hd_xml) in the shape of the real ones.
 """
 
 import io
-import re
 import socket
 from datetime import date
 
@@ -27,71 +24,11 @@ import pytest
 
 from app import db
 from app.csv_io import ImportFileError, parse_csv
+from app.hackdiet_io import looks_like_hackdiet_csv
 from app.importing import parse_import
 from app.models import User, WeightEntry
-
-# (date, weight text, comment) per day; months are separated like the real export does it
-DAYS = {
-    (2007, 8): [
-        (1, "94", ""), (2, "", ""), (3, "93.5", "after the party, finally"), (4, "", "a note without a weight"),
-        (5, "93.2", "señor"),  # "ñ" is one byte in Windows-1252
-    ],
-    (2007, 9): [(1, "92.8", ""), (2, "", ""), (3, "92.4", "")],
-}
-EXPECTED_ROWS = [
-    (date(2007, 8, 1), 94.0, None),
-    (date(2007, 8, 3), 93.5, "after the party, finally"),
-    (date(2007, 8, 5), 93.2, "señor"),
-    (date(2007, 9, 1), 92.8, None),
-    (date(2007, 9, 3), 92.4, None),
-]
-
-
-def hd_csv(days=DAYS, unit="kilogram", encoding="cp1252", with_epoch=True):
-    lines = []
-    if with_epoch:
-        lines += [
-            "Epoch,2025-11-20T14:07:50Z",
-            "User,1.0,somebody,,,,somebody@example.com,2007-11-20T21:25:38Z",
-            f"Preferences,1.0,{unit},{unit},calorie,0,.",
-            "Diet-Plan,1.0,-75,98,85,2025-02-28T00:00:00Z,1",
-        ]
-    for (year, month), month_days in days.items():
-        lines += ["Date,Weight,Rung,Flag,Comment", "StartTrend,0,0,1195940413,1195940413,1.0"]
-        for day, weight, comment in month_days:
-            quoted = f'"{comment}"' if "," in comment else comment
-            lines.append(f"{year}-{month:02d}-{day:02d},{weight},,0,{quoted}")
-    return ("\r\n".join(lines) + "\r\n").encode(encoding)
-
-
-def hd_xml(days=DAYS, unit="kilogram", height="187", display_unit=None, doctype=True, extra=""):
-    parts = ['<?xml version="1.0" encoding="UTF-8"?>']
-    if doctype:
-        parts += [
-            '<?xml-stylesheet type="text/css" href="http://www.fourmilab.ch/hackdiet/online/hackdiet_db.css"?>',
-            '<!DOCTYPE hackersdiet SYSTEM\n          "http://www.fourmilab.ch/hackdiet/online/hackersdiet.dtd">',
-        ]
-    parts += [
-        '<hackersdiet version="1.0">',
-        "<epoch>2025-11-20T14:07:40Z</epoch>",
-        '<account version="1.0"><user version="1.0"><login-name>somebody</login-name>',
-        f"<e-mail>somebody@example.com</e-mail><height>{height}</height></user>",
-        (
-            f"<preferences><log-unit>{unit}</log-unit>"
-            f"<display-unit>{display_unit or unit}</display-unit></preferences></account>"
-        ),
-        '<monthlogs version="1.0">',
-    ]
-    for (year, month), month_days in days.items():
-        parts.append(f"<monthlog><properties><year>{year}</year><month>{month}</month>"
-                     f"<weight-unit>{unit}</weight-unit></properties><days>")
-        for day, weight, comment in month_days:
-            safe = comment.replace("ñ", "&#241;")
-            parts.append(f"<day><date>{day}</date><weight>{weight}</weight><rung></rung><flag></flag><comment>{safe}</comment></day>")
-        parts.append("</days></monthlog>")
-    parts += [extra, "</monthlogs></hackersdiet>"]
-    return "\n".join(parts).encode("utf-8")
-
+from tests.builders import EXPECTED_ROWS, hd_csv, hd_xml
+from tests.conftest import flashes
 
 # ---- the CSV export ---------------------------------------------------------
 
@@ -204,6 +141,7 @@ def test_pounds_are_converted_to_kilograms(make):
     rows = parse_import(make(POUNDS, unit="pound")).rows
     assert rows[0] == (date(2020, 1, 1), pytest.approx(81.647, abs=0.001), None)
     assert rows[1] == (date(2020, 1, 2), pytest.approx(90.945, abs=0.001), "heavier")
+    assert [row[1] for row in rows] == [81.647, 90.945]  # rounded to grams, no long tail
 
 
 @pytest.mark.parametrize("make", [hd_csv, hd_xml])
@@ -327,13 +265,6 @@ def upload(client, data, name="export.csv", **kwargs):
     )
 
 
-def flashes(response):
-    import html
-
-    page = response.get_data(as_text=True)
-    return [html.unescape(m) for m in re.findall(r'class="flash flash-(?:success|error)">([^<]+)<', page)]
-
-
 @pytest.mark.parametrize(
     "make, name", [(hd_csv, "hackdiet_db.csv"), (hd_xml, "hackdiet_db.xml"), (hd_csv, "renamed.txt")]
 )
@@ -380,6 +311,12 @@ def test_a_header_only_file_says_no_rows_and_no_warning(logged_in_client):
     client, _user_id = logged_in_client
     messages = flashes(upload(client, b"date,weight,note\n"))
     assert messages == ["No rows found in the file."]
+
+
+def test_a_file_of_only_notes_says_they_were_skipped_not_that_it_was_empty(logged_in_client):
+    client, _user_id = logged_in_client
+    messages = flashes(upload(client, hd_csv({(2026, 9): [(23, "", "just a note")]})))
+    assert messages == ["1 note without a weight was skipped."]
 
 
 def test_a_refused_file_says_why_and_imports_nothing(logged_in_client):
@@ -537,3 +474,44 @@ def test_the_import_page_names_both_tools(logged_in_client):
     client, _user_id = logged_in_client
     html = client.get("/settings").get_data(as_text=True)
     assert "The Hacker's Diet Online" in html and "Yet Another Diet Tool" in html
+
+
+# ---- edge cases ----------------------------------------------------------------------------
+
+
+def test_a_file_of_blank_lines_is_not_a_hackers_diet_csv():
+    assert looks_like_hackdiet_csv("\n  \n\t\n") is False
+
+
+def test_a_hackers_diet_csv_line_with_a_date_that_is_not_iso_is_reported():
+    """The export writes 2007-08-01; a hand-edited 23-8-2007 is an error, not a guess."""
+    data = hd_csv(days={(2007, 8): [(1, "94", "")]}) + b"23-8-2007,93,,0,\r\n"
+    result = parse_import(data)
+    assert result.rows == [(date(2007, 8, 1), 94.0, None)]
+    assert result.errors == ["line 8: invalid date '23-8-2007'"]
+
+
+def test_a_month_without_a_year_or_month_is_skipped():
+    no_year = ("<monthlog><properties><month>9</month></properties>"
+               "<days><day><date>1</date><weight>90</weight></day></days></monthlog>")
+    no_properties = "<monthlog><days><day><date>2</date><weight>91</weight></day></days></monthlog>"
+    result = parse_import(hd_xml(days={(2007, 8): [(1, "94", "")]}, extra=no_year + no_properties))
+    assert result.rows == [(date(2007, 8, 1), 94.0, None)] and result.errors == []
+
+
+def test_an_xml_day_without_a_date_is_reported():
+    no_date = ("<monthlog><properties><year>2007</year><month>10</month></properties>"
+               "<days><day><date></date><weight>90</weight></day></days></monthlog>")
+    result = parse_import(hd_xml(days={(2007, 8): [(1, "94", "")]}, extra=no_date))
+    assert result.rows == [(date(2007, 8, 1), 94.0, None)]
+    assert result.errors == ["2007-10: invalid date"]
+
+
+def test_only_the_first_five_bad_lines_are_spelled_out(logged_in_client):
+    client, _ = logged_in_client
+    lines = "".join(f"x{n},80\n" for n in range(1, 8))  # seven bad dates
+    messages = flashes(upload(client, ("1-1-26,80\n" + lines).encode()), "error")
+    assert len(messages) == 1
+    assert messages[0].startswith("Skipped 7 invalid lines: line 2: invalid date 'x1'")
+    assert "line 6: invalid date 'x5'" in messages[0] and "x6" not in messages[0]
+    assert messages[0].endswith("(+2 more)")
