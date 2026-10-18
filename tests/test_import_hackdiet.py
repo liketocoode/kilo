@@ -313,6 +313,12 @@ def test_a_header_only_file_says_no_rows_and_no_warning(logged_in_client):
     assert messages == ["No rows found in the file."]
 
 
+def test_a_file_of_only_notes_says_they_were_skipped_not_that_it_was_empty(logged_in_client):
+    client, _user_id = logged_in_client
+    messages = flashes(upload(client, hd_csv({(2026, 9): [(23, "", "just a note")]})))
+    assert messages == ["1 note without a weight was skipped."]
+
+
 def test_a_refused_file_says_why_and_imports_nothing(logged_in_client):
     client, user_id = logged_in_client
     messages = flashes(upload(client, hd_xml(POUNDS, unit="stone"), "x.xml"))

@@ -737,40 +737,9 @@ def export_entries():
     )
 
 
-@bp.route("/settings/import", methods=["POST"])
-@login_required
-def import_entries():
-    """Import entries from an uploaded file (CSV, or a Hacker's Diet CSV/XML export), overwriting
-    entries on the same dates.
-
-    A height in the file is used only if the user has not set one yet.
-    """
-    user = get_current_user()
-    form = ImportForm()
-
-    if not form.validate_on_submit():
-        for field_errors in form.errors.values():
-            for error in field_errors:
-                flash(str(error), "error")
-        return redirect(url_for("main.settings"))
-
-    try:
-        result = parse_import(form.csv_file.data.read())
-    except ImportFileError as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("main.settings"))
-    errors = result.errors
-
-    # All the user's entries in one query, not one per imported line.
-    existing = {entry.entry_date: entry for entry in user.entries}
-    for entry_date, weight, note in result.rows:
-        _put_entry(user, existing, entry_date, weight, note)
-    imported = len(result.rows)
-    height_set = result.height_cm is not None and user.height_cm is None
-    if height_set:
-        user.height_cm = result.height_cm
-    db.session.commit()
-
+def _flash_import_result(result, height_set):
+    """What the import did, as flash messages: entries, a height, skipped notes and lines."""
+    imported, errors = len(result.rows), result.errors
     if imported:
         flash(
             ngettext("Imported %(num)d entry.", "Imported %(num)d entries.", imported),
@@ -803,4 +772,38 @@ def import_entries():
     if not imported and not errors and not result.notes_skipped:
         flash(_("No rows found in the file."), "error")
 
+
+@bp.route("/settings/import", methods=["POST"])
+@login_required
+def import_entries():
+    """Import entries from an uploaded file (CSV, or a Hacker's Diet CSV/XML export), overwriting
+    entries on the same dates.
+
+    A height in the file is used only if the user has not set one yet.
+    """
+    user = get_current_user()
+    form = ImportForm()
+
+    if not form.validate_on_submit():
+        for field_errors in form.errors.values():
+            for error in field_errors:
+                flash(str(error), "error")
+        return redirect(url_for("main.settings"))
+
+    try:
+        result = parse_import(form.csv_file.data.read())
+    except ImportFileError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("main.settings"))
+
+    # All the user's entries in one query, not one per imported line.
+    existing = {entry.entry_date: entry for entry in user.entries}
+    for entry_date, weight, note in result.rows:
+        _put_entry(user, existing, entry_date, weight, note)
+    height_set = result.height_cm is not None and user.height_cm is None
+    if height_set:
+        user.height_cm = result.height_cm
+    db.session.commit()
+
+    _flash_import_result(result, height_set)
     return redirect(url_for("main.settings"))
