@@ -65,6 +65,7 @@ def test_a_weight_typed_in_the_log_is_saved(dashboard, live_server, page):
     expect(row(page).locator(".day-status")).to_have_text("Saved")
     assert live_server.entry(user_id) == (80.4, None)
     expect(page.locator("#stat-current")).not_to_be_empty()
+    assert page.evaluate("chart.data.datasets[0].data.at(-1)") == 80.4  # the chart took the save's series
     page.reload()
     expect(row(page).locator(".day-weight")).to_have_value("80.4")
 
@@ -156,6 +157,22 @@ def test_a_range_button_changes_the_chart_and_is_remembered(dashboard, live_serv
     page.reload()
     expect(page.locator('.range-btn[data-range="1m"]')).to_have_class("range-btn active")
     assert live_server.user(user_id).chart_range == "1m"
+
+
+def test_all_reaches_today_even_when_the_last_entry_is_older(dashboard, page):
+    dashboard(weights=dict.fromkeys(range(3, 20), 80.0))  # nothing for the last 3 days
+    labels = page.evaluate("chart.data.labels")
+    assert labels[0] == day(19) and labels[-1] == day(0) and len(labels) == 20
+    assert page.evaluate("chart.data.datasets[0].data.slice(-3)") == [None, None, None]
+
+
+def test_a_long_history_is_thinned_out_and_its_average_stays_exact(dashboard, page):
+    # 1,500 days alternating 80 and 82 kg: more than MAX_PLOT_POINTS, so the chart averages
+    # buckets of days; the dotted overall average is still that of every single day.
+    dashboard(weights={days_ago: 80.0 + 2 * (days_ago % 2) for days_ago in range(1500)})
+    assert page.evaluate("chart.data.labels.length") == 1000
+    assert page.evaluate("chart.data.datasets[2].data[0]") == pytest.approx(81.0, abs=0.01)
+    assert page.evaluate("chart.data.datasets[1].data.length") == 0  # no moving average on All
 
 
 def test_dark_mode_switches_at_once_and_is_remembered(dashboard, live_server, page):

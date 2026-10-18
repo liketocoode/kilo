@@ -867,11 +867,11 @@
   // (1W-1Y, all under the cap) already show.
   const MAX_PLOT_POINTS = 1000;
 
-  function decimateForDisplay(labels, values, bmis, reals, movingAvg) {
+  // `series` and the result: {labels, values, bmis, reals, movingAvg}, parallel arrays.
+  function decimateForDisplay(series) {
+    const { labels, values, bmis, reals, movingAvg } = series;
     const n = labels.length;
-    if (n <= MAX_PLOT_POINTS) {
-      return { labels, values, bmis, reals, movingAvg };
-    }
+    if (n <= MAX_PLOT_POINTS) return series;
 
     const bucketSize = n / MAX_PLOT_POINTS;
     const outLabels = [];
@@ -918,73 +918,78 @@
   // it's just noise on top of an already-decimated line.
   const MOVING_AVG_RANGES = new Set(['1w', '2w', '1m', '3m', '6m', '1y']);
 
+  // The part of the full series in a range of `days` days up to today; the full series
+  // itself (not a copy) for "all", which has no `days`.
+  function sliceToRange(days) {
+    if (!days) {
+      return { labels: fullLabels, values: fullValues, bmis: fullBmis, reals: fullReal, movingAvg: fullMovingAvg };
+    }
+    // The first day shown: `days` days before today, as a LOCAL calendar
+    // date. (toISOString() would convert local midnight to UTC and, east of
+    // Greenwich, land on the previous day - one day too many in the chart.)
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setDate(cutoff.getDate() - days);
+    const cutoffStr = localIso(cutoff);
+    const series = { labels: [], values: [], bmis: fullBmis ? [] : null, reals: [], movingAvg: [] };
+    for (let i = 0; i < fullLabels.length; i++) {
+      if (fullLabels[i] >= cutoffStr) {
+        series.labels.push(fullLabels[i]);
+        series.values.push(fullValues[i]);
+        if (fullBmis) series.bmis.push(fullBmis[i]);
+        series.reals.push(fullReal[i]);
+        series.movingAvg.push(fullMovingAvg[i]);
+      }
+    }
+    return series;
+  }
+
+  // The right edge of the chart is always today: when there is no entry for
+  // today (or the last few days) those days stay on the axis, empty, and the
+  // line simply stops at the last entry. A decimated range (thousands of days)
+  // has averaged points that no longer stand for single days, so it is left alone.
+  // Returns a padded copy (`series` may be the full data, see sliceToRange).
+  function padToToday(series, days) {
+    if (series.labels.length > MAX_PLOT_POINTS || !fullLabels.length) return series;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = localIso(today);
+    const { labels } = series;
+    const next = labels.length ? parseIsoDate(labels[labels.length - 1]) : new Date(today);
+    if (labels.length) next.setDate(next.getDate() + 1);
+    else next.setDate(next.getDate() - days);
+    const padded = {
+      labels: labels.slice(),
+      values: series.values.slice(),
+      bmis: series.bmis && series.bmis.slice(),
+      reals: series.reals.slice(),
+      movingAvg: series.movingAvg.slice(),
+    };
+    for (; localIso(next) <= todayStr; next.setDate(next.getDate() + 1)) {
+      padded.labels.push(localIso(next));
+      padded.values.push(null);
+      if (padded.bmis) padded.bmis.push(null);
+      padded.reals.push(false);
+      padded.movingAvg.push(null);
+    }
+    return padded;
+  }
+
   function applyRange(rangeKey) {
     currentRange = rangeKey;
     const days = RANGE_DAYS[rangeKey];
-    let labels = fullLabels;
-    let values = fullValues;
-    let bmis = fullBmis;
-    let reals = fullReal;
-    let movingAvg = fullMovingAvg;
-
-    if (days) {
-      // The first day shown: `days` days before today, as a LOCAL calendar
-      // date. (toISOString() would convert local midnight to UTC and, east of
-      // Greenwich, land on the previous day - one day too many in the chart.)
-      const cutoff = new Date();
-      cutoff.setHours(0, 0, 0, 0);
-      cutoff.setDate(cutoff.getDate() - days);
-      const cutoffStr = localIso(cutoff);
-      labels = [];
-      values = [];
-      bmis = fullBmis ? [] : null;
-      reals = [];
-      movingAvg = [];
-      for (let i = 0; i < fullLabels.length; i++) {
-        if (fullLabels[i] >= cutoffStr) {
-          labels.push(fullLabels[i]);
-          values.push(fullValues[i]);
-          if (fullBmis) bmis.push(fullBmis[i]);
-          reals.push(fullReal[i]);
-          movingAvg.push(fullMovingAvg[i]);
-        }
-      }
-    }
+    const inRange = sliceToRange(days);
 
     // The dotted overall-average line reflects whatever period is
     // currently graphed (the selected range), not all-time history —
-    // computed from the range-filtered values before decimation so it
-    // stays exact regardless of how coarse the bucketing below gets.
+    // computed from the range-filtered values before padding and decimation
+    // so it stays exact regardless of how coarse the bucketing gets.
+    const values = inRange.values;
     const overallAvg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
 
-    // The right edge of the chart is always today: when there is no entry for
-    // today (or the last few days) those days stay on the axis, empty, and the
-    // line simply stops at the last entry. A decimated range (thousands of days)
-    // has averaged points that no longer stand for single days, so it is left alone.
-    if (labels.length <= MAX_PLOT_POINTS && fullLabels.length) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = localIso(today);
-      const next = labels.length ? parseIsoDate(labels[labels.length - 1]) : new Date(today);
-      if (labels.length) next.setDate(next.getDate() + 1);
-      else next.setDate(next.getDate() - days);
-      // The arrays may still be the full data (the "all" range): copy before adding to them.
-      labels = labels.slice();
-      values = values.slice();
-      bmis = bmis && bmis.slice();
-      reals = reals.slice();
-      movingAvg = movingAvg.slice();
-      for (; localIso(next) <= todayStr; next.setDate(next.getDate() + 1)) {
-        labels.push(localIso(next));
-        values.push(null);
-        if (bmis) bmis.push(null);
-        reals.push(false);
-        movingAvg.push(null);
-      }
-    }
-
-    currentDecimated = labels.length > MAX_PLOT_POINTS;
-    ({ labels, values, bmis, reals, movingAvg } = decimateForDisplay(labels, values, bmis, reals, movingAvg));
+    const padded = padToToday(inRange, days);
+    currentDecimated = padded.labels.length > MAX_PLOT_POINTS;
+    const { labels, values: shownValues, bmis, reals, movingAvg } = decimateForDisplay(padded);
 
     currentBmis = bmis;
     currentReal = reals;
@@ -992,7 +997,7 @@
     rebuildBmiColorCaches();
     rebuildTickCache();
     chart.data.labels = labels;
-    chart.data.datasets[0].data = values;
+    chart.data.datasets[0].data = shownValues;
     chart.data.datasets[1].data = MOVING_AVG_RANGES.has(rangeKey) ? movingAvg : [];
     chart.data.datasets[2].data = overallAvg == null ? [] : labels.map(() => overallAvg);
     chart.update();
@@ -1312,13 +1317,59 @@
     if (action) action();
   });
 
+  // The note editor of one day row: the note button opens it with the row's note, Save hands
+  // the edited note to onSave(note), Cancel and Escape close it, Ctrl/Cmd+Enter saves.
+  function bindNoteEditor(row, onSave) {
+    const noteValue = row.querySelector('.day-note-value');
+    const noteBtn = row.querySelector('.note-btn');
+    const popover = row.querySelector('.note-popover');
+    const textarea = row.querySelector('.note-textarea');
+
+    popover.querySelector('.note-emoji-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleEmojiPicker(popover, e.currentTarget, textarea);
+    });
+
+    noteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = popover.hidden;
+      closeAllPopovers(opening ? popover : null);
+      popover.hidden = !opening;
+      if (opening) {
+        placePopover(popover);
+        textarea.value = noteValue.value;
+        textarea.focus();
+      }
+    });
+
+    popover.querySelector('.note-save').addEventListener('click', (e) => {
+      e.stopPropagation();
+      popover.hidden = true;
+      onSave(textarea.value.trim().slice(0, {{ NOTE_MAX_LENGTH }}));
+    });
+
+    popover.querySelector('.note-cancel').addEventListener('click', (e) => {
+      e.stopPropagation();
+      popover.hidden = true;
+    });
+
+    popover.addEventListener('click', (e) => e.stopPropagation());
+
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        popover.hidden = true;
+      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        popover.querySelector('.note-save').click();
+      }
+    });
+  }
+
+  // One day of the daily log: its weight field saves on change, its note editor on Save.
   function bindRow(row) {
     const weightInput = row.querySelector('.day-weight');
     const noteValue = row.querySelector('.day-note-value');
     const noteBtn = row.querySelector('.note-btn');
     const notePreview = row.querySelector('.note-preview');
-    const popover = row.querySelector('.note-popover');
-    const textarea = row.querySelector('.note-textarea');
     const statusEl = row.querySelector('.day-status');
 
     function refreshNoteDisplay() {
@@ -1379,44 +1430,10 @@
     weightInput.addEventListener('change', () => save());
     weightInput.addEventListener('focus', () => setHighlightedRow(row));
 
-    popover.querySelector('.note-emoji-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleEmojiPicker(popover, e.currentTarget, textarea);
-    });
-
-    noteBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const opening = popover.hidden;
-      closeAllPopovers(opening ? popover : null);
-      popover.hidden = !opening;
-      if (opening) {
-        placePopover(popover);
-        textarea.value = noteValue.value;
-        textarea.focus();
-      }
-    });
-
-    popover.querySelector('.note-save').addEventListener('click', (e) => {
-      e.stopPropagation();
-      noteValue.value = textarea.value.trim().slice(0, {{ NOTE_MAX_LENGTH }});
+    bindNoteEditor(row, (note) => {
+      noteValue.value = note;
       refreshNoteDisplay();
-      popover.hidden = true;
       save();
-    });
-
-    popover.querySelector('.note-cancel').addEventListener('click', (e) => {
-      e.stopPropagation();
-      popover.hidden = true;
-    });
-
-    popover.addEventListener('click', (e) => e.stopPropagation());
-
-    textarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        popover.hidden = true;
-      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        popover.querySelector('.note-save').click();
-      }
     });
   }
 
