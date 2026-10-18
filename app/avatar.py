@@ -146,21 +146,41 @@ def _remove_others(paths, keep):
             os.unlink(path)
 
 
+def _cached(paths, now):
+    """(ext, path, age in seconds) of this hash's cache file, or None when there is none."""
+    for ext, path in paths.items():
+        try:
+            return ext, path, now - os.path.getmtime(path)
+        except OSError:
+            continue
+    return None
+
+
+def _after_failed_fetch(paths, cached, now):
+    """Gravatar could not be reached: the old avatar if there is one, else the placeholder.
+    Either way Gravatar is asked again in RETRY_SECONDS, not on every page load."""
+    if cached and cached[0] != _MISSING:
+        # An old avatar is better than none.
+        try:
+            os.utime(cached[1], (_retry_mtime(now),) * 2)
+        except OSError:
+            pass
+        return _read(*cached[:2])
+    try:
+        _write(paths[_MISSING], b"", mtime=_retry_mtime(now))
+        _remove_others(paths, _MISSING)
+    except OSError:
+        pass
+    return None
+
+
 def get(email_hash, now=None):
     """(content type, bytes) of the avatar for `email_hash`, or None to show the placeholder."""
     if not _HASH.fullmatch(email_hash or "") or not current_app.config["GRAVATAR_ENABLED"]:
         return None
     now = time.time() if now is None else now
     paths = _paths(email_hash)
-    cached = None
-    for ext, path in paths.items():
-        try:
-            age = now - os.path.getmtime(path)
-        except OSError:
-            continue
-        cached = (ext, path, age)
-        break
-
+    cached = _cached(paths, now)
     if cached and cached[2] < CACHE_SECONDS:
         return _read(*cached[:2])
 
@@ -168,20 +188,7 @@ def get(email_hash, now=None):
         result = _download(email_hash)
     except OSError as error:
         current_app.logger.warning("Could not fetch a Gravatar: %s", error)
-        if cached and cached[0] != _MISSING:
-            # An old avatar is better than none; ask Gravatar again in RETRY_SECONDS.
-            try:
-                os.utime(cached[1], (_retry_mtime(now),) * 2)
-            except OSError:
-                pass
-            return _read(*cached[:2])
-        try:
-            # Try again in RETRY_SECONDS rather than on every page load.
-            _write(paths[_MISSING], b"", mtime=_retry_mtime(now))
-            _remove_others(paths, _MISSING)
-        except OSError:
-            pass
-        return None
+        return _after_failed_fetch(paths, cached, now)
 
     keep = _MISSING if result is None else _TYPE_TO_EXT[result[0]]
     try:
@@ -210,6 +217,17 @@ def forget(email_hash):
         _unlink_quietly(path)
 
 
+def _goes(name, age, known_hashes):
+    """Whether the cleanup deletes this cache file: a temporary file left behind, a file of a
+    removed account, or one nobody has used for KEEP_SECONDS. Files that are not ours stay."""
+    if name.startswith(".tmp-"):
+        return age > TMP_KEEP_SECONDS
+    stem, _dot, ext = name.partition(".")
+    if not (_HASH.fullmatch(stem) and ext in [*_FORMATS, _MISSING]):
+        return False  # not ours
+    return age > KEEP_SECONDS or stem not in known_hashes
+
+
 def prune(known_hashes, now=None, dry_run=False):
     """Delete cache files of accounts not in `known_hashes`, and any file older than
     KEEP_SECONDS; returns how many files that is (or would be, with `dry_run`)."""
@@ -220,18 +238,11 @@ def prune(known_hashes, now=None, dry_run=False):
     count = 0
     for name in os.listdir(folder):
         path = os.path.join(folder, name)
-        stem, _dot, ext = name.partition(".")
         try:
             age = now - os.path.getmtime(path)
         except OSError:
             continue
-        if name.startswith(".tmp-"):
-            old = age > TMP_KEEP_SECONDS
-        elif _HASH.fullmatch(stem) and ext in [*_FORMATS, _MISSING]:
-            old = age > KEEP_SECONDS
-        else:
-            continue  # not ours
-        if not old and (name.startswith(".tmp-") or stem in known_hashes):
+        if not _goes(name, age, known_hashes):
             continue
         if dry_run or _unlink_quietly(path):
             count += 1
