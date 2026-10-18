@@ -61,6 +61,11 @@ def test_a_visitor_can_switch_ranges_and_click_the_chart_without_saving_anything
     assert page.evaluate("chart.data.labels.length") == 8
     box = page.locator("#weight-chart").bounding_box()
     # A point of the line; on the dashboard it jumps to its day in the daily log, which is not here.
-    page.mouse.click(box["x"] + box["width"] * 0.8, box["y"] + box["height"] / 2)
-    assert page.evaluate("chart.getActiveElements().length") == 1  # it hit the line (and errors have arrived)
+    # Chart.js handles pointer events on the next animation frame: wait for the hover to find the
+    # point, and after the click for two frames, so an error from its handler has happened.
+    x, y = box["x"] + box["width"] * 0.8, box["y"] + box["height"] / 2
+    page.mouse.move(x, y)
+    page.wait_for_function("chart.getActiveElements().length > 0")
+    page.mouse.click(x, y)
+    page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))")
     assert requests == []  # a visitor's choice is not saved anywhere
