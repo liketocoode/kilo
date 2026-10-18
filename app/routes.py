@@ -300,6 +300,17 @@ def _invalid_request():
     return jsonify(error=_("Invalid request.")), 400
 
 
+def _clear_day(user, entry):
+    """Delete a day's entry, if it has one: `save_field`'s answer to an emptied weight."""
+    removed = None
+    if entry is not None:
+        # Sent back so the page can offer "Undo": saving these again restores the entry.
+        removed = {"weight": entry.weight, "note": entry.note or ""}
+        db.session.delete(entry)
+        db.session.commit()
+    return jsonify(status="cleared", removed=removed, **overview(user))
+
+
 @bp.route("/entries/field", methods=["POST"])
 @login_required
 def save_field():
@@ -322,13 +333,7 @@ def save_field():
 
     weight_raw = data.get("weight")
     if weight_raw in (None, ""):
-        removed = None
-        if entry is not None:
-            # Sent back so the page can offer "Undo": saving these again restores the entry.
-            removed = {"weight": entry.weight, "note": entry.note or ""}
-            db.session.delete(entry)
-            db.session.commit()
-        return jsonify(status="cleared", removed=removed, **overview(user))
+        return _clear_day(user, entry)
 
     # Plain decimals only, "80.5" or "80,5": float() would also take "1e2", "1_0", "nan"... A JSON
     # number goes through the same check as text (80.5 -> "80.5"), so true, NaN and the like do not.
